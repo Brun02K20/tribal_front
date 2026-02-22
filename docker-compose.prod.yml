@@ -4,14 +4,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    network_mode: "host"
     env_file:
       - ./backend/.env
     environment:
       NODE_ENV: production
-      PORT: 3000
-    ports:
-      - "3001:3000"
+      PORT: 3001
     restart: unless-stopped
+
 
   frontend:
     container_name: tribal_frontend
@@ -22,8 +22,10 @@ services:
       NODE_ENV: production
       PORT: 3000
       NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_URL: http://localhost:3001
     ports:
-      - "3000:3000"
+      - "3002:3000"
     depends_on:
       - backend
     restart: unless-stopped
+
