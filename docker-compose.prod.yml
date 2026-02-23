@@ -22,10 +22,9 @@ services:
       NODE_ENV: production
       PORT: 3000
       NEXT_TELEMETRY_DISABLED: "1"
-      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_API_URL: https://api.tribaltrend.com.ar
     ports:
       - "3002:3000"
     depends_on:
       - backend
     restart: unless-stopped
-

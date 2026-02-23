@@ -1,0 +1,149 @@
+INICIALIZACION:
+1. Comprar VPS
+2. Comprar dominio
+3. En el VPS, instalas un Sistema Operativo: Linux con Cyberpanel
+4. Tenes 2 usuarios: admin que vas a usar para cyberpanel, y root que vas a usar para conectarte via SSH
+5. Para entrar a cyberpanel vas a: https://vps-5704287-x.dattaweb.com:8090/base/ y te logueas con admin y su password
+6. Para entrar a cloud server via SSH vas: 
+Cuenta donweb -> Mis Servicios -> Cloud -> Software y accesos -> SSH 
+y copias todas las credenciales de ahi
+
+
+CREAR BASES DE DATOS: 
+1. Vas a Cyberpanel, te logueas con admin
+2. Crear base de DATOS
+3. Manejar acceso remoto -> poner TU IP
+4. Listo, ya podes acceder a BD de forma remota con tu equipo de desarrollo
+
+
+REGLAS FIREWALL DONWEB A MODIFICAR: 
+1. Puerto del backend: Solo tu IP
+2. Puerto del frontend: 0.0.0.0/0 todos pueden acceder
+3. Puerto de cyberpanel: Solo tu IP
+4. Puerto de BD: IP de red interna de docker + tu IP
+
+
+VINCULAR TU GITHUB AL CLOUD: 
+1. Iniciar sesion en tu cloud mediante SSH
+2. ssh-keygen -t ed25519 -C "tu@email.com" el email de tu cuenta de github
+cat ~/.ssh/id_ed25519.pub esto te va a dar una ssh key, copiala
+3. Copiá la clave pública y agregala en GitHub → Settings → SSH keys.
+4. clonas el repo que quieras mediante SSH
+
+
+CONFIGURAR MI DOMININO: 
+1. Vas a donweb -> mis servicios -> cloud -> dominios y DNS -> configurar dominio -> agregar dominio
+ahi pones el dominio y el vps al que queres asociarlo
+
+CREAR SUBDOMINIOS
+1.  Vas a donweb -> mis servicios -> dominios-> gestionar -> ir a nameservers y DNS -> agregar registro
+2. Registro tipo A, api.dominio, ip del cloud server
+
+INSTALAR DOCKER EN CLOUD SERVER: 
+sudo apt install docker.io
+sudo apt install docker-compose
+docker login -u tuusername de docker, te va a pedir que ingreses la contraseña
+
+MODIFICAR CONFIGURACION MYSQL:
+sudo nano /etc/mysql/mariadb.conf.d/50-server.cnf
+bind-address = 0.0.0.0 modificas esa linea, guardas y salir
+sudo systemctl restart mysql
+
+
+VARIABLES DE ENTORNO Y ESTRUCTURA DOCKER-COMPOSE PARA CONEXION A BD: 
+En produccion el docker-compose es distinto, al igual que variables de ENTORNO
+ver los archivos docker.compose y .env (del backend los .env)
+En produccion tirar el comando: 
+docker-compose -f docker-compose.prod.yml up --build -d
+
+
+INSTALAR NGINX: 
+sudo apt install nginx -y
+sudo systemctl start nginx
+sudo systemctl enable nginx
+
+Para poder usar NGINX, tenes que sacar lo que ocupe el puerto 80:
+sudo netstat -tulpn | grep :80 con esto ves que usa el puerto 80
+
+En mi caso fue esto:
+sudo systemctl stop lsws
+sudo systemctl disable lsws
+
+sudo systemctl start nginx
+sudo systemctl enable nginx
+sudo nginx -t
+sudo systemctl status nginx
+
+
+
+CERTIFICADOS SSL DE DOMINIO PARA MI APLICACION + PROXY INVERSO CON NGINX
+sudo apt install certbot python3-certbot-nginx -y
+sudo certbot --nginx -d tribaltrend.com.ar -d www.tribaltrend.com.ar -d api.tribaltrend.com.ar
+
+Tardan 2hs en activarse los certificados
+Ese comando lo que tendria que hacer es configurar https automaticamente, si no lo hace hacelo manuualmente:
+Para verificar como lo hizo, hace:
+sudo nano /etc/nginx/sites-available/tribaltrend
+
+server {
+    listen 80;
+    server_name tribaltrend.com.ar www.tribaltrend.com.ar;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name tribaltrend.com.ar www.tribaltrend.com.ar;
+
+    ssl_certificate /etc/letsencrypt/live/tribaltrend.com.ar/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tribaltrend.com.ar/privkey.pem;
+
+    location / {
+        proxy_pass http://localhost:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+server {
+    listen 80;
+    server_name api.tribaltrend.com.ar;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name api.tribaltrend.com.ar;
+
+    ssl_certificate /etc/letsencrypt/live/tribaltrend.com.ar/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tribaltrend.com.ar/privkey.pem;
+
+    location / {
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+
+Todo eso va en 
+/etc/nginx/sites-available/tribaltrend
+
+Si toda esa configuracion esta bien, la tenes que replicar en sites-enabled: 
+sudo ln -s /etc/nginx/sites-available/tribaltrend /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+
+Y deshabilitar el sitio por defecto de nginx:
+sudo rm /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+
