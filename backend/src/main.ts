@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { connectToDatabase } from './database/database';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { sendTestEmail } from './utils/mail/smtp';
 
 async function bootstrap() {
   await connectToDatabase();
@@ -28,5 +29,6 @@ async function bootstrap() {
     credentials: true,
   });
   await app.listen(process.env.PORT ?? 3000);
+  await sendTestEmail();
 }
 bootstrap();
