@@ -1,0 +1,9 @@
+te vas a google cloud
+free trial
+vas a la consola y creas un nuevo proyecto
+te vas a apis y servicios
+vas a oauth y de ahi a clients
+Te creas el cliente 
+pones origenes autorizados como localhost y tu dominino de produccion junto con su apis
+
+Una vez hecho eso toca codearlo tal cual lo hice, ver codigo y archivos .env

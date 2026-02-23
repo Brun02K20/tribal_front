@@ -1,0 +1,19 @@
+Seguir el tutorial de la IA de donweb y para codigo el de este video: 
+https://youtu.be/W6hrb2VIJc0?si=oPM0na2IyILDuxUQ
+
+El tutorial de la IA basicamente es: 
+1. Agregar tu dominio en EnvíaloSimple:
+Ingresá a tu servicio de Email Transaccional
+Hacé clic en "Añadir dominio"
+Escribí el subdominio que querés usar (ej: mail.tudominio.com)
+
+2. Configurar registros DNS:
+Una vez agregado el dominio, vas a ver 4 registros que tenés que configurar en la zona DNS:
+SPF, DKIM, RETURN PATH y DNS CHALLENGE
+Copiá cada registro exactamente como aparece, sin modificaciones
+
+3. Verificar en EnvíaloSimple:
+Una vez configurados todos los registros, presioná "Comprobar registros"
+Los cambios DNS pueden tardar hasta 24 horas
+
+4. Programar mediante SMTP con el video
