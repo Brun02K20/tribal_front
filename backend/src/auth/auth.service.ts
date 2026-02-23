@@ -6,27 +6,10 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Usuarios } from './models/Usuarios';
+import { GoogleInput, GoogleTokenInfo, LoginInput, RegisterInput } from './types/auth.types';
 
 const jwtExpiresInSeconds = Number(process.env.JWT_EXPIRES_IN_SECONDS ?? 86400);
 
-type BaseUserInput = {
-	nombre: string;
-	username?: string;
-	email: string;
-	telefono?: string;
-	id_rol?: number;
-};
-
-type RegisterInput = BaseUserInput & { password: string };
-type LoginInput = { email: string; password: string };
-type GoogleInput = BaseUserInput & { idToken: string };
-
-type GoogleTokenInfo = {
-	sub: string;
-	email: string;
-	email_verified?: string;
-	name?: string;
-};
 
 @Injectable()
 export class AuthService {
