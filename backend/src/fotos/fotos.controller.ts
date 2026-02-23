@@ -7,8 +7,9 @@ import SftpSingleton from '../utils/sftp/sftp_instance';
 import { upload } from '../utils/sftp/upload';
 import { FotosService } from './fotos.service';
 
-const REMOTE_BASE_PATH = '/root/tribal_trend/files';
+const REMOTE_BASE_PATH = '/var/www/tribal_trend/files';
 const PUBLIC_FILES_PATH = '/files';
+const PUBLIC_BASE_URL = 'https://tribaltrend.com.ar';
 
 @ApiTags('Fotos')
 @Controller('fotos')
@@ -75,11 +76,6 @@ export class FotosController {
 	}
 
 	private buildPublicUrl(req: Request, fileName: string): string {
-		const envBaseUrl =
-			process.env.PUBLIC_FILES_BASE_URL?.trim() ??
-			process.env.PUBLIC_BASE_URL?.trim() ??
-			'';
-		const baseUrl = envBaseUrl ? envBaseUrl.replace(/\/+$/g, '') : `${req.protocol}://${req.get('host')}`;
-		return `${baseUrl}${PUBLIC_FILES_PATH}/${fileName}`;
+		return `${PUBLIC_BASE_URL}${PUBLIC_FILES_PATH}/${fileName}`;
 	}
 }
