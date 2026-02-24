@@ -28,7 +28,7 @@ async function bootstrap() {
     origin: process.env.FRONTEND_URL?.split(',') ?? true,
     credentials: true,
   });
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3001);
   // await sendTestEmail();
 }
 bootstrap();

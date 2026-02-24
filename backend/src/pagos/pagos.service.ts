@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, HttpException } from '@nestjs/common';
 import { client, Preference, mpMode } from '../mercadopago/mercadopago';
 import { Payment as MPayment } from 'mercadopago'
 
@@ -51,8 +51,11 @@ export class PagosService {
             }else {
 
             }
-        } catch(e){
-            return { message: 'Error processing payment notification', status: 500}
+		} catch (error) {
+			if (error instanceof HttpException) {
+				throw error;
+			}
+			throw new BadRequestException('Error processing payment notification');
         }
     }
 }
