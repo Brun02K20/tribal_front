@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useRegisterLogin } from "@/src/hooks/useRegisterLogin";
 import type { LoginFormValues } from "@/types/auth";
+import { useRouter } from 'next/navigation';
+import { paymentsService } from "@/src/services/payments/payments.service";
 
 export default function LoginPage() {
   const {
@@ -19,6 +21,13 @@ export default function LoginPage() {
   });
   const { loading, error, googleContainerRef, submitWithPassword, setupGoogleButton } =
     useRegisterLogin({ mode: "login" });
+
+    const router = useRouter();
+
+    const handleMPRedirect = async () => {
+      const mp_link = await paymentsService.createPaymentPreference(1, 1); // Reemplaza con guestId y productId reales
+      router.push(mp_link); // Redirige a la página de pago de MercadoPago
+    }
 
   useEffect(() => {
     return setupGoogleButton();
@@ -64,6 +73,10 @@ export default function LoginPage() {
       <p className="mt-6 text-sm">
         ¿No tenés cuenta? <Link href="/register" className="underline">Registrate</Link>
       </p>
+
+      <button className="mt-4 w-full rounded-md bg-gray-200 p-2 text-black" onClick={handleMPRedirect}>
+        Pagar con MercadoPago
+      </button>
     </main>
   );
 }
