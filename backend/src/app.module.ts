@@ -9,9 +9,22 @@ import { CiudadesModule } from './ciudades/ciudades.module';
 import { CategoriasModule } from './categorias/categorias.module';
 import { SubcategoriasModule } from './subcategorias/subcategorias.module';
 import { EstadosPedidosModule } from './estadopedidos/estadopedido.module';
+import { UsuariosModule } from './auth/usuarios/usuarios.module';
+import { ProductosModule } from './productos/productos.module';
 
 @Module({
-  imports: [ProvinciasModule, AuthModule, FotosModule, PagosModule, CiudadesModule, CategoriasModule, SubcategoriasModule, EstadosPedidosModule],
+  imports: [
+    ProvinciasModule, 
+    AuthModule,
+    FotosModule, 
+    PagosModule, 
+    CiudadesModule, 
+    CategoriasModule,
+    SubcategoriasModule,
+    EstadosPedidosModule,
+    UsuariosModule,
+    ProductosModule
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

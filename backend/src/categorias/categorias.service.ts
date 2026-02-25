@@ -2,6 +2,7 @@
 import { Injectable, NotFoundException, BadRequestException, HttpException } from '@nestjs/common';
 import { Categorias } from './models/Categorias';
 import { Subcategorias } from 'src/subcategorias/models/Subcategorias';
+import { Productos } from 'src/productos/models/Productos';
 import type { CategoriaListResponse } from './types/categorias.types';
 import { CreateCategoriaDto, SuccessDeleteCategoriaDto } from './DTOs/categorias.dto';
 
@@ -184,7 +185,12 @@ export class CategoriasService {
                 where: { id_categoria: id },
             });
 
+            const productosToDelete = await Productos.findAll({
+                where: { id_categoria: id },
+            });
+
             await Promise.all(subcategoriasToDelete.map((subcategoria) => subcategoria.update({ esActivo: false })));
+            await Promise.all(productosToDelete.map((producto) => producto.update({ es_activo: false })))
             await categoria.update({ esActivo: false });
 
             return {

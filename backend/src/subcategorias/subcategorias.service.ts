@@ -2,6 +2,7 @@
 import { Injectable, NotFoundException, BadRequestException, HttpException } from '@nestjs/common';
 import { Subcategorias } from './models/Subcategorias';
 import { Categorias } from 'src/categorias/models/Categorias';
+import { Productos } from 'src/productos/models/Productos';
 import type { SubcategoriaListResponse } from './types/subcategorias.types';
 import { CategoriasService } from 'src/categorias/categorias.service';
 import { CreateSubcategoriaDto, SuccessDeleteSubcategoriaDto, SubcategoriaResponseDto } from './DTOs/subcategorias.dto';
@@ -185,6 +186,10 @@ export class SubcategoriasService {
             await subcategoria.update({
                 esActivo: false,
             });
+            await Productos.update(
+                { es_activo: false },
+                { where: { id_subcategoria: id } },
+            );
 
             return {
                 id: subcategoria.id,

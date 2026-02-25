@@ -4,7 +4,7 @@ import { sequelize } from '../../database/database';
 interface FotoAttributes {
 	id: number;
 	url: string;
-	id_producto: number | null;
+	id_producto: number;
 	es_activo: number;
 }
 
@@ -16,7 +16,7 @@ export class Fotos
 {
 	declare id: number;
 	declare url: string;
-	declare id_producto: number | null;
+	declare id_producto: number;
 	declare es_activo: number;
 }
 
@@ -34,8 +34,7 @@ Fotos.init(
 		},
 		id_producto: {
 			type: DataTypes.INTEGER,
-			allowNull: true,
-			defaultValue: null,
+			allowNull: false,
 		},
 		es_activo: {
 			type: DataTypes.TINYINT,

@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../../database/database';
+import { Productos } from 'src/productos/models/Productos';
 
 interface SubcategoriaAttributes {
     id: number;
@@ -54,3 +55,13 @@ Subcategorias.init(
         timestamps: false,
     },
 );
+
+Subcategorias.hasMany(Productos, {
+    foreignKey: 'id_subcategoria',
+    as: 'productos',
+});
+
+Productos.belongsTo(Subcategorias, {
+    foreignKey: 'id_subcategoria',
+    as: 'subcategoria',
+});

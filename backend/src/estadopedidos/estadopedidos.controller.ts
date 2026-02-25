@@ -1,9 +1,11 @@
 
-import { Controller, Get, Post, Body, Put, Delete, Param, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Put, Delete, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { EstadoPedidosService } from './estadopedido.service';
 import { CreateEstadoPedidoDto, EstadoPedidoResponseDto, SuccessDeleteEstadoPedidoDto } from './DTOs/estadopedidos.dto';
 import type { EstadoPedidoListResponse } from './types/estadopedidos.types';
+import { AuthGuard } from 'src/auth/utils/auth.guard';
+import { Role1Guard } from 'src/auth/utils/role1.guard';
 
 @ApiTags('Estados de Pedidos')
 @Controller('estados-pedidos')
@@ -16,6 +18,8 @@ export class EstadosPedidosController {
         return this.estadosPedidosService.findAll();
     }
 
+    @UseGuards(AuthGuard, Role1Guard)
+    @ApiBearerAuth('bearer')
     @Get(':id')
     @ApiOkResponse({ type: EstadoPedidoResponseDto })
     @ApiParam({ name: 'id', type: Number, description: 'ID of the estadoPedido', example: 1 })
@@ -23,6 +27,8 @@ export class EstadosPedidosController {
         return this.estadosPedidosService.findById(id);
     }
 
+    @UseGuards(AuthGuard, Role1Guard)
+    @ApiBearerAuth('bearer')
     @Post()
     @ApiBody({ type: CreateEstadoPedidoDto })
     @ApiOkResponse({ type: EstadoPedidoResponseDto })
@@ -30,6 +36,8 @@ export class EstadosPedidosController {
         return this.estadosPedidosService.createEstadoPedido(createEstadoPedidoDto);
     }
 
+    @UseGuards(AuthGuard, Role1Guard)
+    @ApiBearerAuth('bearer')
     @Put(':id')
     @ApiParam({ name: 'id', type: Number, description: 'ID of the estadoPedido to update', example: 1 })
     @ApiBody({ type: CreateEstadoPedidoDto })
@@ -38,6 +46,8 @@ export class EstadosPedidosController {
         return this.estadosPedidosService.updateEstadoPedido(id, updateEstadoPedidoDto);
     }
 
+    @UseGuards(AuthGuard, Role1Guard)
+    @ApiBearerAuth('bearer')
     @Put('toggle/:id')
     @ApiParam({ name: 'id', type: Number, description: 'ID of the estadoPedido to toggle', example: 1 })
     @ApiOkResponse({ type: EstadoPedidoResponseDto })
@@ -45,6 +55,8 @@ export class EstadosPedidosController {
         return this.estadosPedidosService.toggleActivateEstadoPedido(id);
     }
 
+    @UseGuards(AuthGuard, Role1Guard)
+    @ApiBearerAuth('bearer')
     @Delete(':id')
     @ApiParam({ name: 'id', type: Number, description: 'ID of the estadoPedido to delete', example: 1 })
     @ApiOkResponse({ type: SuccessDeleteEstadoPedidoDto })

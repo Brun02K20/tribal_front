@@ -13,7 +13,7 @@ import { Direcciones } from './direcciones/models/Direcciones';
 
 @Injectable()
 export class UsuariosService {
-    constructor(private readonly jwtService: JwtService) { }
+    constructor() { }
 
     async updateAccountConfig(userId: number, data: AccountConfigDto): Promise<SuccessConfigUpdateDto> {
         try {

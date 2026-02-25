@@ -13,7 +13,16 @@ async function bootstrap() {
     .setTitle('Tribal API')
     .setDescription('Documentación del monolito backend (NestJS)')
     .setVersion('1.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        in: 'header',
+      },
+      'bearer',
+    )
+    .addSecurityRequirements('bearer')
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);

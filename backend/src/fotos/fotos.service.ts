@@ -1,19 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { Fotos } from './models/Fotos';
+import { CreateProductFotosDto } from './DTOs/fotos.dto';
 
 @Injectable()
 export class FotosService {
-	async create(url: string, id_producto: number | null = null) {
-		const foto = await Fotos.create({
-			url,
-			id_producto,
-		});
-
-		return {
+	async bulkCreate(fotos: CreateProductFotosDto[]): Promise<{ id: number; url: string; id_producto: number;}[]> {
+		const createdFotos = await Fotos.bulkCreate(fotos);
+		return createdFotos.map(foto => ({
 			id: foto.id,
 			url: foto.url,
 			id_producto: foto.id_producto,
-			es_activo: foto.es_activo,
-		};
+		}));
 	}
 }

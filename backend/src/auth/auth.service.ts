@@ -14,7 +14,7 @@ import {
 	RegisterInput,
 } from './types/auth.types';
 
-const jwtExpiresInSeconds = Number(process.env.JWT_EXPIRES_IN_SECONDS ?? 86400);
+const jwtExpiresInSeconds = Number(process.env.JWT_EXPIRES_IN_SECONDS ?? 604800);
 
 @Injectable()
 export class AuthService {
