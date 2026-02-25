@@ -1,9 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsInt, IsString } from 'class-validator';
 
 export class ProvinciaDto {
   @ApiProperty({ example: 1 })
-  id: number = 0;
+  @IsInt()
+  id!: number;
 
   @ApiProperty({ example: 'Buenos Aires' })
-  nombre: string = '';
+  @IsString()
+  nombre!: string;
 }

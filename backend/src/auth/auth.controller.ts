@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiBody, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import type {
+import {
 	GoogleLoginDto,
 	GoogleRegisterDto,
 	LoginDto,

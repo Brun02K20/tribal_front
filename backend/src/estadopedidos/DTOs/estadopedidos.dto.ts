@@ -1,25 +1,32 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsBoolean, IsInt, IsString } from 'class-validator';
 
 export class CreateEstadoPedidoDto {
   @ApiProperty({ example: 'Macramé' })
-  nombre: string = '';
+  @IsString()
+  nombre!: string;
 }
 
 export class SuccessDeleteEstadoPedidoDto {
   @ApiProperty({ example: 1 })
-  id: number = 0;
+  @IsInt()
+  id!: number;
 
   @ApiProperty({ example: 'EstadoPedido deleted successfully' })
-  message: string = '';
+  @IsString()
+  message!: string;
 }
 
 export class EstadoPedidoResponseDto {
   @ApiProperty({ example: 1 })
-  id: number = 0;
+  @IsInt()
+  id!: number;
 
   @ApiProperty({ example: 'Macramé' })
-  nombre: string = '';
+  @IsString()
+  nombre!: string;
 
   @ApiProperty({ example: true })
-  esActivo: boolean = false;
+  @IsBoolean()
+  esActivo!: boolean;
 }

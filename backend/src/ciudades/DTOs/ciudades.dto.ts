@@ -1,12 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsInt, IsString } from 'class-validator';
 
 export class CiudadDto {
   @ApiProperty({ example: 1 })
-  id: number = 0;
+  @IsInt()
+  id!: number;
 
   @ApiProperty({ example: 'Colonia Caroya' })
-  nombre: string = '';
+  @IsString()
+  nombre!: string;
 
   @ApiProperty({ example: 1 })
-  id_provincia: number = 0;
+  @IsInt()
+  id_provincia!: number;
 }

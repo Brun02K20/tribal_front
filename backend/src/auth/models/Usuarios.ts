@@ -1,5 +1,6 @@
-import { DataTypes, Model, Optional } from 'sequelize';
+import { DataTypes, Model, NonAttribute, Optional } from 'sequelize';
 import { sequelize } from '../../database/database';
+import { Direcciones } from '../usuarios/direcciones/models/Direcciones';
 
 interface UsuarioAttributes {
 	id: number;
@@ -27,6 +28,9 @@ export class Usuarios
 	declare password_hash: string | null;
 	declare google_id: string | null;
 	declare id_rol: number;
+
+	// asociación cargada por include
+    declare direcciones?: NonAttribute<Direcciones[]>;
 }
 
 Usuarios.init(
@@ -76,3 +80,13 @@ Usuarios.init(
 		timestamps: false,
 	},
 );
+
+Usuarios.hasMany(Direcciones, {
+	foreignKey: 'id_usuario',
+	as: 'direcciones',
+});
+
+Direcciones.belongsTo(Usuarios, {
+	foreignKey: 'id_usuario',
+	as: 'usuario',
+});

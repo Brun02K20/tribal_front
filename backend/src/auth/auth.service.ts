@@ -1,5 +1,6 @@
 import {
 	BadRequestException,
+	HttpException,
 	Injectable,
 	UnauthorizedException,
 } from '@nestjs/common';
@@ -40,7 +41,7 @@ export class AuthService {
 			return this.buildAuthResponse(user);
 		} catch (error) {
 			console.error('Error during registration:', error);
-			if (error instanceof BadRequestException) {
+			if (error instanceof HttpException) {
 				throw error;
 			}
 			throw new BadRequestException('Error al registrar el usuario');
@@ -69,7 +70,7 @@ export class AuthService {
 			return this.buildAuthResponse(user);
 		} catch (error) {
 			console.error('Error during login:', error);
-			if (error instanceof UnauthorizedException) {
+			if (error instanceof HttpException) {
 				throw error;
 			}
 			throw new UnauthorizedException('Error al iniciar sesión');
@@ -110,7 +111,7 @@ export class AuthService {
 			return this.buildAuthResponse(user);
 		} catch (error) {
 			console.error('Error during Google registration:', error);
-			if (error instanceof BadRequestException) {
+			if (error instanceof HttpException) {
 				throw error;
 			}
 			throw new BadRequestException('Error al registrar con Google');
@@ -143,7 +144,7 @@ export class AuthService {
 			return this.buildAuthResponse(user);
 		} catch (error) {
 			console.error('Error during Google login:', error);
-			if (error instanceof UnauthorizedException) {
+			if (error instanceof HttpException) {
 				throw error;
 			}
 			throw new UnauthorizedException('Error al iniciar sesión con Google');

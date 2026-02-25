@@ -1,33 +1,42 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsBoolean, IsInt, IsString } from 'class-validator';
 
 export class SubcategoriaResponseDto {
   @ApiProperty({ example: 1 })
-  id: number = 0;
+  @IsInt()
+  id!: number;
 
   @ApiProperty({ example: 'Deco' })
-  nombre: string = '';
+  @IsString()
+  nombre!: string;
 
     @ApiProperty({ example: 1 })
-    id_categoria: number = 0;
+    @IsInt()
+    id_categoria!: number;
 
     @ApiProperty({ example: true })
-    esActivo: boolean = false;
+    @IsBoolean()
+    esActivo!: boolean;
 };
 
 
 export class CreateSubcategoriaDto {
   @ApiProperty({ example: 'Deco' })
-  nombre: string = '';
+  @IsString()
+  nombre!: string;
 
   @ApiProperty({ example: 1 })
-  id_categoria: number = 0;
+  @IsInt()
+  id_categoria!: number;
 }
 
 export class SuccessDeleteSubcategoriaDto {
   @ApiProperty({ example: 1 })
-  id: number = 0;
+  @IsInt()
+  id!: number;
 
   @ApiProperty({ example: 'Subcategoria deleted successfully' })
-  message: string = '';
+  @IsString()
+  message!: string;
 }
 

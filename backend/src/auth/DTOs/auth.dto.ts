@@ -1,26 +1,78 @@
-export type RegisterDto = {
-  nombre: string;
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEmail, IsInt, IsOptional, IsString } from 'class-validator';
+
+export class RegisterDto {
+  @ApiProperty({ example: 'Juan Perez' })
+  @IsString()
+  nombre!: string;
+
+  @ApiPropertyOptional({ example: 'juanp' })
+  @IsOptional()
+  @IsString()
   username?: string;
-  email: string;
+
+  @ApiProperty({ example: 'juan@example.com' })
+  @IsEmail()
+  email!: string;
+
+  @ApiPropertyOptional({ example: '+54 11 5555-1234' })
+  @IsOptional()
+  @IsString()
   telefono?: string;
-  password: string;
+
+  @ApiProperty({ example: 'P4ssw0rd!' })
+  @IsString()
+  password!: string;
+
+  @ApiPropertyOptional({ example: 2 })
+  @IsOptional()
+  @IsInt()
   id_rol?: number;
-};
+}
 
-export type LoginDto = {
-  email: string;
-  password: string;
-};
+export class LoginDto {
+  @ApiProperty({ example: 'juan@example.com' })
+  @IsEmail()
+  email!: string;
 
-export type GoogleRegisterDto = {
-  idToken: string;
+  @ApiProperty({ example: 'P4ssw0rd!' })
+  @IsString()
+  password!: string;
+}
+
+export class GoogleRegisterDto {
+  @ApiProperty({ example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...google-id-token...' })
+  @IsString()
+  idToken!: string;
+
+  @ApiPropertyOptional({ example: 'Juan Perez' })
+  @IsOptional()
+  @IsString()
   nombre?: string;
-  username?: string;
-  email?: string;
-  telefono?: string;
-  id_rol?: number;
-};
 
-export type GoogleLoginDto = {
-  idToken: string;
-};
+  @ApiPropertyOptional({ example: 'juanp' })
+  @IsOptional()
+  @IsString()
+  username?: string;
+
+  @ApiPropertyOptional({ example: 'juan@example.com' })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @ApiPropertyOptional({ example: '+54 11 5555-1234' })
+  @IsOptional()
+  @IsString()
+  telefono?: string;
+
+  @ApiPropertyOptional({ example: 2 })
+  @IsOptional()
+  @IsInt()
+  id_rol?: number;
+}
+
+export class GoogleLoginDto {
+  @ApiProperty({ example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...google-id-token...' })
+  @IsString()
+  idToken!: string;
+}
