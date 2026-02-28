@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, HttpException } from '@nestjs/common';
+import { Injectable, BadRequestException, HttpException, NotFoundException } from '@nestjs/common';
 import { client, Preference, mpMode } from '../mercadopago/mercadopago';
 import { Op } from 'sequelize';
 import { Direcciones } from 'src/auth/usuarios/direcciones/models/Direcciones';
@@ -8,7 +8,14 @@ import { Categorias } from 'src/categorias/models/Categorias';
 import { Subcategorias } from 'src/subcategorias/models/Subcategorias';
 import { Ciudades } from 'src/ciudades/models/Ciudades';
 import { Provincias } from 'src/provincias/models/Provincias';
+import { Pedidos } from './models/Pedidos';
+import { DetallePedidos } from 'src/detallepedido/models/DetallePedidos';
 import { CreatePedidoDto, DetallePedidoCreateDto } from './DTOs/createpedido.dto';
+import { DetallePedidoResponseDto } from './DTOs/getpedido.dto';
+import { Envios } from 'src/envios/models/Envios';
+import { Pagos } from 'src/pagos/models/Pagos';
+import { EstadoPedidos } from 'src/estadopedidos/models/EstadoPedidos';
+import { EstadoEnvios } from 'src/estadoenvios/models/EstadoEnvios';
 
 @Injectable()
 export class PedidosService {
@@ -219,6 +226,389 @@ export class PedidosService {
                 throw error;
             }
             throw new BadRequestException('Error creating pedido');
+        }
+    }
+
+    async getAllPedidosForAdmin(): Promise<DetallePedidoResponseDto[]> {
+        try {
+            const pedidos = await Pedidos.findAll({
+                include: [
+                    {
+                        model: DetallePedidos,
+                        as: 'detallePedidos',
+                        attributes: ['id', 'id_producto', 'subtotal', 'unidades'],
+                        include: [
+                            {
+                                model: Productos,
+                                as: 'producto',
+                                attributes: ['id', 'nombre', 'precio', 'id_categoria', 'id_subcategoria'],
+                                include: [
+                                    {
+                                        model: Categorias,
+                                        as: 'categoria',
+                                        attributes: ['id', 'nombre'],
+                                    },
+                                    {
+                                        model: Subcategorias,
+                                        as: 'subcategoria',
+                                        attributes: ['id', 'nombre'],
+                                    }
+                                ]
+                            },
+                        ],
+                    },
+                    {
+                        model: Envios,
+                        as: 'envio',
+                        attributes: ['id', 'id_estado_envio', 'ancho_paquete', 'alto_paquete', 'profundo_paquete', 'costo_envio', 'id_direccion'],
+                        include: [
+                            {
+                                model: EstadoEnvios,
+                                as: 'estado_envio',
+                                attributes: ['id', 'nombre'],
+                            },
+                            {
+                                model: Direcciones,
+                                as: 'direccion',
+                                attributes: ['id', 'calle', 'altura', 'cod_postal_destino'],
+                                include: [
+                                    {
+                                        model: Ciudades,
+                                        as: 'ciudad',
+                                        attributes: ['id', 'nombre'],
+                                    },
+                                    {
+                                        model: Provincias,
+                                        as: 'provincia',
+                                        attributes: ['id', 'nombre'],
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        model: Usuarios,
+                        as: 'usuario',
+                        attributes: ['id', 'nombre', 'email', 'telefono'],
+                    },
+                    {
+                        model: Pagos,
+                        as: 'pago',
+                        attributes: ['id', 'monto_total', 'fecha_pago', 'aprobado'],
+                    },
+                    {
+                        model: EstadoPedidos,
+                        as: 'estadoPedido',
+                        attributes: ['id', 'nombre'],
+                    }
+                ],
+            });
+
+            return pedidos.map((pedido) => ({
+                id: pedido.id,
+                fecha_pedido: pedido.fecha_pedido ? new Date(pedido.fecha_pedido).toISOString() : '',
+                costo_total_productos: Number(pedido.costo_total_productos),
+                costo_envio: Number(pedido.costo_envio),
+                costo_ganancia_envio: Number(pedido.costo_ganancia_envio),
+                usuario: {
+                    id: pedido.usuario?.id ?? 0,
+                    nombre: pedido.usuario?.nombre ?? '',
+                    email: pedido.usuario?.email ?? '',
+                    telefono: pedido.usuario?.telefono ?? '',
+                },
+                pago: {
+                    id: pedido.pago?.id ?? 0,
+                    monto_total: Number(pedido.pago?.monto_total ?? 0),
+                    fecha_pago: pedido.pago?.fecha_pago ? new Date(pedido.pago.fecha_pago).toISOString() : '',
+                    aprobado: Boolean(pedido.pago?.aprobado),
+                },
+                envio: {
+                    id: pedido.envio?.id ?? 0,
+                    ancho_paquete: Number(pedido.envio?.ancho_paquete ?? 0),
+                    alto_paquete: Number(pedido.envio?.alto_paquete ?? 0),
+                    profundo_paquete: Number(pedido.envio?.profundo_paquete ?? 0),
+                    estado_envio: {
+                        nombre: pedido.envio?.estado_envio?.nombre ?? '',
+                    },
+                    direccion: {
+                        provincia: {
+                            nombre: pedido.envio?.direccion?.provincia?.nombre ?? '',
+                        },
+                        ciudad: {
+                            nombre: pedido.envio?.direccion?.ciudad?.nombre ?? '',
+                        },
+                        calle: pedido.envio?.direccion?.calle ?? '',
+                        altura: pedido.envio?.direccion?.altura ?? '',
+                        cod_postal_destino: pedido.envio?.direccion?.cod_postal_destino ?? '',
+                    },
+                },
+                estado_pedido: {
+                    nombre: pedido.estadoPedido?.nombre ?? '',
+                },
+            }));
+
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new BadRequestException('Error fetching pedidos');
+        }
+    }
+
+    async getPedidoById(id: number): Promise<DetallePedidoResponseDto> {
+        try {
+            const pedido = await Pedidos.findByPk(id, {
+                include: [
+                    {
+                        model: DetallePedidos,
+                        as: 'detallePedidos',
+                        attributes: ['id', 'id_producto', 'subtotal', 'unidades'],
+                        include: [
+                            {
+                                model: Productos,
+                                as: 'producto',
+                                attributes: ['id', 'nombre', 'precio', 'id_categoria', 'id_subcategoria'],
+                                include: [
+                                    {
+                                        model: Categorias,
+                                        as: 'categoria',
+                                        attributes: ['id', 'nombre'],
+                                    },
+                                    {
+                                        model: Subcategorias,
+                                        as: 'subcategoria',
+                                        attributes: ['id', 'nombre'],
+                                    }
+                                ]
+                            },
+                        ],
+                    },
+                    {
+                        model: Envios,
+                        as: 'envio',
+                        attributes: ['id', 'id_estado_envio', 'ancho_paquete', 'alto_paquete', 'profundo_paquete', 'costo_envio', 'id_direccion'],
+                        include: [
+                            {
+                                model: EstadoEnvios,
+                                as: 'estado_envio',
+                                attributes: ['id', 'nombre'],
+                            },
+                            {
+                                model: Direcciones,
+                                as: 'direccion',
+                                attributes: ['id', 'calle', 'altura', 'cod_postal_destino'],
+                                include: [
+                                    {
+                                        model: Ciudades,
+                                        as: 'ciudad',
+                                        attributes: ['id', 'nombre'],
+                                    },
+                                    {
+                                        model: Provincias,
+                                        as: 'provincia',
+                                        attributes: ['id', 'nombre'],
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        model: Usuarios,
+                        as: 'usuario',
+                        attributes: ['id', 'nombre', 'email', 'telefono'],
+                    },
+                    {
+                        model: Pagos,
+                        as: 'pago',
+                        attributes: ['id', 'monto_total', 'fecha_pago', 'aprobado'],
+                    },
+                    {
+                        model: EstadoPedidos,
+                        as: 'estadoPedido',
+                        attributes: ['id', 'nombre'],
+                    }
+                ],
+            })
+
+            if (!pedido) {
+                throw new NotFoundException('Pedido no encontrado');
+            }
+
+            return {
+                id: pedido.id,
+                fecha_pedido: pedido.fecha_pedido ? new Date(pedido.fecha_pedido).toISOString() : '',
+                costo_total_productos: Number(pedido.costo_total_productos),
+                costo_envio: Number(pedido.costo_envio),
+                costo_ganancia_envio: Number(pedido.costo_ganancia_envio),
+                usuario: {
+                    id: pedido.usuario?.id ?? 0,
+                    nombre: pedido.usuario?.nombre ?? '',
+                    email: pedido.usuario?.email ?? '',
+                    telefono: pedido.usuario?.telefono ?? '',
+                },
+                pago: {
+                    id: pedido.pago?.id ?? 0,
+                    monto_total: Number(pedido.pago?.monto_total ?? 0),
+                    fecha_pago: pedido.pago?.fecha_pago ? new Date(pedido.pago.fecha_pago).toISOString() : '',
+                    aprobado: Boolean(pedido.pago?.aprobado),
+                },
+                envio: {
+                    id: pedido.envio?.id ?? 0,
+                    ancho_paquete: Number(pedido.envio?.ancho_paquete ?? 0),
+                    alto_paquete: Number(pedido.envio?.alto_paquete ?? 0),
+                    profundo_paquete: Number(pedido.envio?.profundo_paquete ?? 0),
+                    estado_envio: {
+                        nombre: pedido.envio?.estado_envio?.nombre ?? '',
+                    },
+                    direccion: {
+                        provincia: {
+                            nombre: pedido.envio?.direccion?.provincia?.nombre ?? '',
+                        },
+                        ciudad: {
+                            nombre: pedido.envio?.direccion?.ciudad?.nombre ?? '',
+                        },
+                        calle: pedido.envio?.direccion?.calle ?? '',
+                        altura: pedido.envio?.direccion?.altura ?? '',
+                        cod_postal_destino: pedido.envio?.direccion?.cod_postal_destino ?? '',
+                    },
+                },
+                estado_pedido: {
+                    nombre: pedido.estadoPedido?.nombre ?? '',
+                },
+            };
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new BadRequestException('Error fetching pedido by ID');
+        }
+    }
+
+    async getAllPedidosForUser(id_usuario: number): Promise<DetallePedidoResponseDto[]> {
+        try {
+            const pedidos = await Pedidos.findAll({
+                where: {
+                    id_usuario,
+                },
+                include: [
+                    {
+                        model: DetallePedidos,
+                        as: 'detallePedidos',
+                        attributes: ['id', 'id_producto', 'subtotal', 'unidades'],
+                        include: [
+                            {
+                                model: Productos,
+                                as: 'producto',
+                                attributes: ['id', 'nombre', 'precio', 'id_categoria', 'id_subcategoria'],
+                                include: [
+                                    {
+                                        model: Categorias,
+                                        as: 'categoria',
+                                        attributes: ['id', 'nombre'],
+                                    },
+                                    {
+                                        model: Subcategorias,
+                                        as: 'subcategoria',
+                                        attributes: ['id', 'nombre'],
+                                    }
+                                ]
+                            },
+                        ],
+                    },
+                    {
+                        model: Envios,
+                        as: 'envio',
+                        attributes: ['id', 'id_estado_envio', 'ancho_paquete', 'alto_paquete', 'profundo_paquete', 'costo_envio', 'id_direccion'],
+                        include: [
+                            {
+                                model: EstadoEnvios,
+                                as: 'estado_envio',
+                                attributes: ['id', 'nombre'],
+                            },
+                            {
+                                model: Direcciones,
+                                as: 'direccion',
+                                attributes: ['id', 'calle', 'altura', 'cod_postal_destino'],
+                                include: [
+                                    {
+                                        model: Ciudades,
+                                        as: 'ciudad',
+                                        attributes: ['id', 'nombre'],
+                                    },
+                                    {
+                                        model: Provincias,
+                                        as: 'provincia',
+                                        attributes: ['id', 'nombre'],
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        model: Usuarios,
+                        as: 'usuario',
+                        attributes: ['id', 'nombre', 'email', 'telefono'],
+                    },
+                    {
+                        model: Pagos,
+                        as: 'pago',
+                        attributes: ['id', 'monto_total', 'fecha_pago', 'aprobado'],
+                    },
+                    {
+                        model: EstadoPedidos,
+                        as: 'estadoPedido',
+                        attributes: ['id', 'nombre'],
+                    }
+                ]
+            });
+
+            return pedidos.map((pedido) => ({
+                id: pedido.id,
+                fecha_pedido: pedido.fecha_pedido ? new Date(pedido.fecha_pedido).toISOString() : '',
+                costo_total_productos: Number(pedido.costo_total_productos),
+                costo_envio: Number(pedido.costo_envio),
+                costo_ganancia_envio: Number(pedido.costo_ganancia_envio),
+                usuario: {
+                    id: pedido.usuario?.id ?? 0,
+                    nombre: pedido.usuario?.nombre ?? '',
+                    email: pedido.usuario?.email ?? '',
+                    telefono: pedido.usuario?.telefono ?? '',
+                },
+                pago: {
+                    id: pedido.pago?.id ?? 0,
+                    monto_total: Number(pedido.pago?.monto_total ?? 0),
+                    fecha_pago: pedido.pago?.fecha_pago ? new Date(pedido.pago.fecha_pago).toISOString() : '',
+                    aprobado: Boolean(pedido.pago?.aprobado),
+                },
+                envio: {
+                    id: pedido.envio?.id ?? 0,
+                    ancho_paquete: Number(pedido.envio?.ancho_paquete ?? 0),
+                    alto_paquete: Number(pedido.envio?.alto_paquete ?? 0),
+                    profundo_paquete: Number(pedido.envio?.profundo_paquete ?? 0),
+                    estado_envio: {
+                        nombre: pedido.envio?.estado_envio?.nombre ?? '',
+                    },
+                    direccion: {
+                        provincia: {
+                            nombre: pedido.envio?.direccion?.provincia?.nombre ?? '',
+                        },
+                        ciudad: {
+                            nombre: pedido.envio?.direccion?.ciudad?.nombre ?? '',
+                        },
+                        calle: pedido.envio?.direccion?.calle ?? '',
+                        altura: pedido.envio?.direccion?.altura ?? '',
+                        cod_postal_destino: pedido.envio?.direccion?.cod_postal_destino ?? '',
+                    },
+                },
+                estado_pedido: {
+                    nombre: pedido.estadoPedido?.nombre ?? '',
+                },
+            }));
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new BadRequestException('Error fetching pedido by ID');
         }
     }
 }
