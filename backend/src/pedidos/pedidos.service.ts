@@ -113,12 +113,17 @@ export class PedidosService {
 
             const preference = await new Preference(client).create({
                 body: {
-                    items: createPedidoDto.detalles.map((detalle: DetallePedidoCreateDto) => ({
-                        id: detalle.id_producto.toString(),
-                        title: productosById.get(detalle.id_producto)?.nombre ?? 'Producto Tribal Trend',
-                        quantity: detalle.unidades,
-                        unit_price: detalle.unidades > 0 ? Number(detalle.subtotal) / detalle.unidades : 0,
-                    })),
+                    items: createPedidoDto.detalles.map((detalle: DetallePedidoCreateDto) => {
+                        const nombreProducto = productosById.get(detalle.id_producto)?.nombre ?? 'Producto Tribal Trend';
+                        const subtotal = Number(detalle.subtotal);
+
+                        return {
+                            id: detalle.id_producto.toString(),
+                            title: `${nombreProducto} | unidades: ${detalle.unidades} | subtotal: $${subtotal.toFixed(2)}`,
+                            quantity: 1,
+                            unit_price: subtotal,
+                        };
+                    }),
                     back_urls: {
                         success: 'https://tribaltrend.com.ar/login',
                         failure: 'https://tribaltrend.com.ar/',

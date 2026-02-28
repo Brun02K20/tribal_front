@@ -1,73 +1,16 @@
-import { Controller, Logger, Param, ParseIntPipe, Post, Body } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Logger, Post } from '@nestjs/common';
 import {
-	ApiBadRequestResponse,
-	ApiInternalServerErrorResponse,
 	ApiOkResponse,
-	ApiOperation,
-	ApiParam,
 	ApiTags,
 } from '@nestjs/swagger';
-import {
-	BadRequestResponseDto,
-	InternalServerErrorResponseDto,
-	MercadoPagoPreferenceResponseDto,
-} from './DTOs/pagos.dto';
 import { PagosService } from './pagos.service';
 
 @ApiTags('Pagos')
 @Controller('pagos')
 export class PagosController {
+    private readonly logger = new Logger(PagosController.name);
+
 	constructor(private readonly pagosService: PagosService) {}
-
-	@Post('buywithmp/:guest_id/:product_id')
-	@ApiOperation({
-		summary: 'Crear preferencia de pago en Mercado Pago',
-		description:
-			'Genera una preferencia de pago y devuelve la URL de checkout de Mercado Pago.',
-	})
-	@ApiParam({
-		name: 'guest_id',
-		required: true,
-		type: Number,
-		example: 123,
-		description: 'Identificador del invitado/usuario comprador.',
-	})
-	@ApiParam({
-		name: 'product_id',
-		required: true,
-		type: Number,
-		example: 456,
-		description: 'Identificador del producto a comprar.',
-	})
-	@ApiOkResponse({
-		description: 'URL de checkout de Mercado Pago (init_point).',
-		type: MercadoPagoPreferenceResponseDto,
-	})
-	@ApiBadRequestResponse({
-		description:
-			'Parámetros inválidos. Ocurre cuando guest_id o product_id no son números enteros.',
-		type: BadRequestResponseDto,
-	})
-	@ApiInternalServerErrorResponse({
-		description: 'Error al crear la preferencia de pago en Mercado Pago.',
-		type: InternalServerErrorResponseDto,
-	})
-	async buyProductWithMP(
-		@Param('guest_id', ParseIntPipe) guest_id: number,
-		@Param('product_id', ParseIntPipe) product_id: number,
-	): Promise<MercadoPagoPreferenceResponseDto> {
-		Logger.debug(
-			`guest_id=${guest_id} product_id=${product_id}`,
-			'POST buywithmp/:guest_id/:product_id',
-		);
-
-		const init_point = await this.pagosService.buyProductWithMercadoPago(
-			guest_id,
-			product_id,
-		);
-
-		return { init_point };
-	}
 
     @Post('mercadopago/impact')
     @ApiOkResponse({
@@ -76,9 +19,22 @@ export class PagosController {
     async receiveMercadoPagoNotification(
         @Body() mercadoPagoDto: any
     ){
-        const paymentId = mercadoPagoDto.data.id;
-        Logger.debug(`paymentId=${paymentId}`,'POST /mercadopago/impact')
+        this.logger.log(`Webhook MercadoPago recibido`);
+        this.logger.debug(`Webhook raw payload=${JSON.stringify(mercadoPagoDto)}`);
+
+        const topic = mercadoPagoDto?.type ?? mercadoPagoDto?.topic ?? 'N/A';
+        const action = mercadoPagoDto?.action ?? 'N/A';
+        this.logger.debug(`Webhook metadata topic=${topic} action=${action}`);
+
+        const paymentId = mercadoPagoDto?.data?.id;
+        if (!paymentId) {
+            this.logger.error(`Webhook sin data.id. payload=${JSON.stringify(mercadoPagoDto)}`);
+            throw new BadRequestException('Webhook inválido: falta data.id');
+        }
+
+        this.logger.debug(`paymentId=${paymentId}`,'POST /mercadopago/impact');
         await this.pagosService.receivePaymentNotification(paymentId);
+        this.logger.log(`Webhook procesado para paymentId=${paymentId}`);
         return { message: 'Notificación de pago recibida correctamente' };
     }
 }

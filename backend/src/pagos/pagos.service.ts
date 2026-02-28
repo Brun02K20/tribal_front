@@ -1,5 +1,5 @@
-import { Injectable, BadRequestException, HttpException } from '@nestjs/common';
-import { client, Preference, mpMode } from '../mercadopago/mercadopago';
+import { Injectable, BadRequestException, HttpException, Logger } from '@nestjs/common';
+import { client } from '../mercadopago/mercadopago';
 import { Payment as MPayment } from 'mercadopago';
 import { sequelize } from 'src/database/database';
 import { Pedidos } from 'src/pedidos/models/Pedidos';
@@ -38,37 +38,7 @@ interface PaymentMetadata {
 
 @Injectable()
 export class PagosService {
-	async buyProductWithMercadoPago(
-		guest_id: number,
-		product_id: number,
-	): Promise<string> {
-		const preference = await new Preference(client).create({
-			body: {
-				items: [
-					{
-						id: product_id.toString(),
-						title: 'Producto Tribal Trend',
-						quantity: 1,
-						unit_price: 50,
-					},
-				],
-				back_urls: {
-					success: 'https://tribaltrend.com.ar/login',
-					failure: 'https://tribaltrend.com.ar/',
-					pending: 'https://tribaltrend.com.ar/',
-				},
-				auto_return: 'approved',
-				metadata: {
-					status: 'pending',
-					guest_id,
-					product_id,
-					integration_mode: mpMode,
-				},
-			},
-		});
-
-		return preference.init_point!;
-	}
+	private readonly logger = new Logger(PagosService.name);
 
 	// aca es donde se recibe la notificacion de pago de mercado pago, y se procesa el pago
 	// esta ruta debe ser la misma que se configura en el webhook de mercado pago
@@ -77,10 +47,21 @@ export class PagosService {
 	// crear el pago, el envio, el pedido, etc
 	async receivePaymentNotification(paymentId: string) {
 		try {
+			this.logger.log(`Webhook recibido. paymentId=${paymentId}`);
+
 			const res = await new MPayment(client).get({ id: paymentId });
 			const payment = JSON.parse(JSON.stringify(res));
+			this.logger.log(
+				`Pago consultado en MP. id=${payment.id} status=${payment.status} status_detail=${payment.status_detail ?? 'N/A'}`,
+			);
+			this.logger.debug(
+				`Pago MP resumen. transaction_amount=${payment.transaction_amount ?? 'N/A'} date_approved=${payment.date_approved ?? 'N/A'} external_reference=${payment.external_reference ?? 'N/A'}`,
+			);
 
 			if (payment.status !== 'approved') {
+				this.logger.warn(
+					`Se omite procesamiento porque status=${payment.status}. paymentId=${paymentId}`,
+				);
 				return;
 			}
 
@@ -90,7 +71,15 @@ export class PagosService {
 			const direccionId = Number(pedidoMetadata?.id_direccion);
 			const detalles = Array.isArray(metadata.productos) ? metadata.productos : [];
 
+			this.logger.log(
+				`Metadata parseada. usuarioId=${usuarioId} direccionId=${direccionId} cantidad_detalles=${detalles.length}`,
+			);
+			this.logger.debug(`Metadata completa=${JSON.stringify(metadata)}`);
+
 			if (!usuarioId || !direccionId || !detalles.length) {
+				this.logger.error(
+					`Metadata incompleta. metadata=${JSON.stringify(metadata)}`,
+				);
 				throw new BadRequestException('Metadata de pago incompleta para registrar pedido/pago/envio');
 			}
 
@@ -107,12 +96,18 @@ export class PagosService {
 				(await EstadoEnvios.findOne({ order: [['id', 'ASC']] }));
 
 			if (!estadoPedidoAprobado || !estadoEnvioPendiente) {
+				this.logger.error(
+					`Estados faltantes. estadoPedidoAprobado=${estadoPedidoAprobado?.id ?? 'null'} estadoEnvioPendiente=${estadoEnvioPendiente?.id ?? 'null'}`,
+				);
 				throw new BadRequestException('No se encontraron estados de pedido/envío configurados en BD');
 			}
 
 			const costoTotalProductos = Number(pedidoMetadata?.costo_total_productos ?? 0);
 			const costoEnvio = Number(pedidoMetadata?.costo_envio ?? 0);
 			const costoGananciaEnvio = Number(pedidoMetadata?.costo_ganancia_envio ?? 0);
+            const montoTotalPago = Number(
+                pedidoMetadata?.costo_total ?? metadata.costo_total ?? payment.transaction_amount ?? 0,
+            );
 
 			const anchoPaquete = detalles.reduce((max, detalle) => {
 				const valor = Number(detalle.medidas?.ancho ?? 0);
@@ -129,7 +124,14 @@ export class PagosService {
 				return total + valor;
 			}, 0);
 
+			this.logger.debug(
+				`Montos y medidas calculadas. costoTotalProductos=${costoTotalProductos} costoEnvio=${costoEnvio} costoGananciaEnvio=${costoGananciaEnvio} montoTotalPago=${montoTotalPago} anchoPaquete=${anchoPaquete} altoPaquete=${altoPaquete} profundoPaquete=${profundoPaquete}`,
+			);
+
 			await sequelize.transaction(async (transaction) => {
+				this.logger.log(`Iniciando transacción de persistencia para paymentId=${paymentId}`);
+				this.logger.debug(`Paso 1/4 creando Pedido`);
+
 				const pedido = await Pedidos.create(
 					{
 						id_usuario: usuarioId,
@@ -143,9 +145,12 @@ export class PagosService {
 					{ transaction },
 				);
 
+				this.logger.debug(`Pedido creado. pedidoId=${pedido.id}`);
+				this.logger.debug(`Paso 2/4 creando Pago`);
+
 				await Pagos.create(
 					{
-						monto_total: Number(pedidoMetadata?.costo_total ?? metadata.costo_total ?? payment.transaction_amount ?? 0),
+						monto_total: montoTotalPago,
 						fecha_pago: payment.date_approved ? new Date(payment.date_approved) : new Date(),
 						aprobado: true,
 						id_pedido: pedido.id,
@@ -153,6 +158,9 @@ export class PagosService {
 					},
 					{ transaction },
 				);
+
+				this.logger.debug(`Pago creado para pedidoId=${pedido.id}`);
+				this.logger.debug(`Paso 3/4 creando DetallePedidos. cantidad=${detalles.length}`);
 
 				await DetallePedidos.bulkCreate(
 					detalles.map((detalle) => ({
@@ -164,6 +172,9 @@ export class PagosService {
 					})),
 					{ transaction },
 				);
+
+				this.logger.debug(`DetallePedidos creados para pedidoId=${pedido.id}`);
+				this.logger.debug(`Paso 4/4 creando Envio`);
 
 				await Envios.create(
 					{
@@ -179,12 +190,68 @@ export class PagosService {
 					},
 					{ transaction },
 				);
+
+				this.logger.debug(`Envio creado para pedidoId=${pedido.id}`);
+
+				this.logger.log(`Transacción OK. paymentId=${paymentId} pedidoId=${pedido.id}`);
 			});
 		} catch (error) {
+			const errorDetails = this.buildErrorDetails(error);
+			this.logger.error(
+				`Fallo al procesar webhook paymentId=${paymentId}. error=${
+					error instanceof Error ? error.message : String(error)
+				}`,
+				error instanceof Error ? error.stack : undefined,
+			);
+			this.logger.error(`Detalle técnico error paymentId=${paymentId}: ${errorDetails}`);
+
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			throw new BadRequestException('Error processing payment notification');
+			throw new BadRequestException(
+				error instanceof Error
+					? `Error processing payment notification: ${error.message}`
+					: 'Error processing payment notification',
+			);
 		}
+	}
+
+	private buildErrorDetails(error: unknown): string {
+		if (!error || typeof error !== 'object') {
+			return String(error);
+		}
+
+		const errorObject = error as {
+			name?: string;
+			message?: string;
+			code?: string;
+			errors?: Array<{ message?: string; path?: string; validatorKey?: string }>;
+			parent?: {
+				code?: string;
+				errno?: number;
+				sqlState?: string;
+				sqlMessage?: string;
+				sql?: string;
+			};
+			original?: {
+				code?: string;
+				errno?: number;
+				sqlState?: string;
+				sqlMessage?: string;
+				sql?: string;
+			};
+		};
+
+		const validationDetails =
+			errorObject.errors?.map((item) => ({ message: item.message, path: item.path, validatorKey: item.validatorKey })) ?? [];
+
+		return JSON.stringify({
+			name: errorObject.name,
+			message: errorObject.message,
+			code: errorObject.code,
+			validationDetails,
+			parent: errorObject.parent,
+			original: errorObject.original,
+		});
 	}
 }
