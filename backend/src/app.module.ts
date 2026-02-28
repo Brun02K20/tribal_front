@@ -11,6 +11,7 @@ import { SubcategoriasModule } from './subcategorias/subcategorias.module';
 import { EstadosPedidosModule } from './estadopedidos/estadopedido.module';
 import { UsuariosModule } from './auth/usuarios/usuarios.module';
 import { ProductosModule } from './productos/productos.module';
+import { EstadosEnviosModule } from './estadoenvios/estadoenvios.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { ProductosModule } from './productos/productos.module';
     SubcategoriasModule,
     EstadosPedidosModule,
     UsuariosModule,
-    ProductosModule
+    ProductosModule,
+    EstadosEnviosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

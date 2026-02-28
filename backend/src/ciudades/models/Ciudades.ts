@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../../database/database';
+import { Direcciones } from 'src/auth/usuarios/direcciones/models/Direcciones';
 
 interface CiudadAttributes {
     id: number;
@@ -47,3 +48,13 @@ Ciudades.init(
         timestamps: false,
     },
 );
+
+Ciudades.hasMany(Direcciones, {
+    foreignKey: 'id_ciudad',
+    as: 'direcciones',
+});
+
+Direcciones.belongsTo(Ciudades, {
+    foreignKey: 'id_ciudad',
+    as: 'ciudad',
+});

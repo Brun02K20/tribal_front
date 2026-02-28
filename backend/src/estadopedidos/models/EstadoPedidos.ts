@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../../database/database';
-// import { Subcategorias } from 'src/subcategorias/models/Subcategorias';
+import { Pedidos } from 'src/pedidos/models/Pedidos';
 
 interface EstadoPedidoAttributes {
     id: number;
@@ -46,12 +46,12 @@ EstadoPedidos.init(
     },
 );
 
-// Categorias.hasMany(Subcategorias, {
-//     foreignKey: 'id_categoria',
-//     as: 'subcategorias',
-// });
+EstadoPedidos.hasMany(Pedidos, {
+    foreignKey: 'id_estado_pedido',
+    as: 'pedidos',
+});
 
-// Subcategorias.belongsTo(Categorias, {
-//     foreignKey: 'id_categoria',
-//     as: 'categoria',
-// });
+Pedidos.belongsTo(EstadoPedidos, {
+    foreignKey: 'id_estado_pedido',
+    as: 'estadoPedido',
+});

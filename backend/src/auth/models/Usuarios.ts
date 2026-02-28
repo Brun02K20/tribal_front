@@ -1,6 +1,8 @@
 import { DataTypes, Model, NonAttribute, Optional } from 'sequelize';
 import { sequelize } from '../../database/database';
 import { Direcciones } from '../usuarios/direcciones/models/Direcciones';
+import { Pedidos } from 'src/pedidos/models/Pedidos';
+import { Roles } from './Roles';
 
 interface UsuarioAttributes {
 	id: number;
@@ -31,7 +33,10 @@ export class Usuarios
 
 	// asociación cargada por include
     declare direcciones?: NonAttribute<Direcciones[]>;
+	declare pedidos?: NonAttribute<Pedidos[]>;
+	declare rol?: NonAttribute<Roles>;
 }
+
 
 Usuarios.init(
 	{
@@ -87,6 +92,16 @@ Usuarios.hasMany(Direcciones, {
 });
 
 Direcciones.belongsTo(Usuarios, {
+	foreignKey: 'id_usuario',
+	as: 'usuario',
+});
+
+Usuarios.hasMany(Pedidos, {
+	foreignKey: 'id_usuario',
+	as: 'pedidos',
+});
+
+Pedidos.belongsTo(Usuarios, {
 	foreignKey: 'id_usuario',
 	as: 'usuario',
 });

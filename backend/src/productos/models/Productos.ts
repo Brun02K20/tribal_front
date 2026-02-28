@@ -1,6 +1,7 @@
 import { DataTypes, Model, NonAttribute, Optional } from 'sequelize';
 import { sequelize } from '../../database/database';
 import { Fotos } from 'src/fotos/models/Fotos';
+import { DetallePedidos } from 'src/detallepedido/models/DetallePedidos';
 
 interface ProductoAttributes {
     id: number;
@@ -40,6 +41,7 @@ export class Productos
     declare fotos?: NonAttribute<Fotos[]>;
     declare categoria?: NonAttribute<{ id: number; nombre: string }>;
     declare subcategoria?: NonAttribute<{ id: number; nombre: string }>;
+    // declare detallePedidos?: NonAttribute<DetallePedidos[]>;
 }
 
 Productos.init(
@@ -110,6 +112,16 @@ Productos.hasMany(Fotos, {
 });
 
 Fotos.belongsTo(Productos, {
+    foreignKey: 'id_producto',
+    as: 'producto',
+});
+
+Productos.hasMany(DetallePedidos, {
+    foreignKey: 'id_producto',
+    as: 'detallePedidos',
+});
+
+DetallePedidos.belongsTo(Productos, {
     foreignKey: 'id_producto',
     as: 'producto',
 });
