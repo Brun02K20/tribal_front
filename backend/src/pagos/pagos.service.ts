@@ -8,6 +8,7 @@ import { DetallePedidos } from 'src/detallepedido/models/DetallePedidos';
 import { Envios } from 'src/envios/models/Envios';
 import { EstadoPedidos } from 'src/estadopedidos/models/EstadoPedidos';
 import { EstadoEnvios } from 'src/estadoenvios/models/EstadoEnvios';
+import { Productos } from 'src/productos/models/Productos';
 
 interface MetadataProducto {
 	id_producto: number;
@@ -192,6 +193,37 @@ export class PagosService {
 				);
 
 				this.logger.debug(`Envio creado para pedidoId=${pedido.id}`);
+
+				this.logger.debug(`Paso 5/5 descontando stock de productos`);
+
+				const unidadesPorProducto = detalles.reduce((acumulado, detalle) => {
+					const idProducto = Number(detalle.id_producto);
+					const unidades = Number(detalle.unidades);
+					const actual = acumulado.get(idProducto) ?? 0;
+					acumulado.set(idProducto, actual + unidades);
+					return acumulado;
+				}, new Map<number, number>());
+
+				for (const [idProducto, unidadesDescontar] of unidadesPorProducto.entries()) {
+					const producto = await Productos.findByPk(idProducto, { transaction, lock: transaction.LOCK.UPDATE });
+
+					if (!producto) {
+						throw new BadRequestException(`Producto no encontrado para descontar stock. id_producto=${idProducto}`);
+					}
+
+					const stockActual = Number(producto.stock ?? 0);
+					if (stockActual < unidadesDescontar) {
+						throw new BadRequestException(
+							`Stock insuficiente al confirmar pago para producto ${producto.nombre} (id=${idProducto}). stock=${stockActual}, requerido=${unidadesDescontar}`,
+						);
+					}
+
+					const nuevoStock = stockActual - unidadesDescontar;
+					await producto.update({ stock: nuevoStock }, { transaction });
+					this.logger.debug(
+						`Stock actualizado. productoId=${idProducto} stockAnterior=${stockActual} unidadesDescontadas=${unidadesDescontar} stockNuevo=${nuevoStock}`,
+					);
+				}
 
 				this.logger.log(`Transacción OK. paymentId=${paymentId} pedidoId=${pedido.id}`);
 			});
