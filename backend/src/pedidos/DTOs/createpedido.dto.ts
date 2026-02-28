@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsString, IsDecimal } from 'class-validator';
+import { IsInt, IsDecimal } from 'class-validator';
 export class DetallePedidoCreateDto {
     @ApiProperty({ example: 1 })
     @IsInt()
@@ -26,29 +26,24 @@ export class DetallePedidoCreateDto {
     profundo_producto!: number;
 }
 
-export class ListDetallePedidoCreateDto {
-    @ApiProperty({ type: [DetallePedidoCreateDto] })
-    detalles!: DetallePedidoCreateDto[];
-}
-
 export class CreatePedidoDto {
-    @ApiProperty({ example: 1 })
+    @ApiProperty({ example: 13 })
     @IsInt()
     id_usuario!: number;
 
-    @ApiProperty({ example: 1 })
+    @ApiProperty({ example: 19.97 })
     @IsDecimal()
     costo_total_productos!: number;
 
-    @ApiProperty({ example: 1 })
+    @ApiProperty({ example: 10 })
     @IsDecimal()
     costo_envio!: number;
 
-    @ApiProperty({ example: 1 })
+    @ApiProperty({ example: 5 })
     @IsDecimal()
     costo_ganancia_envio!: number;
 
-    @ApiProperty({type: ListDetallePedidoCreateDto})
+    @ApiProperty({ type: [DetallePedidoCreateDto] })
     detalles!: DetallePedidoCreateDto[];
 
     @ApiProperty({ example: 1 })
