@@ -12,6 +12,7 @@ import { EstadosPedidosModule } from './estadopedidos/estadopedido.module';
 import { UsuariosModule } from './auth/usuarios/usuarios.module';
 import { ProductosModule } from './productos/productos.module';
 import { EstadosEnviosModule } from './estadoenvios/estadoenvios.module';
+import { PedidosModule } from './pedidos/pedidos.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { EstadosEnviosModule } from './estadoenvios/estadoenvios.module';
     UsuariosModule,
     ProductosModule,
     EstadosEnviosModule,
+    PedidosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
