@@ -85,7 +85,7 @@ Envios.init(
     {
         sequelize,
         modelName: "Envios",
-        tableName: "envios",
+        tableName: "Envios",
         timestamps: false,
     },
 );

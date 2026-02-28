@@ -77,7 +77,7 @@ Pedidos.init(
     {
         sequelize,
         modelName: 'Pedidos',
-        tableName: 'pedidos',
+        tableName: 'Pedidos',
         timestamps: false,
     }
 );
