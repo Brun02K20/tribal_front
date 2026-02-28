@@ -49,7 +49,7 @@ export class CreatePedidoDto {
     costo_ganancia_envio!: number;
 
     @ApiProperty({type: ListDetallePedidoCreateDto})
-    detalles!: ListDetallePedidoCreateDto;
+    detalles!: DetallePedidoCreateDto[];
 
     @ApiProperty({ example: 1 })
     @IsInt()
