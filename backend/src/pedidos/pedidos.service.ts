@@ -12,6 +12,7 @@ import { Pedidos } from './models/Pedidos';
 import { DetallePedidos } from 'src/detallepedido/models/DetallePedidos';
 import { CreatePedidoDto, DetallePedidoCreateDto } from './DTOs/createpedido.dto';
 import { DetallePedidoResponseDto } from './DTOs/getpedido.dto';
+import { FindPedidosFiltersDto, PaginatedPedidosResponseDto } from './DTOs/find-pedidos-filters.dto';
 import { Envios } from 'src/envios/models/Envios';
 import { Pagos } from 'src/pagos/models/Pagos';
 import { EstadoPedidos } from 'src/estadopedidos/models/EstadoPedidos';
@@ -28,36 +29,27 @@ export class PedidosService {
         
     ) {}
 
-    private buildPedidoInclude() {
-        return [
-            {
-                model: DetallePedidos,
-                as: 'detallePedidos',
-                attributes: ['id', 'id_producto', 'subtotal', 'unidades'],
-                include: [
-                    {
-                        model: Productos,
-                        as: 'producto',
-                        attributes: ['id', 'nombre', 'precio', 'id_categoria', 'id_subcategoria', 'ancho', 'alto', 'profundo'],
-                        include: [
-                            {
-                                model: Categorias,
-                                as: 'categoria',
-                                attributes: ['id', 'nombre'],
-                            },
-                            {
-                                model: Subcategorias,
-                                as: 'subcategoria',
-                                attributes: ['id', 'nombre'],
-                            },
-                        ],
-                    },
-                ],
-            },
+    private buildPedidoInclude(params?: { includeDetalles?: boolean; idEstadoEnvio?: number; nombreUsuario?: string; emailUsuario?: string }) {
+        const includeDetalles = Boolean(params?.includeDetalles);
+        const idEstadoEnvio = params?.idEstadoEnvio;
+        const nombreUsuario = params?.nombreUsuario?.trim();
+        const emailUsuario = params?.emailUsuario?.trim();
+
+        const usuarioWhere: Record<string, unknown> = {};
+        if (nombreUsuario) {
+            usuarioWhere.nombre = { [Op.like]: `%${nombreUsuario}%` };
+        }
+        if (emailUsuario) {
+            usuarioWhere.email = { [Op.like]: `%${emailUsuario}%` };
+        }
+
+        const include: Record<string, unknown>[] = [
             {
                 model: Envios,
                 as: 'envio',
                 attributes: ['id', 'id_estado_envio', 'ancho_paquete', 'alto_paquete', 'profundo_paquete', 'costo_envio', 'id_direccion'],
+                required: idEstadoEnvio !== undefined,
+                where: idEstadoEnvio !== undefined ? { id_estado_envio: idEstadoEnvio } : undefined,
                 include: [
                     {
                         model: EstadoEnvios,
@@ -87,6 +79,8 @@ export class PedidosService {
                 model: Usuarios,
                 as: 'usuario',
                 attributes: ['id', 'nombre', 'email', 'telefono'],
+                required: Boolean(nombreUsuario || emailUsuario),
+                where: Object.keys(usuarioWhere).length ? usuarioWhere : undefined,
             },
             {
                 model: Pagos,
@@ -99,6 +93,130 @@ export class PedidosService {
                 attributes: ['id', 'nombre'],
             },
         ];
+
+        if (includeDetalles) {
+            include.unshift({
+                model: DetallePedidos,
+                as: 'detallePedidos',
+                attributes: ['id', 'id_producto', 'subtotal', 'unidades'],
+                include: [
+                    {
+                        model: Productos,
+                        as: 'producto',
+                        attributes: ['id', 'nombre', 'precio', 'id_categoria', 'id_subcategoria', 'ancho', 'alto', 'profundo'],
+                        include: [
+                            {
+                                model: Categorias,
+                                as: 'categoria',
+                                attributes: ['id', 'nombre'],
+                            },
+                            {
+                                model: Subcategorias,
+                                as: 'subcategoria',
+                                attributes: ['id', 'nombre'],
+                            },
+                        ],
+                    },
+                ],
+            });
+        }
+
+        return include;
+    }
+
+    private buildPedidosWhere(filters?: FindPedidosFiltersDto): Record<string, unknown> {
+        const where: Record<string, unknown> = {};
+
+        if (filters?.id_usuario !== undefined) {
+            where.id_usuario = filters.id_usuario;
+        }
+
+        if (filters?.id_estado_pedido !== undefined) {
+            where.id_estado_pedido = filters.id_estado_pedido;
+        }
+
+        const fechaMin = filters?.fecha_pedido_min ? new Date(filters.fecha_pedido_min) : null;
+        const fechaMax = filters?.fecha_pedido_max ? new Date(filters.fecha_pedido_max) : null;
+
+        if (fechaMin && Number.isNaN(fechaMin.getTime())) {
+            throw new BadRequestException('fecha_pedido_min inválida');
+        }
+
+        if (fechaMax && Number.isNaN(fechaMax.getTime())) {
+            throw new BadRequestException('fecha_pedido_max inválida');
+        }
+
+        if (fechaMin && fechaMax) {
+            where.fecha_pedido = { [Op.between]: [fechaMin, fechaMax] };
+        } else if (fechaMin) {
+            where.fecha_pedido = { [Op.gte]: fechaMin };
+        } else if (fechaMax) {
+            where.fecha_pedido = { [Op.lte]: fechaMax };
+        }
+
+        return where;
+    }
+
+    private normalizePage(page?: number): number {
+        if (!page || Number.isNaN(page) || page < 1) {
+            return 1;
+        }
+
+        return Math.trunc(page);
+    }
+
+    private normalizePageSize(pageSize?: number): number {
+        const defaultPageSize = 10;
+        if (!pageSize || Number.isNaN(pageSize) || pageSize < 1) {
+            return defaultPageSize;
+        }
+
+        const allowedPageSizes = [10, 15, 20];
+        if (!allowedPageSizes.includes(pageSize)) {
+            throw new BadRequestException('pageSize inválido. Valores permitidos: 10, 15, 20');
+        }
+
+        return pageSize;
+    }
+
+    private async findPedidosPaginated(params: {
+        page?: number;
+        pageSize?: number;
+        filters?: FindPedidosFiltersDto;
+    }): Promise<PaginatedPedidosResponseDto<DetallePedidoResponseDto>> {
+        const page = this.normalizePage(params.page);
+        const pageSize = this.normalizePageSize(params.pageSize);
+        const offset = (page - 1) * pageSize;
+        const filters = params.filters ?? {};
+
+        const where = this.buildPedidosWhere(filters);
+        const include = this.buildPedidoInclude({
+            includeDetalles: false,
+            idEstadoEnvio: filters.id_estado_envio,
+            nombreUsuario: filters.nombre_usuario,
+            emailUsuario: filters.email_usuario,
+        });
+
+        const { rows, count } = await Pedidos.findAndCountAll({
+            where,
+            include,
+            order: [['fecha_pedido', 'DESC'], ['id', 'DESC']],
+            limit: pageSize,
+            offset,
+            distinct: true,
+            subQuery: false,
+        });
+
+        const totalItems = Number(count);
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+        return {
+            page,
+            pageSize,
+            totalItems,
+            totalPages,
+            data: rows.map((pedido) => this.mapPedidoResponse(pedido)),
+        };
     }
 
     private mapPedidoResponse(pedido: Pedidos, includeDetalles = false): DetallePedidoResponseDto {
@@ -380,17 +498,13 @@ export class PedidosService {
         });
     }
 
-    async getAllPedidosForAdmin(): Promise<DetallePedidoResponseDto[]> {
-        const pedidos = await Pedidos.findAll({
-            include: this.buildPedidoInclude(),
-        });
-
-        return pedidos.map((pedido) => this.mapPedidoResponse(pedido));
+    async getAllPedidosForAdmin(page?: number, pageSize?: number): Promise<PaginatedPedidosResponseDto<DetallePedidoResponseDto>> {
+        return this.findPedidosPaginated({ page, pageSize });
     }
 
     async getPedidoById(id: number): Promise<DetallePedidoResponseDto> {
         const pedido = await Pedidos.findByPk(id, {
-            include: this.buildPedidoInclude(),
+            include: this.buildPedidoInclude({ includeDetalles: true }),
         });
 
         if (!pedido) {
@@ -400,15 +514,24 @@ export class PedidosService {
         return this.mapPedidoResponse(pedido, true);
     }
 
-    async getAllPedidosForUser(id_usuario: number): Promise<DetallePedidoResponseDto[]> {
-        const pedidos = await Pedidos.findAll({
-            where: {
-                id_usuario,
-            },
-            include: this.buildPedidoInclude(),
+    async getAllPedidosForUser(id_usuario: number, page?: number, pageSize?: number): Promise<PaginatedPedidosResponseDto<DetallePedidoResponseDto>> {
+        return this.findPedidosPaginated({
+            page,
+            pageSize,
+            filters: { id_usuario },
         });
+    }
 
-        return pedidos.map((pedido) => this.mapPedidoResponse(pedido));
+    async findPedidosByFilters(
+        filters: FindPedidosFiltersDto,
+        page?: number,
+        pageSize?: number,
+    ): Promise<PaginatedPedidosResponseDto<DetallePedidoResponseDto>> {
+        return this.findPedidosPaginated({
+            page,
+            pageSize,
+            filters,
+        });
     }
 
     async updateEstadoPedido(id_pedido: number, id_estado_pedido: number): Promise<DetallePedidoResponseDto> {

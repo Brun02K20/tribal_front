@@ -48,7 +48,7 @@ export default function CheckoutPage() {
 
   return (
     <main className="app-page">
-      <div className="app-container mx-auto max-w-4xl">
+      <div className="app-container mx-auto max-w-360">
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="app-title text-2xl">Checkout</h1>
@@ -131,6 +131,8 @@ export default function CheckoutPage() {
                     <p className="text-sm font-semibold">Subtotal: {formatCurrencyArs(item.precio * item.quantity)}</p>
 
                     <div className="mt-2 flex items-center gap-2">
+                      <div>
+                        <label className="mb-1 block text-xs text-dark-gray">Cantidad</label>
                       <input
                         type="number"
                         min={1}
@@ -138,7 +140,9 @@ export default function CheckoutPage() {
                         value={item.quantity}
                         onChange={(event) => updateItemQuantity(item.id, Number(event.target.value))}
                         className="app-input w-20"
+                        placeholder="Ej: 1"
                       />
+                      </div>
                       <button
                         onClick={() => removeCheckoutItem(item.id)}
                         className="app-btn-secondary px-2 py-1 text-sm"
@@ -186,33 +190,44 @@ export default function CheckoutPage() {
       )}
 
       {isAddressModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="app-panel w-full max-w-lg">
+        <div className="app-modal-backdrop">
+          <div className="app-modal-card max-w-lg p-4 sm:p-5">
             <h3 className="app-title text-xl">Nueva dirección</h3>
 
             <div className="mt-4 grid gap-3">
+              <div>
+                <label className="mb-1 block text-sm text-dark-gray">Código postal</label>
               <input
                 className="app-input"
-                placeholder="Código postal"
+                placeholder="Ej: X5000"
                 value={newAddress.cod_postal_destino}
                 onChange={(event) => changeNewAddressField("cod_postal_destino", event.target.value)}
               />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm text-dark-gray">Calle</label>
               <input
                 className="app-input"
-                placeholder="Calle"
+                placeholder="Ej: Av. Colón"
                 value={newAddress.calle}
                 onChange={(event) => changeNewAddressField("calle", event.target.value)}
               />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm text-dark-gray">Altura</label>
               <input
                 className="app-input"
-                placeholder="Altura"
+                placeholder="Ej: 1234"
                 inputMode="numeric"
                 value={newAddress.altura}
                 onChange={(event) =>
                   changeNewAddressField("altura", event.target.value.replace(/\D/g, ""))
                 }
               />
+              </div>
 
+              <div>
+                <label className="mb-1 block text-sm text-dark-gray">Provincia</label>
               <select
                 className="app-input"
                 value={newAddress.id_provincia}
@@ -225,7 +240,10 @@ export default function CheckoutPage() {
                   </option>
                 ))}
               </select>
+              </div>
 
+              <div>
+                <label className="mb-1 block text-sm text-dark-gray">Ciudad</label>
               <select
                 className="app-input"
                 value={newAddress.id_ciudad}
@@ -238,6 +256,7 @@ export default function CheckoutPage() {
                   </option>
                 ))}
               </select>
+              </div>
             </div>
 
             <div className="mt-5 flex justify-end gap-2">

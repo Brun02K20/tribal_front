@@ -31,13 +31,13 @@ export default function ProductPage() {
 
   return (
     <main className="app-page">
-      <div className="app-container mx-auto max-w-4xl">
+      <div className="app-container mx-auto max-w-360">
       <header className="mb-6 flex items-center justify-between">
         <Link href="/products" className="app-btn-secondary text-sm">
           Volver
         </Link>
-        <button onClick={goToCheckout} className="app-btn-primary">
-          Caja ({totalItems})
+        <button onClick={goToCheckout} className="app-btn-primary cursor-pointer">
+          Carrito ({totalItems})
         </button>
       </header>
 
@@ -117,13 +117,14 @@ export default function ProductPage() {
                 value={quantity}
                 onChange={(event) => updateQuantity(Number(event.target.value))}
                 className="app-input w-20"
+                placeholder="Ej: 1"
               />
             </div>
 
             <button
               onClick={addCurrentProductToCart}
               disabled={stock <= 0}
-              className="app-btn-primary mt-6 disabled:cursor-not-allowed disabled:opacity-60"
+              className="app-btn-primary mt-6 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
               Agregar al carrito
             </button>

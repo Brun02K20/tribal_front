@@ -143,3 +143,19 @@ export class ProductFiltersDto {
     @ApiProperty({ example: 100.00, required: false })
     precio_max?: number;
 }
+
+export class PaginatedProductsResponseDto<T> {
+    @ApiProperty({ example: 1 })
+    page!: number;
+
+    @ApiProperty({ example: 18 })
+    pageSize!: number;
+
+    @ApiProperty({ example: 280 })
+    totalItems!: number;
+
+    @ApiProperty({ example: 16 })
+    totalPages!: number;
+
+    data!: T[];
+}

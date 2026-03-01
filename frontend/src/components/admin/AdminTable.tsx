@@ -12,8 +12,8 @@ export default function AdminTable({
   const colSpan = headers.length;
 
   return (
-    <div className="mt-4 overflow-x-auto">
-      <table className={`w-full border-collapse overflow-hidden rounded-lg ${minWidthClassName ?? ""}`.trim()}>
+    <div className="mt-4 w-full max-w-full overflow-x-auto">
+      <table className={`min-w-full border-collapse overflow-hidden rounded-lg ${minWidthClassName ?? ""}`.trim()}>
         <thead>
           <tr className="bg-earth-brown text-cream">
             {headers.map((header) => (

@@ -99,3 +99,24 @@ export type CreatePedidoResponse = {
 };
 
 export type PedidoCliente = PedidoAdmin;
+
+export type PedidoFilters = {
+  id_usuario?: number;
+  nombre_usuario?: string;
+  email_usuario?: string;
+  fecha_pedido_min?: string;
+  fecha_pedido_max?: string;
+  id_estado_pedido?: number;
+  id_estado_envio?: number;
+};
+
+export type PedidosPagination = {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+};
+
+export type PaginatedPedidosResponse = PedidosPagination & {
+  data: PedidoAdmin[];
+};

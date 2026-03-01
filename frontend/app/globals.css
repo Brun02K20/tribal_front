@@ -21,15 +21,55 @@
   --color-earth-brown: var(--color-earth-brown);
   --color-earth-brown-soft: var(--color-earth-brown-soft);
   --color-line: var(--color-line);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-oldenburg);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-oldenburg), serif;
   min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  right: -4vw;
+  bottom: -8vh;
+  transform: scaleX(-1);
+  width: clamp(160px, 22vw, 420px);
+  aspect-ratio: 1 / 1;
+  background-image: url("/assets/leaf-svgrepo-com.svg");
+  background-repeat: no-repeat;
+  background-position: right bottom;
+  background-size: contain;
+  opacity: 0.78;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  width: clamp(280px, 52vw, 980px);
+  aspect-ratio: 1 / 1;
+  background-image: url("/icons/logo_tribal_trnasparente.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.34;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body > *:not(.app-leaves) {
+  position: relative;
+  z-index: 2;
 }
 
 a {
@@ -48,12 +88,20 @@ a {
 
 .app-panel {
   border: 1px solid var(--color-line);
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
   border-radius: 0.75rem;
   padding: 1rem;
+  box-shadow: 0 12px 26px rgba(47, 47, 47, 0.08);
+  transition: box-shadow 0.22s ease, transform 0.22s ease;
+}
+
+.app-panel:hover {
+  box-shadow: 0 16px 30px rgba(47, 47, 47, 0.12);
 }
 
 .app-title {
+  font-family: var(--font-medieval-sharp), serif;
   color: var(--color-black);
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -71,12 +119,15 @@ a {
   border-radius: 0.5rem;
   padding: 0.55rem 0.95rem;
   font-weight: 600;
-  transition: all 0.2s ease;
+  box-shadow: 0 6px 16px rgba(47, 47, 47, 0.16);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease, border-color 0.22s ease;
 }
 
 .app-btn-primary:hover {
   background: var(--color-black);
   border-color: var(--color-black);
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px rgba(122, 74, 43, 0.22), 0 8px 18px rgba(47, 47, 47, 0.22), 0 0 18px rgba(122, 74, 43, 0.35);
 }
 
 .app-btn-secondary {
@@ -85,25 +136,96 @@ a {
   border-radius: 0.5rem;
   padding: 0.55rem 0.95rem;
   font-weight: 600;
-  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 12px rgba(47, 47, 47, 0.08);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease;
+}
+
+.app-btn-primary,
+.app-btn-secondary,
+.app-nav-link,
+button,
+a {
+  cursor: pointer;
 }
 
 .app-btn-secondary:hover {
-  background: rgba(122, 74, 43, 0.1);
+  background: rgba(122, 74, 43, 0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(47, 47, 47, 0.12);
 }
 
 .app-input {
   width: 100%;
-  border: 1px solid var(--color-line);
-  background: #fff;
+  border: 1px solid rgba(122, 74, 43, 0.55);
+  background: rgba(255, 255, 255, 0.96);
   border-radius: 0.5rem;
   padding: 0.6rem 0.7rem;
   color: var(--color-black);
+  box-shadow: 0 4px 12px rgba(47, 47, 47, 0.09);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .app-input:focus {
-  outline: 2px solid rgba(122, 74, 43, 0.35);
+  outline: 2px solid rgba(122, 74, 43, 0.22);
   border-color: var(--color-earth-brown);
+  box-shadow: 0 0 0 2px rgba(122, 74, 43, 0.18), 0 8px 16px rgba(47, 47, 47, 0.14), 0 0 18px rgba(122, 74, 43, 0.3);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]),
+select,
+textarea {
+  border: 1px solid rgba(122, 74, 43, 0.42);
+  background: rgba(255, 255, 255, 0.93);
+  color: var(--color-black);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 10px rgba(47, 47, 47, 0.08);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-earth-brown);
+  box-shadow: 0 0 0 2px rgba(122, 74, 43, 0.18), 0 8px 16px rgba(47, 47, 47, 0.12), 0 0 14px rgba(122, 74, 43, 0.25);
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%237a4a2b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: calc(100% - 12px) 50%;
+  background-size: 16px 16px;
+  background-repeat: no-repeat;
+  padding-right: 2.25rem;
+}
+
+select::-ms-expand {
+  display: none;
+}
+
+.app-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 1rem;
+  background: rgba(17, 17, 17, 0.6);
+  backdrop-filter: blur(6px) saturate(110%);
+  animation: app-fade-in 0.2s ease-out;
+}
+
+.app-modal-card {
+  width: 100%;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border: 1px solid rgba(122, 74, 43, 0.45);
+  background: rgba(248, 243, 231, 0.97);
+  border-radius: 0.9rem;
+  box-shadow: 0 26px 50px rgba(17, 17, 17, 0.35), 0 0 0 1px rgba(122, 74, 43, 0.15);
+  animation: app-modal-in 0.22s ease-out;
 }
 
 .app-nav-link {
@@ -117,5 +239,75 @@ a {
 }
 
 main {
-  background: linear-gradient(180deg, rgba(248, 243, 231, 0.85) 0%, rgba(248, 243, 231, 1) 100%);
+  background: linear-gradient(180deg, rgba(248, 243, 231, 0.68) 0%, rgba(248, 243, 231, 0.86) 100%);
+}
+
+.app-leaves {
+  display: none;
+}
+
+.app-leaf {
+  position: absolute;
+  left: var(--leaf-left, 10%);
+  top: -12vh;
+  width: var(--leaf-width, 14px);
+  height: var(--leaf-height, 10px);
+  background-image: url("/assets/leaf-svgrepo-com.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: var(--leaf-opacity, 0.45);
+  filter: drop-shadow(0 2px 3px rgba(17, 17, 17, 0.15));
+  animation-name: leaf-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: var(--leaf-duration, 18s);
+  animation-delay: var(--leaf-delay, -4s);
+}
+
+@keyframes leaf-fall {
+  0% {
+    transform: translate3d(0, -12vh, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(var(--leaf-drift-a, 18px), 24vh, 0) rotate(110deg);
+  }
+  50% {
+    transform: translate3d(var(--leaf-drift-b, -14px), 50vh, 0) rotate(220deg);
+  }
+  75% {
+    transform: translate3d(var(--leaf-drift-c, 16px), 78vh, 0) rotate(300deg);
+  }
+  100% {
+    transform: translate3d(var(--leaf-drift-d, -12px), 120vh, 0) rotate(380deg);
+  }
+}
+
+@keyframes app-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes app-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-leaf,
+  .app-modal-backdrop,
+  .app-modal-card,
+  .app-panel,
+  .app-btn-primary,
+  .app-btn-secondary,
+  .app-input {
+    animation: none !important;
+    transition: none !important;
+  }
 }

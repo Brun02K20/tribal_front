@@ -34,20 +34,26 @@ export default function LoginPage() {
       footerLinkLabel="Registrate"
     >
       <form onSubmit={handleSubmit((values) => submitWithPassword(values))} className="space-y-3">
+        <div>
+          <label className="mb-1 block text-sm text-dark-gray">Email</label>
         <input
           className="app-input"
           type="email"
-          placeholder="Email"
+          placeholder="Ej: juan.perez@mail.com"
           {...register("email", getAuthEmailRules<LoginFormValues, "email">())}
         />
+        </div>
         {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
 
+        <div>
+          <label className="mb-1 block text-sm text-dark-gray">Contraseña</label>
         <input
           className="app-input"
           type="password"
-          placeholder="Password"
+          placeholder="Ej: MiClave123"
           {...register("password", getAuthPasswordRules<LoginFormValues, "password">())}
         />
+        </div>
         {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
 
         <button className="app-btn-primary w-full" type="submit" disabled={loading}>

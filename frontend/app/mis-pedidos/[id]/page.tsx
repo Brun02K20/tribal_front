@@ -20,7 +20,7 @@ export default function MiPedidoDetallePage() {
   return (
     <ProtectedRoute>
       <main className="app-page">
-        <section className="app-container mx-auto max-w-6xl">
+        <section className="app-container mx-auto max-w-360">
           <div className="mb-4">
             <Link href="/mis-pedidos" className="app-btn-secondary">
               Volver a mis pedidos

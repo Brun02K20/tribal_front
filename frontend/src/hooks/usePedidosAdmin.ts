@@ -4,7 +4,49 @@ import { useEffect, useState } from "react";
 import { pedidosService } from "@/src/services/pedidos/pedidos.service";
 import { useToast } from "@/src/context/ToastContext";
 import type { PedidoEstadoMode } from "@/types/admin-ui";
-import type { EstadoEnvioOption, EstadoPedidoOption, PedidoAdmin } from "@/types/pedidos";
+import type { EstadoEnvioOption, EstadoPedidoOption, PedidoAdmin, PedidoFilters } from "@/types/pedidos";
+
+type PedidoFiltersForm = {
+  nombre_usuario: string;
+  email_usuario: string;
+  fecha_pedido_min: string;
+  fecha_pedido_max: string;
+  id_estado_pedido: string;
+  id_estado_envio: string;
+};
+
+const DEFAULT_FILTERS_FORM: PedidoFiltersForm = {
+  nombre_usuario: "",
+  email_usuario: "",
+  fecha_pedido_min: "",
+  fecha_pedido_max: "",
+  id_estado_pedido: "",
+  id_estado_envio: "",
+};
+
+const normalizeFilters = (form: PedidoFiltersForm): PedidoFilters => {
+  const idEstadoPedido = Number(form.id_estado_pedido);
+  const idEstadoEnvio = Number(form.id_estado_envio);
+
+  return {
+    nombre_usuario: form.nombre_usuario.trim() || undefined,
+    email_usuario: form.email_usuario.trim() || undefined,
+    fecha_pedido_min: form.fecha_pedido_min || undefined,
+    fecha_pedido_max: form.fecha_pedido_max || undefined,
+    id_estado_pedido: Number.isFinite(idEstadoPedido) && idEstadoPedido > 0 ? idEstadoPedido : undefined,
+    id_estado_envio: Number.isFinite(idEstadoEnvio) && idEstadoEnvio > 0 ? idEstadoEnvio : undefined,
+  };
+};
+
+const hasFilters = (filters: PedidoFilters) =>
+  Boolean(
+    filters.nombre_usuario
+    || filters.email_usuario
+    || filters.fecha_pedido_min
+    || filters.fecha_pedido_max
+    || filters.id_estado_pedido
+    || filters.id_estado_envio,
+  );
 
 export function usePedidosAdmin() {
   const { showToast } = useToast();
@@ -14,6 +56,12 @@ export function usePedidosAdmin() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [filtersForm, setFiltersForm] = useState<PedidoFiltersForm>(DEFAULT_FILTERS_FORM);
+  const [appliedFilters, setAppliedFilters] = useState<PedidoFilters>({});
   const [selectedPedido, setSelectedPedido] = useState<PedidoAdmin | null>(null);
   const [editEstadoMode, setEditEstadoMode] = useState<PedidoEstadoMode | null>(null);
   const [isEstadoModalOpen, setIsEstadoModalOpen] = useState(false);
@@ -23,13 +71,18 @@ export function usePedidosAdmin() {
     setError(null);
 
     try {
+      const shouldUseFilters = hasFilters(appliedFilters);
       const [pedidosData, estadosPedidoData, estadosEnvioData] = await Promise.all([
-        pedidosService.getAllForAdmin(),
+        shouldUseFilters
+          ? pedidosService.findByFilters(appliedFilters, page, pageSize)
+          : pedidosService.getAllForAdmin(page, pageSize),
         pedidosService.getEstadosPedido(),
         pedidosService.getEstadosEnvio(),
       ]);
 
-      setPedidos(pedidosData);
+      setPedidos(pedidosData.data);
+      setTotalPages(pedidosData.totalPages);
+      setTotalItems(pedidosData.totalItems);
       setEstadosPedido(estadosPedidoData.filter((estado) => estado.esActivo));
       setEstadosEnvio(estadosEnvioData.filter((estado) => estado.esActivo));
     } catch (err) {
@@ -41,7 +94,39 @@ export function usePedidosAdmin() {
 
   useEffect(() => {
     void loadAll();
-  }, []);
+  }, [page, pageSize, appliedFilters]);
+
+  const updateFilterField = (field: keyof PedidoFiltersForm, value: string) => {
+    setFiltersForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const applyFilters = () => {
+    setPage(1);
+    setAppliedFilters(normalizeFilters(filtersForm));
+  };
+
+  const clearFilters = () => {
+    setFiltersForm(DEFAULT_FILTERS_FORM);
+    setAppliedFilters({});
+    setPage(1);
+  };
+
+  const goToPage = (nextPage: number) => {
+    if (nextPage < 1 || nextPage > totalPages || nextPage === page) {
+      return;
+    }
+
+    setPage(nextPage);
+  };
+
+  const changePageSize = (nextPageSize: number) => {
+    if (![10, 15, 20].includes(nextPageSize)) {
+      return;
+    }
+
+    setPageSize(nextPageSize);
+    setPage(1);
+  };
 
   const openPedidoEstadoModal = (pedido: PedidoAdmin) => {
     setSelectedPedido(pedido);
@@ -103,8 +188,18 @@ export function usePedidosAdmin() {
     selectedPedido,
     editEstadoMode,
     isEstadoModalOpen,
+    page,
+    pageSize,
+    totalPages,
+    totalItems,
+    filtersForm,
     currentEstadoId,
     currentOptions,
+    updateFilterField,
+    applyFilters,
+    clearFilters,
+    goToPage,
+    changePageSize,
     openPedidoEstadoModal,
     openEnvioEstadoModal,
     closeEstadoModal,

@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { PedidosService } from './pedidos.service';
 import { CreatePedidoDto } from './DTOs/createpedido.dto';
 import { DetallePedidoResponseDto } from './DTOs/getpedido.dto';
 import { UpdateEstadoEnvioDto, UpdateEstadoPedidoDto } from './DTOs/update-estados.dto';
+import { FindPedidosFiltersDto, PaginatedPedidosResponseDto } from './DTOs/find-pedidos-filters.dto';
 import { AuthGuard } from 'src/auth/utils/auth.guard';
 import { Role2Guard } from 'src/auth/utils/role2.guard';
 import { Role1Guard } from 'src/auth/utils/role1.guard';
@@ -49,11 +50,16 @@ export class PedidosController {
 	})
 	@ApiOkResponse({
 		description: 'Listado completo de pedidos.',
-		type: DetallePedidoResponseDto,
-		isArray: true,
+			type: Object,
 	})
-	async getAllPedidosForAdmin(): Promise<DetallePedidoResponseDto[]> {
-		return this.pedidosService.getAllPedidosForAdmin();
+		async getAllPedidosForAdmin(
+			@Query('page') page?: string,
+			@Query('pageSize') pageSize?: string,
+		): Promise<PaginatedPedidosResponseDto<DetallePedidoResponseDto>> {
+			return this.pedidosService.getAllPedidosForAdmin(
+				this.parseOptionalNumber(page),
+				this.parseOptionalNumber(pageSize),
+			);
 	}
 
 	@UseGuards(AuthGuard, Role1OrOwnerPedidoGuard)
@@ -67,13 +73,58 @@ export class PedidosController {
 	@ApiParam({ name: 'id_usuario', type: Number, description: 'ID del usuario', example: 13 })
 	@ApiOkResponse({
 		description: 'Listado de pedidos del usuario.',
-		type: DetallePedidoResponseDto,
-		isArray: true,
+		type: Object,
 	})
 	async getAllPedidosForUser(
 		@Param('id_usuario', ParseIntPipe) id_usuario: number,
-	): Promise<DetallePedidoResponseDto[]> {
-		return this.pedidosService.getAllPedidosForUser(id_usuario);
+		@Query('page') page?: string,
+		@Query('pageSize') pageSize?: string,
+	): Promise<PaginatedPedidosResponseDto<DetallePedidoResponseDto>> {
+		return this.pedidosService.getAllPedidosForUser(
+			id_usuario,
+			this.parseOptionalNumber(page),
+			this.parseOptionalNumber(pageSize),
+		);
+	}
+
+	@UseGuards(AuthGuard, Role1OrOwnerPedidoGuard)
+	@ApiBearerAuth('bearer')
+	@Get('filters')
+	@ApiOperation({
+		summary: 'Buscar pedidos por filtros (admin o dueño)',
+		description:
+			'Permite filtrar pedidos por usuario, mail, fechas y estados. Acceden administradores o el propio usuario dueño (en ese caso debe enviar id_usuario propio).',
+	})
+	@ApiOkResponse({
+		description: 'Listado paginado de pedidos filtrados.',
+		type: Object,
+	})
+	async findPedidosByFilters(
+		@Query('id_usuario') id_usuario?: string,
+		@Query('nombre_usuario') nombre_usuario?: string,
+		@Query('email_usuario') email_usuario?: string,
+		@Query('fecha_pedido_min') fecha_pedido_min?: string,
+		@Query('fecha_pedido_max') fecha_pedido_max?: string,
+		@Query('id_estado_pedido') id_estado_pedido?: string,
+		@Query('id_estado_envio') id_estado_envio?: string,
+		@Query('page') page?: string,
+		@Query('pageSize') pageSize?: string,
+	): Promise<PaginatedPedidosResponseDto<DetallePedidoResponseDto>> {
+		const filters: FindPedidosFiltersDto = {
+			id_usuario: this.parseOptionalNumber(id_usuario),
+			nombre_usuario: this.parseOptionalString(nombre_usuario),
+			email_usuario: this.parseOptionalString(email_usuario),
+			fecha_pedido_min: this.parseOptionalString(fecha_pedido_min),
+			fecha_pedido_max: this.parseOptionalString(fecha_pedido_max),
+			id_estado_pedido: this.parseOptionalNumber(id_estado_pedido),
+			id_estado_envio: this.parseOptionalNumber(id_estado_envio),
+		};
+
+		return this.pedidosService.findPedidosByFilters(
+			filters,
+			this.parseOptionalNumber(page),
+			this.parseOptionalNumber(pageSize),
+		);
 	}
 
 	@UseGuards(AuthGuard, Role1OrOwnerPedidoGuard)
@@ -133,6 +184,28 @@ export class PedidosController {
 		@Body() body: UpdateEstadoEnvioDto,
 	): Promise<DetallePedidoResponseDto> {
 		return this.pedidosService.updateEstadoEnvio(id, body.id_estado_envio);
+	}
+
+	private parseOptionalNumber(value?: string): number | undefined {
+		if (value === undefined || value === null || value === '') {
+			return undefined;
+		}
+
+		const parsed = Number(value);
+		if (!Number.isFinite(parsed)) {
+			throw new BadRequestException(`Valor numérico inválido: ${value}`);
+		}
+
+		return parsed;
+	}
+
+	private parseOptionalString(value?: string): string | undefined {
+		if (value === undefined || value === null) {
+			return undefined;
+		}
+
+		const trimmed = value.trim();
+		return trimmed.length ? trimmed : undefined;
 	}
 
     

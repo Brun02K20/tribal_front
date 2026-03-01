@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import type { EstadoModalFormValues, PedidoEstadoModalProps } from "@/types/admin-ui";
+import AppModal from "@/src/components/ui/AppModal";
 
 export default function PedidoEstadoModal({
   isOpen,
@@ -37,8 +38,9 @@ export default function PedidoEstadoModal({
   const title = mode === "pedido" ? "Elija el nuevo estado del pedido" : "Elija el nuevo estado del envio";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="app-panel w-full max-w-md">
+    <AppModal>
+      <div className="app-modal-backdrop">
+        <div className="app-modal-card max-w-md p-4 sm:p-5">
         <h3 className="app-title text-xl">{title}</h3>
 
         <form
@@ -76,7 +78,8 @@ export default function PedidoEstadoModal({
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
+    </AppModal>
   );
 }

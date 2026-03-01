@@ -1,23 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { MedievalSharp, Oldenburg } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/src/context/AuthContext";
 import { CartProvider } from "@/src/context/CartContext";
 import { ToastProvider } from "@/src/context/ToastContext";
 import AppHeader from "@/src/components/AppHeader";
+import AutumnLeavesBackground from "@/src/components/ui/AutumnLeavesBackground";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const siteName = "Tribal Trend";
 const siteDescription = "Tienda de artesanías";
 const logoPath = "/icons/logo_tribal_trnasparente.png";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const oldenburg = Oldenburg({
+  variable: "--font-oldenburg",
+  weight: "400",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const medievalSharp = MedievalSharp({
+  variable: "--font-medieval-sharp",
+  weight: "400",
   subsets: ["latin"],
 });
 
@@ -67,8 +70,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${oldenburg.variable} ${medievalSharp.variable} antialiased`}
       >
+        <AutumnLeavesBackground />
         <AuthProvider>
           <ToastProvider>
             <CartProvider>

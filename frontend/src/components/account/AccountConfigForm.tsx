@@ -57,7 +57,7 @@ export default function AccountConfigForm({ model }: AccountConfigFormProps) {
             <label className="mb-1 block text-sm font-medium text-dark-gray">Username</label>
             <input
               className="app-input"
-              placeholder="Tu username"
+              placeholder="Ej: juanperez"
               {...register("username")}
             />
           </div>
@@ -66,7 +66,7 @@ export default function AccountConfigForm({ model }: AccountConfigFormProps) {
             <label className="mb-1 block text-sm font-medium text-dark-gray">Teléfono</label>
             <input
               className="app-input"
-              placeholder="Tu teléfono"
+              placeholder="Ej: 3511234567"
               {...register("telefono")}
             />
           </div>
@@ -82,7 +82,7 @@ export default function AccountConfigForm({ model }: AccountConfigFormProps) {
           <input
             type="password"
             className="app-input"
-            placeholder="Nueva contraseña"
+            placeholder="Ej: MiClaveNueva123"
             {...register("password", {
               minLength: {
                 value: 6,
@@ -136,6 +136,7 @@ export default function AccountConfigForm({ model }: AccountConfigFormProps) {
                       <label className="mb-1 block text-sm font-medium text-dark-gray">Calle</label>
                       <input
                         className="app-input"
+                        placeholder="Ej: Av. Colón"
                         {...register(`direcciones.${index}.calle`, { required: "La calle es obligatoria" })}
                       />
                       {formState.errors.direcciones?.[index]?.calle && (
@@ -148,6 +149,7 @@ export default function AccountConfigForm({ model }: AccountConfigFormProps) {
                       <input
                         className="app-input"
                         inputMode="numeric"
+                        placeholder="Ej: 1234"
                         {...register(`direcciones.${index}.altura`, {
                           required: "La altura es obligatoria",
                           pattern: {
@@ -165,6 +167,7 @@ export default function AccountConfigForm({ model }: AccountConfigFormProps) {
                       <label className="mb-1 block text-sm font-medium text-dark-gray">Código postal</label>
                       <input
                         className="app-input"
+                        placeholder="Ej: X5000"
                         {...register(`direcciones.${index}.cod_postal_destino`, {
                           required: "El código postal es obligatorio",
                         })}

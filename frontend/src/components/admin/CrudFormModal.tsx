@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import type { CrudFormModalProps, CrudFormValues } from "@/types/admin-ui";
+import AppModal from "@/src/components/ui/AppModal";
 
 export default function CrudFormModal({
   isOpen,
@@ -35,8 +36,9 @@ export default function CrudFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="app-panel w-full max-w-md">
+    <AppModal>
+      <div className="app-modal-backdrop">
+        <div className="app-modal-card max-w-md p-4 sm:p-5">
         <h3 className="app-title text-xl">{title}</h3>
 
         <form className="mt-4 space-y-3" onSubmit={handleSubmit((values) => onSubmit(values))}>
@@ -66,7 +68,7 @@ export default function CrudFormModal({
                 ) : (
                   <input
                     type={field.type ?? "text"}
-                    placeholder={field.placeholder}
+                    placeholder={field.placeholder ?? `Ej: ${field.label}`}
                     className="app-input"
                     disabled={isView}
                     {...register(field.name as never, {
@@ -95,7 +97,8 @@ export default function CrudFormModal({
             )}
           </div>
         </form>
+        </div>
       </div>
-    </div>
+    </AppModal>
   );
 }

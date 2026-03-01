@@ -38,31 +38,46 @@ export default function RegisterPage() {
       footerLinkLabel="Iniciá sesión"
     >
       <form onSubmit={handleSubmit((values) => submitWithPassword(values))} className="space-y-3">
+        <div>
+          <label className="mb-1 block text-sm text-dark-gray">Nombre</label>
         <input
           className="app-input"
-          placeholder="Nombre"
+          placeholder="Ej: Juan Pérez"
           {...register("nombre", { required: "El nombre es obligatorio" })}
         />
+        </div>
         {errors.nombre && <p className="text-sm text-red-600">{errors.nombre.message}</p>}
 
-        <input className="app-input" placeholder="Username" {...register("username")} />
+        <div>
+          <label className="mb-1 block text-sm text-dark-gray">Username</label>
+          <input className="app-input" placeholder="Ej: juanperez" {...register("username")} />
+        </div>
 
+        <div>
+          <label className="mb-1 block text-sm text-dark-gray">Email</label>
         <input
           className="app-input"
           type="email"
-          placeholder="Email"
+          placeholder="Ej: juan.perez@mail.com"
           {...register("email", getAuthEmailRules<RegisterFormValues, "email">())}
         />
+        </div>
         {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
 
-        <input className="app-input" placeholder="Teléfono" {...register("telefono")} />
+        <div>
+          <label className="mb-1 block text-sm text-dark-gray">Teléfono</label>
+          <input className="app-input" placeholder="Ej: 3511234567" {...register("telefono")} />
+        </div>
 
+        <div>
+          <label className="mb-1 block text-sm text-dark-gray">Contraseña</label>
         <input
           className="app-input"
           type="password"
-          placeholder="Password"
+          placeholder="Ej: MiClave123"
           {...register("password", getAuthPasswordRules<RegisterFormValues, "password">())}
         />
+        </div>
         {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
 
         <button className="app-btn-primary w-full" type="submit" disabled={loading}>

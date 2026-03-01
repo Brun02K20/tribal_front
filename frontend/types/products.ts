@@ -45,3 +45,22 @@ export type ProductDeleteResponse = {
   id: number;
   message: string;
 };
+
+export type ProductFilters = {
+  nombre?: string;
+  id_categoria?: number;
+  id_subcategoria?: number;
+  precio_min?: number;
+  precio_max?: number;
+};
+
+export type ProductsPagination = {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+};
+
+export type PaginatedProductsResponse = ProductsPagination & {
+  data: Product[];
+};

@@ -35,7 +35,7 @@ export default function AuthPageShell({
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
         <p className="mt-6 text-sm app-subtitle">
-          {footerText} <Link href={footerHref} className="underline">{footerLinkLabel}</Link>
+          {footerText} <Link href={footerHref} className="cursor-pointer underline">{footerLinkLabel}</Link>
         </p>
       </section>
     </main>

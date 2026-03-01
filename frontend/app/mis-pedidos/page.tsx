@@ -6,15 +6,32 @@ import ErrorState from "@/src/components/ui/ErrorState";
 import LoadingState from "@/src/components/ui/LoadingState";
 import PedidosTable from "@/src/components/pedidos/PedidosTable";
 import { useMisPedidos } from "@/src/hooks/useMisPedidos";
+import PaginationControls from "@/src/components/ui/PaginationControls";
 
 export default function MisPedidosPage() {
   const { user } = useAuth();
-  const { pedidos, loading, error } = useMisPedidos();
+  const {
+    pedidos,
+    loading,
+    error,
+    page,
+    pageSize,
+    totalPages,
+    totalItems,
+    estadosPedido,
+    estadosEnvio,
+    filtersForm,
+    updateFilterField,
+    applyFilters,
+    clearFilters,
+    goToPage,
+    changePageSize,
+  } = useMisPedidos();
 
   return (
     <ProtectedRoute>
       <main className="app-page">
-        <section className="app-container mx-auto max-w-6xl">
+        <section className="app-container mx-auto max-w-360">
           <header className="mb-6">
             <h1 className="app-title text-2xl">Mis pedidos</h1>
             <p className="app-subtitle mt-2">
@@ -26,13 +43,77 @@ export default function MisPedidosPage() {
           {error && <ErrorState message={error} className="mb-4 text-sm text-red-600" />}
 
           {!loading && !error && (
-            <PedidosTable
-              pedidos={pedidos}
-              loading={false}
-              emptyText="Aún no registrás pedidos."
-              enableDetailLink
-              detailBasePath="/mis-pedidos"
-            />
+            <>
+              <div className="mb-4 grid grid-cols-1 gap-3 rounded-lg border border-line p-3 md:grid-cols-4">
+                <div>
+                  <label className="mb-1 block text-sm text-dark-gray">Fecha pedido desde</label>
+                  <input
+                    type="date"
+                    className="app-input"
+                    value={filtersForm.fecha_pedido_min}
+                    onChange={(event) => updateFilterField("fecha_pedido_min", event.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm text-dark-gray">Fecha pedido hasta</label>
+                  <input
+                    type="date"
+                    className="app-input"
+                    value={filtersForm.fecha_pedido_max}
+                    onChange={(event) => updateFilterField("fecha_pedido_max", event.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm text-dark-gray">Estado pedido</label>
+                  <select
+                    className="app-input"
+                    value={filtersForm.id_estado_pedido}
+                    onChange={(event) => updateFilterField("id_estado_pedido", event.target.value)}
+                  >
+                    <option value="">Todos</option>
+                    {estadosPedido.map((estado) => (
+                      <option key={estado.id} value={estado.id}>{estado.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm text-dark-gray">Estado envío</label>
+                  <select
+                    className="app-input"
+                    value={filtersForm.id_estado_envio}
+                    onChange={(event) => updateFilterField("id_estado_envio", event.target.value)}
+                  >
+                    <option value="">Todos</option>
+                    {estadosEnvio.map((estado) => (
+                      <option key={estado.id} value={estado.id}>{estado.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="md:col-span-4 flex gap-2">
+                  <button type="button" className="app-btn-primary" onClick={applyFilters}>Filtrar</button>
+                  <button type="button" className="app-btn-secondary" onClick={clearFilters}>Limpiar</button>
+                </div>
+              </div>
+
+              <PedidosTable
+                pedidos={pedidos}
+                loading={false}
+                emptyText="Aún no registrás pedidos."
+                enableDetailLink
+                detailBasePath="/mis-pedidos"
+              />
+
+              <PaginationControls
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={goToPage}
+                pageSizeOptions={[10, 15, 20]}
+                onPageSizeChange={changePageSize}
+              />
+            </>
           )}
         </section>
       </main>

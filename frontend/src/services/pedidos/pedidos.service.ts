@@ -4,13 +4,68 @@ import type {
   CreatePedidoResponse,
   EstadoEnvioOption,
   EstadoPedidoOption,
+  PaginatedPedidosResponse,
+  PedidoFilters,
   PedidoAdmin,
   PedidoCliente,
 } from "@/types/pedidos";
 
-const getAllForAdmin = async (): Promise<PedidoAdmin[]> => {
+const buildPedidoFiltersParams = (params: {
+  filters?: PedidoFilters;
+  page?: number;
+  pageSize?: number;
+}) => {
+  const searchParams = new URLSearchParams();
+  const filters = params.filters;
+
+  if (params.page && params.page > 0) {
+    searchParams.set("page", String(params.page));
+  }
+
+  if (params.pageSize && params.pageSize > 0) {
+    searchParams.set("pageSize", String(params.pageSize));
+  }
+
+  if (!filters) {
+    return searchParams;
+  }
+
+  if (filters.id_usuario && filters.id_usuario > 0) {
+    searchParams.set("id_usuario", String(filters.id_usuario));
+  }
+
+  if (filters.nombre_usuario?.trim()) {
+    searchParams.set("nombre_usuario", filters.nombre_usuario.trim());
+  }
+
+  if (filters.email_usuario?.trim()) {
+    searchParams.set("email_usuario", filters.email_usuario.trim());
+  }
+
+  if (filters.fecha_pedido_min) {
+    searchParams.set("fecha_pedido_min", filters.fecha_pedido_min);
+  }
+
+  if (filters.fecha_pedido_max) {
+    searchParams.set("fecha_pedido_max", filters.fecha_pedido_max);
+  }
+
+  if (typeof filters.id_estado_pedido === "number" && filters.id_estado_pedido > 0) {
+    searchParams.set("id_estado_pedido", String(filters.id_estado_pedido));
+  }
+
+  if (typeof filters.id_estado_envio === "number" && filters.id_estado_envio > 0) {
+    searchParams.set("id_estado_envio", String(filters.id_estado_envio));
+  }
+
+  return searchParams;
+};
+
+const getAllForAdmin = async (page = 1, pageSize = 10): Promise<PaginatedPedidosResponse> => {
   try {
-    const { data } = await apiClient.get<PedidoAdmin[]>("/pedidos/admin/all");
+    const { data } = await apiClient.get<PaginatedPedidosResponse>("/pedidos/admin/all", {
+      params: { page, pageSize },
+    });
     return data;
   } catch (error) {
     throw parseApiError(error, {
@@ -32,13 +87,34 @@ const getById = async (id: number): Promise<PedidoAdmin> => {
   }
 };
 
-const getAllForUser = async (idUsuario: number): Promise<PedidoCliente[]> => {
+const getAllForUser = async (idUsuario: number, page = 1, pageSize = 10): Promise<PaginatedPedidosResponse> => {
   try {
-    const { data } = await apiClient.get<PedidoCliente[]>(`/pedidos/usuario/${idUsuario}`);
+    const { data } = await apiClient.get<PaginatedPedidosResponse>(`/pedidos/usuario/${idUsuario}`, {
+      params: { page, pageSize },
+    });
     return data;
   } catch (error) {
     throw parseApiError(error, {
       fallbackMessage: "No se pudieron obtener tus pedidos",
+      prefix: "Pedidos",
+    });
+  }
+};
+
+const findByFilters = async (
+  filters: PedidoFilters,
+  page = 1,
+  pageSize = 10,
+): Promise<PaginatedPedidosResponse> => {
+  try {
+    const params = buildPedidoFiltersParams({ filters, page, pageSize });
+    const { data } = await apiClient.get<PaginatedPedidosResponse>("/pedidos/filters", {
+      params,
+    });
+    return data;
+  } catch (error) {
+    throw parseApiError(error, {
+      fallbackMessage: "No se pudieron filtrar los pedidos",
       prefix: "Pedidos",
     });
   }
@@ -111,6 +187,7 @@ const updateEstadoEnvio = async (idPedido: number, idEstadoEnvio: number): Promi
 export const pedidosService = {
   getAllForAdmin,
   getAllForUser,
+  findByFilters,
   getById,
   createPedido,
   getEstadosPedido,

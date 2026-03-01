@@ -11,6 +11,7 @@ import {
     GetFotoDto,
     SuccessDeleteProductDto,
     ProductFiltersDto,
+    PaginatedProductsResponseDto,
 } from './DTOs/products.dto';
 import { Productos } from './models/Productos';
 
@@ -88,7 +89,7 @@ export class ProductosService {
     }
 
     private buildWhereByFilters(filters: ProductFiltersDto): Record<string, unknown> {
-        const whereClause: Record<string, unknown> = { es_activo: true };
+        const whereClause: Record<string, unknown> = {};
 
         if (filters.id_categoria) {
             whereClause.id_categoria = filters.id_categoria;
@@ -113,14 +114,82 @@ export class ProductosService {
         return whereClause;
     }
 
+    private normalizePage(page?: number): number {
+        if (!page || Number.isNaN(page) || page < 1) {
+            return 1;
+        }
+
+        return Math.trunc(page);
+    }
+
+    private normalizeAdminPageSize(pageSize?: number): number {
+        const defaultPageSize = 10;
+
+        if (!pageSize || Number.isNaN(pageSize) || pageSize < 1) {
+            return defaultPageSize;
+        }
+
+        const allowedPageSizes = [10, 15, 20];
+        if (!allowedPageSizes.includes(pageSize)) {
+            return defaultPageSize;
+        }
+
+        return pageSize;
+    }
+
+    private async findProductosPaginated(params: {
+        where?: Record<string, unknown>;
+        page?: number;
+        pageSize: number;
+    }): Promise<PaginatedProductsResponseDto<GetProductDto>> {
+        const page = this.normalizePage(params.page);
+        const pageSize = params.pageSize;
+        const offset = (page - 1) * pageSize;
+
+        const { rows, count } = await Productos.findAndCountAll({
+            where: params.where,
+            include: PRODUCT_INCLUDE,
+            order: [['id', 'DESC']],
+            limit: pageSize,
+            offset,
+            distinct: true,
+        });
+
+        const totalItems = Number(count);
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+        return {
+            page,
+            pageSize,
+            totalItems,
+            totalPages,
+            data: rows.map((producto) => this.mapProducto(producto)),
+        };
+    }
+
     async findAll(): Promise<GetProductDto[]> {
         const productos = await this.findProductos({ es_activo: true });
         return productos.map((producto) => this.mapProducto(producto));
     }
 
+    async findAllPaginated(page?: number): Promise<PaginatedProductsResponseDto<GetProductDto>> {
+        return this.findProductosPaginated({
+            where: { es_activo: true },
+            page,
+            pageSize: 18,
+        });
+    }
+
     async findAllForAdmin(): Promise<GetProductDto[]> {
         const productos = await this.findProductos();
         return productos.map((producto) => this.mapProducto(producto));
+    }
+
+    async findAllForAdminPaginated(page?: number, pageSize?: number): Promise<PaginatedProductsResponseDto<GetProductDto>> {
+        return this.findProductosPaginated({
+            page,
+            pageSize: this.normalizeAdminPageSize(pageSize),
+        });
     }
 
     async findById(id: number): Promise<GetProductDto> {
@@ -203,7 +272,10 @@ export class ProductosService {
     }
 
     async getProductsByCategoryIdOrSubcategoryIdOrName(filters: ProductFiltersDto): Promise<GetProductDto[]> {
-        const whereClause = this.buildWhereByFilters(filters);
+        const whereClause = {
+            ...this.buildWhereByFilters(filters),
+            es_activo: true,
+        };
         const productos = await this.findProductos(whereClause);
 
         if (productos.length === 0) {
@@ -211,5 +283,28 @@ export class ProductosService {
         }
 
         return productos.map((producto) => this.mapProducto(producto));
+    }
+
+    async findByFiltersPaginated(filters: ProductFiltersDto, page?: number): Promise<PaginatedProductsResponseDto<GetProductDto>> {
+        return this.findProductosPaginated({
+            where: {
+                ...this.buildWhereByFilters(filters),
+                es_activo: true,
+            },
+            page,
+            pageSize: 18,
+        });
+    }
+
+    async findByFiltersForAdminPaginated(
+        filters: ProductFiltersDto,
+        page?: number,
+        pageSize?: number,
+    ): Promise<PaginatedProductsResponseDto<GetProductDto>> {
+        return this.findProductosPaginated({
+            where: this.buildWhereByFilters(filters),
+            page,
+            pageSize: this.normalizeAdminPageSize(pageSize),
+        });
     }
 }

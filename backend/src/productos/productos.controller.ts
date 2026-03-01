@@ -7,7 +7,7 @@ import SftpSingleton from '../utils/sftp/sftp_instance';
 import { upload } from '../utils/sftp/upload';
 import { ProductosService } from './productos.service';
 import { FotosService } from 'src/fotos/fotos.service';
-import { GetProductDto, SuccessDeleteProductDto, CreateUpdateProductDto } from './DTOs/products.dto';
+import { GetProductDto, SuccessDeleteProductDto, CreateUpdateProductDto, ProductFiltersDto, PaginatedProductsResponseDto } from './DTOs/products.dto';
 import { CreateProductFotosDto } from 'src/fotos/DTOs/fotos.dto';
 import { AuthGuard } from 'src/auth/utils/auth.guard';
 import { Role1Guard } from 'src/auth/utils/role1.guard';
@@ -25,17 +25,85 @@ export class ProductosController {
     ) {}
        
         @Get()
-        @ApiOkResponse({ type: GetProductDto, isArray: true })
-        async findAll(): Promise<GetProductDto[]> {
-            return this.productosService.findAll();
+        @ApiOkResponse({ type: Object })
+        async findAll(@Query('page') page?: string): Promise<PaginatedProductsResponseDto<GetProductDto>> {
+            return this.productosService.findAllPaginated(this.parseOptionalNumber(page));
         }
 
         @UseGuards(AuthGuard, Role1Guard)
         @ApiBearerAuth('bearer')
         @Get('admin/all')
-        @ApiOkResponse({ type: GetProductDto, isArray: true })
-        async findAllForAdmin(): Promise<GetProductDto[]> {
-            return this.productosService.findAllForAdmin();
+        @ApiOkResponse({ type: Object })
+        async findAllForAdmin(
+            @Query('page') page?: string,
+            @Query('pageSize') pageSize?: string,
+        ): Promise<PaginatedProductsResponseDto<GetProductDto>> {
+            return this.productosService.findAllForAdminPaginated(
+                this.parseOptionalNumber(page),
+                this.parseOptionalNumber(pageSize),
+            );
+        }
+
+        @Get('filters')
+        @ApiQuery({ name: 'name', type: String, required: false, description: 'Término de búsqueda para nombre' })
+        @ApiQuery({ name: 'id_categoria', type: Number, required: false, description: 'ID de la categoría para filtrar (opcional)' })
+        @ApiQuery({ name: 'id_subcategoria', type: Number, required: false, description: 'ID de la subcategoría para filtrar (opcional)' })
+        @ApiQuery({ name: 'precio_min', type: Number, required: false, description: 'Precio mínimo para filtrar (opcional)' })
+        @ApiQuery({ name: 'precio_max', type: Number, required: false, description: 'Precio máximo para filtrar (opcional)' })
+        @ApiQuery({ name: 'page', type: Number, required: false, description: 'Página (1-based)' })
+        @ApiOkResponse({ type: Object })
+        async findByFilters(
+            @Query('name') name?: string,
+            @Query('id_categoria') id_categoria?: string,
+            @Query('id_subcategoria') id_subcategoria?: string,
+            @Query('precio_min') precio_min?: string,
+            @Query('precio_max') precio_max?: string,
+            @Query('page') page?: string,
+        ): Promise<PaginatedProductsResponseDto<GetProductDto>> {
+            const filters: ProductFiltersDto = {
+                nombre: this.parseOptionalString(name),
+                id_categoria: this.parseOptionalNumber(id_categoria),
+                id_subcategoria: this.parseOptionalNumber(id_subcategoria),
+                precio_min: this.parseOptionalNumber(precio_min),
+                precio_max: this.parseOptionalNumber(precio_max),
+            };
+
+            return this.productosService.findByFiltersPaginated(filters, this.parseOptionalNumber(page));
+        }
+
+        @UseGuards(AuthGuard, Role1Guard)
+        @ApiBearerAuth('bearer')
+        @Get('admin/filters')
+        @ApiQuery({ name: 'name', type: String, required: false, description: 'Término de búsqueda para nombre' })
+        @ApiQuery({ name: 'id_categoria', type: Number, required: false, description: 'ID de la categoría para filtrar (opcional)' })
+        @ApiQuery({ name: 'id_subcategoria', type: Number, required: false, description: 'ID de la subcategoría para filtrar (opcional)' })
+        @ApiQuery({ name: 'precio_min', type: Number, required: false, description: 'Precio mínimo para filtrar (opcional)' })
+        @ApiQuery({ name: 'precio_max', type: Number, required: false, description: 'Precio máximo para filtrar (opcional)' })
+        @ApiQuery({ name: 'page', type: Number, required: false, description: 'Página (1-based)' })
+        @ApiQuery({ name: 'pageSize', type: Number, required: false, description: 'Tamaño de página (10, 15, 20)' })
+        @ApiOkResponse({ type: Object })
+        async findByFiltersForAdmin(
+            @Query('name') name?: string,
+            @Query('id_categoria') id_categoria?: string,
+            @Query('id_subcategoria') id_subcategoria?: string,
+            @Query('precio_min') precio_min?: string,
+            @Query('precio_max') precio_max?: string,
+            @Query('page') page?: string,
+            @Query('pageSize') pageSize?: string,
+        ): Promise<PaginatedProductsResponseDto<GetProductDto>> {
+            const filters: ProductFiltersDto = {
+                nombre: this.parseOptionalString(name),
+                id_categoria: this.parseOptionalNumber(id_categoria),
+                id_subcategoria: this.parseOptionalNumber(id_subcategoria),
+                precio_min: this.parseOptionalNumber(precio_min),
+                precio_max: this.parseOptionalNumber(precio_max),
+            };
+
+            return this.productosService.findByFiltersForAdminPaginated(
+                filters,
+                this.parseOptionalNumber(page),
+                this.parseOptionalNumber(pageSize),
+            );
         }
 
         @Get('search')
@@ -320,6 +388,15 @@ export class ProductosController {
             }
 
             return parsed;
+        }
+
+        private parseOptionalString(value?: string): string | undefined {
+            if (value === undefined || value === null) {
+                return undefined;
+            }
+
+            const trimmed = value.trim();
+            return trimmed.length ? trimmed : undefined;
         }
 
         private runMulter(req: Request, res: Response): Promise<void> {

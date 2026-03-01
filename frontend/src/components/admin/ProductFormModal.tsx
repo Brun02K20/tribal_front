@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { ProductFormValues } from "@/types/products";
 import type { ProductFormModalProps } from "@/types/admin-ui";
+import AppModal from "@/src/components/ui/AppModal";
 
 const ACCEPTED_EXTENSIONS = ["jpg", "jpeg", "png"];
 const ACCEPTED_MIME_TYPES = ["image/jpeg", "image/png"];
@@ -118,8 +119,9 @@ export default function ProductFormModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="app-panel max-h-[90vh] w-full max-w-2xl overflow-y-auto">
+    <AppModal>
+      <div className="app-modal-backdrop">
+        <div className="app-modal-card max-h-[90vh] max-w-2xl overflow-y-auto p-4 sm:p-5">
         <h3 className="app-title text-xl">
           {mode === "create" ? "Crear producto" : mode === "edit" ? "Editar producto" : "Ver producto"}
         </h3>
@@ -136,6 +138,7 @@ export default function ProductFormModal({
             <input
               className="app-input"
               disabled={isView}
+              placeholder="Ej: Mate imperial"
               {...register("nombre", { required: "El nombre es obligatorio" })}
             />
             {errors.nombre && <p className="mt-1 text-sm text-red-600">{errors.nombre.message}</p>}
@@ -146,6 +149,7 @@ export default function ProductFormModal({
             <textarea
               className="app-input min-h-22.5"
               disabled={isView}
+              placeholder="Ej: Mate artesanal de calabaza forrado en cuero"
               {...register("descripcion", { required: "La descripción es obligatoria" })}
             />
             {errors.descripcion && <p className="mt-1 text-sm text-red-600">{errors.descripcion.message}</p>}
@@ -159,6 +163,7 @@ export default function ProductFormModal({
                 step="0.01"
                 className="app-input"
                 disabled={isView}
+                placeholder="Ej: 12000"
                 {...register("precio", {
                   required: "El precio es obligatorio",
                   valueAsNumber: true,
@@ -174,6 +179,7 @@ export default function ProductFormModal({
                 type="number"
                 className="app-input"
                 disabled={isView}
+                placeholder="Ej: 25"
                 {...register("stock", {
                   required: "El stock es obligatorio",
                   valueAsNumber: true,
@@ -236,6 +242,7 @@ export default function ProductFormModal({
                 step="0.01"
                 className="app-input"
                 disabled={isView}
+                placeholder="Ej: 10"
                 {...register("ancho", {
                   required: "El ancho es obligatorio",
                   valueAsNumber: true,
@@ -252,6 +259,7 @@ export default function ProductFormModal({
                 step="0.01"
                 className="app-input"
                 disabled={isView}
+                placeholder="Ej: 12"
                 {...register("alto", {
                   required: "El alto es obligatorio",
                   valueAsNumber: true,
@@ -270,6 +278,7 @@ export default function ProductFormModal({
                 step="0.01"
                 className="app-input"
                 disabled={isView}
+                placeholder="Ej: 10"
                 {...register("profundo", {
                   required: "La profundidad es obligatoria",
                   valueAsNumber: true,
@@ -285,6 +294,7 @@ export default function ProductFormModal({
                 type="number"
                 className="app-input"
                 disabled={isView}
+                placeholder="Ej: 450"
                 {...register("peso_gramos", {
                   required: "El peso es obligatorio",
                   valueAsNumber: true,
@@ -339,7 +349,8 @@ export default function ProductFormModal({
             )}
           </div>
         </form>
+        </div>
       </div>
-    </div>
+    </AppModal>
   );
 }

@@ -21,6 +21,7 @@ export default function PedidoDetailContent({ pedido }: PedidoDetailContentProps
           <h3 className="app-title text-lg">Fechas y pago</h3>
           <p className="app-subtitle mt-2">Pedido: {formatDateTimeEsAr(pedido.fecha_pedido)}</p>
           <p className="app-subtitle">Pago: {formatDateTimeEsAr(pedido.pago?.fecha_pago || "")}</p>
+          <p className="app-subtitle">Estado del pedido: {pedido.estado_pedido?.nombre || "-"}</p>
           <p className="app-subtitle">Monto pagado: {formatCurrencyArs(pedido.pago?.monto_total || 0)}</p>
           <p className="app-subtitle">Aprobado: {pedido.pago?.aprobado ? "Sí" : "No"}</p>
         </div>

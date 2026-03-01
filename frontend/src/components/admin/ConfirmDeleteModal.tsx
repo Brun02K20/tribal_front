@@ -1,6 +1,7 @@
 "use client";
 
 import type { ConfirmDeleteModalProps } from "@/types/admin-ui";
+import AppModal from "@/src/components/ui/AppModal";
 
 export default function ConfirmDeleteModal({
   isOpen,
@@ -15,8 +16,9 @@ export default function ConfirmDeleteModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="app-panel w-full max-w-md">
+    <AppModal>
+      <div className="app-modal-backdrop">
+        <div className="app-modal-card max-w-md p-4 sm:p-5">
         <h3 className="app-title text-xl">Confirmar borrado</h3>
         <p className="app-subtitle mt-3">
           ¿Estás seguro de que querés borrar la {entityLabel} {entityName}?
@@ -30,7 +32,8 @@ export default function ConfirmDeleteModal({
             Borrar
           </button>
         </div>
+        </div>
       </div>
-    </div>
+    </AppModal>
   );
 }

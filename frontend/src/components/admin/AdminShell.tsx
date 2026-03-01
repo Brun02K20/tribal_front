@@ -22,8 +22,8 @@ export default function AdminShell({
 
   return (
     <main className="app-page">
-      <section className="app-container mx-auto max-w-6xl">
-        <div className="app-panel grid min-h-[70vh] grid-cols-1 md:grid-cols-[250px_1fr]">
+      <section className="app-container mx-auto max-w-360">
+        <div className="app-panel grid min-h-[70vh] grid-cols-1 overflow-hidden md:grid-cols-[250px_minmax(0,1fr)]">
           <aside className="border-b border-line p-4 md:border-b-0 md:border-r">
             <h1 className="app-title mb-4 text-xl">Dashboard Admin</h1>
             <nav className="flex flex-col gap-2">
@@ -42,10 +42,10 @@ export default function AdminShell({
             </nav>
           </aside>
 
-          <div className="p-6">
+          <div className="min-w-0 p-6">
             <h2 className="app-title text-2xl">{title}</h2>
             {subtitle && <p className="app-subtitle mt-2">{subtitle}</p>}
-            <div className="mt-6">{children}</div>
+            <div className="mt-6 w-full max-w-full">{children}</div>
           </div>
         </div>
       </section>
