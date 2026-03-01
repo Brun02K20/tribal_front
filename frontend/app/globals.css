@@ -67,9 +67,20 @@ body::after {
   z-index: 0;
 }
 
-body > *:not(.app-leaves) {
+body > *:not(.app-leaves):not(.app-modal-root):not(.app-modal-backdrop) {
   position: relative;
   z-index: 2;
+}
+
+.app-modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.app-modal-root > * {
+  pointer-events: auto;
 }
 
 a {

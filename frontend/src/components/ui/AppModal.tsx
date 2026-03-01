@@ -19,5 +19,5 @@ export default function AppModal({ children }: AppModalProps) {
     return null;
   }
 
-  return createPortal(children, document.body);
+  return createPortal(<div className="app-modal-root">{children}</div>, document.body);
 }

@@ -7,6 +7,7 @@ import LoadingState from "@/src/components/ui/LoadingState";
 import EmptyState from "@/src/components/ui/EmptyState";
 import ImagePlaceholder from "@/src/components/ui/ImagePlaceholder";
 import ErrorState from "@/src/components/ui/ErrorState";
+import AppModal from "@/src/components/ui/AppModal";
 
 export default function CheckoutPage() {
   const {
@@ -157,86 +158,87 @@ export default function CheckoutPage() {
           </div>
 
           <aside className="app-panel h-fit">
-            <h2 className="mb-4 text-lg font-semibold">Resumen</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Productos</span>
-                <span>{formatCurrencyArs(subtotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Envío</span>
-                <span>{formatCurrencyArs(shippingCost)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Comisiones</span>
-                <span>{formatCurrencyArs(commissionCost)}</span>
-              </div>
-              <hr className="my-2" />
-              <div className="flex justify-between text-base font-bold">
-                <span>Total</span>
-                <span>{formatCurrencyArs(total)}</span>
-              </div>
-            </div>
+            <AppModal>
+              <div className="app-modal-backdrop">
+                <div className="app-modal-card max-w-lg p-4 sm:p-5">
+                  <h3 className="app-title text-xl">Nueva dirección</h3>
 
-            <button
-              className="app-btn-primary mt-4 w-full disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={pay}
-              disabled={paying || !selectedAddressId || items.length === 0}
-            >
-              {paying ? "Procesando..." : "PAGAR"}
-            </button>
-          </aside>
-        </section>
-      )}
+                  <div className="mt-4 grid gap-3">
+                    <div>
+                      <label className="mb-1 block text-sm text-dark-gray">Código postal</label>
+                    <input
+                      className="app-input"
+                      placeholder="Ej: X5000"
+                      value={newAddress.cod_postal_destino}
+                      onChange={(event) => changeNewAddressField("cod_postal_destino", event.target.value)}
+                    />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm text-dark-gray">Calle</label>
+                    <input
+                      className="app-input"
+                      placeholder="Ej: Av. Colón"
+                      value={newAddress.calle}
+                      onChange={(event) => changeNewAddressField("calle", event.target.value)}
+                    />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm text-dark-gray">Altura</label>
+                    <input
+                      className="app-input"
+                      placeholder="Ej: 1234"
+                      inputMode="numeric"
+                      value={newAddress.altura}
+                      onChange={(event) =>
+                        changeNewAddressField("altura", event.target.value.replace(/\D/g, ""))
+                      }
+                    />
+                    </div>
 
-      {isAddressModalOpen && (
-        <div className="app-modal-backdrop">
-          <div className="app-modal-card max-w-lg p-4 sm:p-5">
-            <h3 className="app-title text-xl">Nueva dirección</h3>
+                    <div>
+                      <label className="mb-1 block text-sm text-dark-gray">Provincia</label>
+                    <select
+                      className="app-input"
+                      value={newAddress.id_provincia}
+                      onChange={(event) => changeNewAddressField("id_provincia", Number(event.target.value))}
+                    >
+                      <option value={0}>Seleccionar provincia...</option>
+                      {provincias.map((provincia) => (
+                        <option key={provincia.id} value={provincia.id}>
+                          {provincia.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    </div>
 
-            <div className="mt-4 grid gap-3">
-              <div>
-                <label className="mb-1 block text-sm text-dark-gray">Código postal</label>
-              <input
-                className="app-input"
-                placeholder="Ej: X5000"
-                value={newAddress.cod_postal_destino}
-                onChange={(event) => changeNewAddressField("cod_postal_destino", event.target.value)}
-              />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm text-dark-gray">Calle</label>
-              <input
-                className="app-input"
-                placeholder="Ej: Av. Colón"
-                value={newAddress.calle}
-                onChange={(event) => changeNewAddressField("calle", event.target.value)}
-              />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm text-dark-gray">Altura</label>
-              <input
-                className="app-input"
-                placeholder="Ej: 1234"
-                inputMode="numeric"
-                value={newAddress.altura}
-                onChange={(event) =>
-                  changeNewAddressField("altura", event.target.value.replace(/\D/g, ""))
-                }
-              />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm text-dark-gray">Provincia</label>
-              <select
-                className="app-input"
-                value={newAddress.id_provincia}
-                onChange={(event) => changeNewAddressField("id_provincia", Number(event.target.value))}
-              >
+                    <div>
+                      <label className="mb-1 block text-sm text-dark-gray">Ciudad</label>
+                    <select
+                      className="app-input"
+                      value={newAddress.id_ciudad}
+                      onChange={(event) => changeNewAddressField("id_ciudad", Number(event.target.value))}
+                    >
+                      <option value={0}>Seleccionar ciudad...</option>
+                      {ciudades.map((ciudad) => (
+                        <option key={ciudad.id} value={ciudad.id}>
+                          {ciudad.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    </div>
                 <option value={0}>Seleccionar provincia...</option>
+
+                  <div className="mt-5 flex justify-end gap-2">
+                    <button type="button" className="app-btn-secondary" onClick={closeAddressModal} disabled={creatingAddress}>
+                      Cancelar
+                    </button>
+                    <button type="button" className="app-btn-primary" onClick={createAddress} disabled={creatingAddress}>
+                      {creatingAddress ? "Guardando..." : "Guardar dirección"}
+                    </button>
+                  </div>
                 {provincias.map((provincia) => (
-                  <option key={provincia.id} value={provincia.id}>
-                    {provincia.nombre}
+              </div>
+            </AppModal>
                   </option>
                 ))}
               </select>
