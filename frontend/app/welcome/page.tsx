@@ -15,12 +15,14 @@ export default function WelcomePage() {
 
   return (
     <ProtectedRoute>
-      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-6">
-        <h1 className="text-3xl font-bold">Bienvenido{user?.nombre ? `, ${user.nombre}` : ""} 👋</h1>
-        <p className="text-zinc-600">Tu sesión fue iniciada correctamente.</p>
-        <button onClick={handleLogout} className="rounded-md border px-4 py-2">
+      <main className="app-page">
+        <section className="app-container app-panel mx-auto flex max-w-md flex-col justify-center gap-4 p-6">
+        <h1 className="app-title text-3xl">Bienvenido{user?.nombre ? `, ${user.nombre}` : ""} 👋</h1>
+        <p className="app-subtitle">Tu sesión fue iniciada correctamente.</p>
+        <button onClick={handleLogout} className="app-btn-secondary">
           Cerrar sesión
         </button>
+        </section>
       </main>
     </ProtectedRoute>
   );

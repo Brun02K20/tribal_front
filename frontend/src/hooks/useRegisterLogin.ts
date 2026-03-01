@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/context/AuthContext";
-import { authService } from "@/src/services/auth.service";
+import { useToast } from "@/src/context/ToastContext";
+import { authService } from "@/src/services/auth/auth.service";
 import type {
   AuthResponse,
   BackendErrorResponse,
@@ -17,11 +18,13 @@ type HookMode = "login" | "register";
 type UseRegisterLoginParams = {
   mode: HookMode;
   getRegisterValues?: () => RegisterFormValues;
+  redirectTo?: string;
 };
 
-export const useRegisterLogin = ({ mode, getRegisterValues }: UseRegisterLoginParams) => {
+export const useRegisterLogin = ({ mode, getRegisterValues, redirectTo }: UseRegisterLoginParams) => {
   const router = useRouter();
   const { login } = useAuth();
+  const { showToast } = useToast();
   const googleContainerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,9 +43,14 @@ export const useRegisterLogin = ({ mode, getRegisterValues }: UseRegisterLoginPa
   const loginSuccess = useCallback(
     (data: AuthResponse) => {
       login({ user: data.user, token: data.token });
-      router.push("/welcome");
+      showToast(
+        mode === "login" ? "Sesión iniciada correctamente" : "Cuenta creada correctamente",
+        "success",
+      );
+      const destination = data.user.id_rol === 1 ? "/dashboard" : (redirectTo || "/products");
+      router.push(destination);
     },
-    [login, router],
+    [login, mode, redirectTo, router, showToast],
   );
 
   const submitWithPassword = useCallback(
@@ -163,11 +171,14 @@ export const useRegisterLogin = ({ mode, getRegisterValues }: UseRegisterLoginPa
     };
   }, [submitWithGoogle]);
 
+  useEffect(() => {
+    return setupGoogleButton();
+  }, [setupGoogleButton]);
+
   return {
     loading,
     error,
     googleContainerRef,
     submitWithPassword,
-    setupGoogleButton,
   };
 };
