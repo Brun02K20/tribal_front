@@ -1,12 +1,12 @@
 "use client";
 
-import AdminOnly from "@/src/components/admin/AdminOnly";
-import AdminShell from "@/src/components/admin/AdminShell";
-import AdminTable from "@/src/components/admin/AdminTable";
-import AdminCrudActions from "@/src/components/admin/AdminCrudActions";
-import ConfirmDeleteModal from "@/src/components/admin/ConfirmDeleteModal";
-import CrudFormModal from "@/src/components/admin/CrudFormModal";
-import { useEstadosEnvioAdmin } from "@/src/hooks/useEstadosEnvioAdmin";
+import AdminOnly from "@/features/admin/components/AdminOnly";
+import AdminShell from "@/features/admin/components/AdminShell";
+import AdminTable from "@/features/admin/components/AdminTable";
+import AdminCrudActions from "@/features/admin/components/AdminCrudActions";
+import ConfirmDeleteModal from "@/features/admin/components/ConfirmDeleteModal";
+import CrudFormModal from "@/features/admin/components/CrudFormModal";
+import { useEstadosEnvioAdmin } from "@/features/admin/hooks/useEstadosEnvioAdmin";
 import type { EstadoEnvioFormValues } from "@/types/estados-envio";
 
 export default function EstadosEnvioAdminPage() {
@@ -101,3 +101,4 @@ export default function EstadosEnvioAdminPage() {
     </AdminOnly>
   );
 }
+

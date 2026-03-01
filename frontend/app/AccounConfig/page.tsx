@@ -1,8 +1,8 @@
 "use client";
 
-import ProtectedRoute from "@/src/context/ProtectedRoute";
-import AccountConfigForm from "@/src/components/account/AccountConfigForm";
-import { useAccountConfig } from "@/src/hooks/useAccountConfig";
+import ProtectedRoute from "@/shared/providers/ProtectedRoute";
+import AccountConfigForm from "@/features/account/components/AccountConfigForm";
+import { useAccountConfig } from "@/features/account/hooks/useAccountConfig";
 
 export default function AccountConfigPage() {
   const model = useAccountConfig();
@@ -30,3 +30,4 @@ export default function AccountConfigPage() {
     </ProtectedRoute>
   );
 }
+

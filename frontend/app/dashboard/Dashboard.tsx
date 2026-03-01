@@ -1,6 +1,6 @@
 "use client";
 
-import AdminShell from "@/src/components/admin/AdminShell";
+import AdminShell from "@/features/admin/components/AdminShell";
 
 export default function Dashboard() {
   return (
@@ -22,3 +22,4 @@ export default function Dashboard() {
     </AdminShell>
   );
 }
+

@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import ProtectedRoute from "@/src/context/ProtectedRoute";
-import { useAuth } from "@/src/context/AuthContext";
+import ProtectedRoute from "@/shared/providers/ProtectedRoute";
+import { useAuth } from "@/shared/providers/AuthContext";
 
 export default function WelcomePage() {
   const { user, logout } = useAuth();
@@ -27,3 +27,4 @@ export default function WelcomePage() {
     </ProtectedRoute>
   );
 }
+

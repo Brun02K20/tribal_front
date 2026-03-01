@@ -1,12 +1,12 @@
 "use client";
 
-import AdminOnly from "@/src/components/admin/AdminOnly";
-import AdminShell from "@/src/components/admin/AdminShell";
-import AdminTable from "@/src/components/admin/AdminTable";
-import AdminCrudActions from "@/src/components/admin/AdminCrudActions";
-import ConfirmDeleteModal from "@/src/components/admin/ConfirmDeleteModal";
-import CrudFormModal from "@/src/components/admin/CrudFormModal";
-import { useSubcategoriasAdmin } from "@/src/hooks/useSubcategoriasAdmin";
+import AdminOnly from "@/features/admin/components/AdminOnly";
+import AdminShell from "@/features/admin/components/AdminShell";
+import AdminTable from "@/features/admin/components/AdminTable";
+import AdminCrudActions from "@/features/admin/components/AdminCrudActions";
+import ConfirmDeleteModal from "@/features/admin/components/ConfirmDeleteModal";
+import CrudFormModal from "@/features/admin/components/CrudFormModal";
+import { useSubcategoriasAdmin } from "@/features/admin/hooks/useSubcategoriasAdmin";
 import type { SubcategoriaFormValues } from "@/types/subcategorias";
 
 export default function SubcategoriasAdminPage() {
@@ -117,3 +117,4 @@ export default function SubcategoriasAdminPage() {
     </AdminOnly>
   );
 }
+

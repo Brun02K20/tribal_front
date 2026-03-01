@@ -1,12 +1,12 @@
 "use client";
 
-import AdminOnly from "@/src/components/admin/AdminOnly";
-import AdminShell from "@/src/components/admin/AdminShell";
-import AdminTable from "@/src/components/admin/AdminTable";
-import AdminCrudActions from "@/src/components/admin/AdminCrudActions";
-import ConfirmDeleteModal from "@/src/components/admin/ConfirmDeleteModal";
-import CrudFormModal from "@/src/components/admin/CrudFormModal";
-import { useCategoriasAdmin } from "@/src/hooks/useCategoriasAdmin";
+import AdminOnly from "@/features/admin/components/AdminOnly";
+import AdminShell from "@/features/admin/components/AdminShell";
+import AdminTable from "@/features/admin/components/AdminTable";
+import AdminCrudActions from "@/features/admin/components/AdminCrudActions";
+import ConfirmDeleteModal from "@/features/admin/components/ConfirmDeleteModal";
+import CrudFormModal from "@/features/admin/components/CrudFormModal";
+import { useCategoriasAdmin } from "@/features/admin/hooks/useCategoriasAdmin";
 import type { CategoriaFormValues } from "@/types/categorias";
 
 export default function CategoriasAdminPage() {
@@ -98,3 +98,4 @@ export default function CategoriasAdminPage() {
     </AdminOnly>
   );
 }
+

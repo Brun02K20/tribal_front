@@ -1,12 +1,12 @@
 "use client";
 
-import ProtectedRoute from "@/src/context/ProtectedRoute";
-import { useAuth } from "@/src/context/AuthContext";
-import ErrorState from "@/src/components/ui/ErrorState";
-import LoadingState from "@/src/components/ui/LoadingState";
-import PedidosTable from "@/src/components/pedidos/PedidosTable";
-import { useMisPedidos } from "@/src/hooks/useMisPedidos";
-import PaginationControls from "@/src/components/ui/PaginationControls";
+import ProtectedRoute from "@/shared/providers/ProtectedRoute";
+import { useAuth } from "@/shared/providers/AuthContext";
+import ErrorState from "@/shared/ui/ErrorState";
+import LoadingState from "@/shared/ui/LoadingState";
+import PedidosTable from "@/features/pedidos/components/PedidosTable";
+import { useMisPedidos } from "@/features/pedidos/hooks/useMisPedidos";
+import PaginationControls from "@/shared/ui/PaginationControls";
 
 export default function MisPedidosPage() {
   const { user } = useAuth();
@@ -120,3 +120,4 @@ export default function MisPedidosPage() {
     </ProtectedRoute>
   );
 }
+

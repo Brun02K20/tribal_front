@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import ProtectedRoute from "@/src/context/ProtectedRoute";
-import { useAuth } from "@/src/context/AuthContext";
-import PedidoDetailContent from "@/src/components/pedidos/PedidoDetailContent";
-import { usePedidoDetail } from "@/src/hooks/usePedidoDetail";
+import ProtectedRoute from "@/shared/providers/ProtectedRoute";
+import { useAuth } from "@/shared/providers/AuthContext";
+import PedidoDetailContent from "@/features/pedidos/components/PedidoDetailContent";
+import { usePedidoDetail } from "@/features/pedidos/hooks/usePedidoDetail";
 
 export default function MiPedidoDetallePage() {
   const { user } = useAuth();
@@ -36,3 +36,4 @@ export default function MiPedidoDetallePage() {
     </ProtectedRoute>
   );
 }
+

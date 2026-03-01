@@ -2,9 +2,9 @@
 
 import { Suspense } from "react";
 import { useForm } from "react-hook-form";
-import { useRegisterLogin } from "@/src/hooks/useRegisterLogin";
-import AuthPageShell from "@/src/components/auth/AuthPageShell";
-import { getAuthEmailRules, getAuthPasswordRules } from "@/src/utils/auth-form-rules";
+import { useRegisterLogin } from "@/features/auth/hooks/useRegisterLogin";
+import AuthPageShell from "@/features/auth/components/AuthPageShell";
+import { getAuthEmailRules, getAuthPasswordRules } from "@/shared/lib/auth-form-rules";
 import type { LoginFormValues } from "@/types/auth";
 import { useSearchParams } from "next/navigation";
 
@@ -72,3 +72,4 @@ export default function LoginPage() {
     </Suspense>
   );
 }
+

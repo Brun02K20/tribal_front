@@ -1,11 +1,11 @@
 "use client";
 
-import AdminOnly from "@/src/components/admin/AdminOnly";
-import AdminShell from "@/src/components/admin/AdminShell";
-import PedidosTable from "@/src/components/pedidos/PedidosTable";
-import PedidoEstadoModal from "@/src/components/admin/PedidoEstadoModal";
-import { usePedidosAdmin } from "@/src/hooks/usePedidosAdmin";
-import PaginationControls from "@/src/components/ui/PaginationControls";
+import AdminOnly from "@/features/admin/components/AdminOnly";
+import AdminShell from "@/features/admin/components/AdminShell";
+import PedidosTable from "@/features/pedidos/components/PedidosTable";
+import PedidoEstadoModal from "@/features/admin/components/PedidoEstadoModal";
+import { usePedidosAdmin } from "@/features/admin/hooks/usePedidosAdmin";
+import PaginationControls from "@/shared/ui/PaginationControls";
 
 export default function PedidosAdminPage() {
   const {
@@ -178,3 +178,4 @@ export default function PedidosAdminPage() {
     </AdminOnly>
   );
 }
+

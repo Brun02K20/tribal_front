@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCheckout } from "@/src/hooks/useCheckout";
-import { formatCurrencyArs } from "@/src/utils/formatters";
-import LoadingState from "@/src/components/ui/LoadingState";
-import EmptyState from "@/src/components/ui/EmptyState";
-import ImagePlaceholder from "@/src/components/ui/ImagePlaceholder";
-import ErrorState from "@/src/components/ui/ErrorState";
-import AppModal from "@/src/components/ui/AppModal";
+import { useCheckout } from "@/features/checkout/hooks/useCheckout";
+import { formatCurrencyArs } from "@/shared/lib/formatters";
+import LoadingState from "@/shared/ui/LoadingState";
+import EmptyState from "@/shared/ui/EmptyState";
+import ImagePlaceholder from "@/shared/ui/ImagePlaceholder";
+import ErrorState from "@/shared/ui/ErrorState";
+import AppModal from "@/shared/ui/AppModal";
 
 export default function CheckoutPage() {
   const {
@@ -277,3 +277,4 @@ export default function CheckoutPage() {
     </main>
   );
 }
+

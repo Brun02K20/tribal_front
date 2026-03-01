@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import AdminOnly from "@/src/components/admin/AdminOnly";
-import AdminShell from "@/src/components/admin/AdminShell";
-import PedidoDetailContent from "@/src/components/pedidos/PedidoDetailContent";
-import { usePedidoAdminDetail } from "@/src/hooks/usePedidoAdminDetail";
+import AdminOnly from "@/features/admin/components/AdminOnly";
+import AdminShell from "@/features/admin/components/AdminShell";
+import PedidoDetailContent from "@/features/pedidos/components/PedidoDetailContent";
+import { usePedidoAdminDetail } from "@/features/admin/hooks/usePedidoAdminDetail";
 
 export default function PedidoDetalleAdminPage() {
   const params = useParams<{ id: string }>();
@@ -31,3 +31,4 @@ export default function PedidoDetalleAdminPage() {
     </AdminOnly>
   );
 }
+

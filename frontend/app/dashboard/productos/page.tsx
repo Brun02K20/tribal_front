@@ -1,14 +1,14 @@
 "use client";
 
-import AdminOnly from "@/src/components/admin/AdminOnly";
-import AdminShell from "@/src/components/admin/AdminShell";
-import AdminTable from "@/src/components/admin/AdminTable";
-import AdminCrudActions from "@/src/components/admin/AdminCrudActions";
-import ConfirmDeleteModal from "@/src/components/admin/ConfirmDeleteModal";
-import ProductFormModal from "@/src/components/admin/ProductFormModal";
-import { useProductosAdmin } from "@/src/hooks/useProductosAdmin";
-import { formatCurrencyArs } from "@/src/utils/formatters";
-import PaginationControls from "@/src/components/ui/PaginationControls";
+import AdminOnly from "@/features/admin/components/AdminOnly";
+import AdminShell from "@/features/admin/components/AdminShell";
+import AdminTable from "@/features/admin/components/AdminTable";
+import AdminCrudActions from "@/features/admin/components/AdminCrudActions";
+import ConfirmDeleteModal from "@/features/admin/components/ConfirmDeleteModal";
+import ProductFormModal from "@/features/admin/components/ProductFormModal";
+import { useProductosAdmin } from "@/features/admin/hooks/useProductosAdmin";
+import { formatCurrencyArs } from "@/shared/lib/formatters";
+import PaginationControls from "@/shared/ui/PaginationControls";
 
 export default function ProductosAdminPage() {
   const {
@@ -198,3 +198,4 @@ export default function ProductosAdminPage() {
     </AdminOnly>
   );
 }
+

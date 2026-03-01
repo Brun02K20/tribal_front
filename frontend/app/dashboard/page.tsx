@@ -1,6 +1,6 @@
 "use client";
 
-import AdminOnly from "@/src/components/admin/AdminOnly";
+import AdminOnly from "@/features/admin/components/AdminOnly";
 import Dashboard from "./Dashboard";
 
 export default function DashboardPage() {
@@ -10,3 +10,4 @@ export default function DashboardPage() {
     </AdminOnly>
   );
 }
+

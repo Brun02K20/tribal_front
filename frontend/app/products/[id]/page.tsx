@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useProductDetail } from "@/src/hooks/useProductDetail";
-import { toNumber } from "@/src/utils/formatters";
-import LoadingState from "@/src/components/ui/LoadingState";
-import ErrorState from "@/src/components/ui/ErrorState";
-import ImagePlaceholder from "@/src/components/ui/ImagePlaceholder";
+import { useProductDetail } from "@/features/products/hooks/useProductDetail";
+import { toNumber } from "@/shared/lib/formatters";
+import LoadingState from "@/shared/ui/LoadingState";
+import ErrorState from "@/shared/ui/ErrorState";
+import ImagePlaceholder from "@/shared/ui/ImagePlaceholder";
 
 export default function ProductPage() {
   const params = useParams<{ id: string }>();
@@ -135,3 +135,4 @@ export default function ProductPage() {
     </main>
   );
 }
+

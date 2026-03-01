@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { MedievalSharp, Oldenburg } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/src/context/AuthContext";
-import { CartProvider } from "@/src/context/CartContext";
-import { ToastProvider } from "@/src/context/ToastContext";
-import AppHeader from "@/src/components/AppHeader";
-import AutumnLeavesBackground from "@/src/components/ui/AutumnLeavesBackground";
+import { AuthProvider } from "@/shared/providers/AuthContext";
+import { CartProvider } from "@/shared/providers/CartContext";
+import { ToastProvider } from "@/shared/providers/ToastContext";
+import AppHeader from "@/shared/layout/AppHeader";
+import AutumnLeavesBackground from "@/shared/ui/AutumnLeavesBackground";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const siteName = "Tribal Trend";
@@ -85,3 +85,4 @@ export default function RootLayout({
     </html>
   );
 }
+

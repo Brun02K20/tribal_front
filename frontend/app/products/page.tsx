@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useProductsCatalog } from "@/src/hooks/useProductsCatalog";
-import { toNumber } from "@/src/utils/formatters";
-import LoadingState from "@/src/components/ui/LoadingState";
-import ErrorState from "@/src/components/ui/ErrorState";
-import EmptyState from "@/src/components/ui/EmptyState";
-import ImagePlaceholder from "@/src/components/ui/ImagePlaceholder";
-import PaginationControls from "@/src/components/ui/PaginationControls";
+import { useProductsCatalog } from "@/features/products/hooks/useProductsCatalog";
+import { toNumber } from "@/shared/lib/formatters";
+import LoadingState from "@/shared/ui/LoadingState";
+import ErrorState from "@/shared/ui/ErrorState";
+import EmptyState from "@/shared/ui/EmptyState";
+import ImagePlaceholder from "@/shared/ui/ImagePlaceholder";
+import PaginationControls from "@/shared/ui/PaginationControls";
 
 export default function ProductsPage() {
   const {
@@ -196,3 +196,4 @@ export default function ProductsPage() {
     </main>
   );
 }
+
