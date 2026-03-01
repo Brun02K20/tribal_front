@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { useRegisterLogin } from "@/src/hooks/useRegisterLogin";
 import AuthPageShell from "@/src/components/auth/AuthPageShell";
@@ -7,7 +8,7 @@ import { getAuthEmailRules, getAuthPasswordRules } from "@/src/utils/auth-form-r
 import type { LoginFormValues } from "@/types/auth";
 import { useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/products";
 
@@ -61,5 +62,13 @@ export default function LoginPage() {
         </button>
       </form>
     </AuthPageShell>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
