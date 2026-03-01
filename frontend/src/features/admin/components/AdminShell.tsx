@@ -11,6 +11,7 @@ const menuItems = [
   { label: "Subcategorias", href: "/dashboard/subcategorias" },
   { label: "Estados Pedido", href: "/dashboard/estados-pedido" },
   { label: "Estados Envio", href: "/dashboard/estados-envio" },
+  { label: "Metricas", href: "/dashboard/metricas" },
 ];
 
 export default function AdminShell({

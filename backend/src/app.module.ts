@@ -13,6 +13,7 @@ import { UsuariosModule } from './auth/usuarios/usuarios.module';
 import { ProductosModule } from './productos/productos.module';
 import { EstadosEnviosModule } from './estadoenvios/estadoenvios.module';
 import { PedidosModule } from './pedidos/pedidos.module';
+import { MetricasModule } from './metricas/metricas.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { PedidosModule } from './pedidos/pedidos.module';
     ProductosModule,
     EstadosEnviosModule,
     PedidosModule,
+    MetricasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
