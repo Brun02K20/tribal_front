@@ -12,6 +12,7 @@ const menuItems = [
   { label: "Estados Pedido", href: "/dashboard/estados-pedido" },
   { label: "Estados Envio", href: "/dashboard/estados-envio" },
   { label: "Metricas", href: "/dashboard/metricas" },
+  { label: "AI", href: "/dashboard/ai" },
 ];
 
 export default function AdminShell({

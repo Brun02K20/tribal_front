@@ -1,10 +1,16 @@
 "use client";
 
 import { Suspense } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRegisterLogin } from "@/features/auth/hooks/useRegisterLogin";
 import AuthPageShell from "@/features/auth/components/AuthPageShell";
 import { getAuthEmailRules, getAuthPasswordRules } from "@/shared/lib/auth-form-rules";
+import {
+  buildSouthAmericaPhone,
+  DEFAULT_SOUTH_AMERICA_DIAL_CODE,
+  SOUTH_AMERICA_PHONE_OPTIONS,
+} from "@/shared/lib/south-america-phone";
 import type { RegisterFormValues } from "@/types/auth";
 import { useSearchParams } from "next/navigation";
 
@@ -16,6 +22,7 @@ function RegisterPageContent() {
     register,
     handleSubmit,
     getValues,
+    setValue,
     formState: { errors },
   } = useForm<RegisterFormValues>({
     defaultValues: {
@@ -26,6 +33,10 @@ function RegisterPageContent() {
       password: "",
     },
   });
+
+  const [dialCode, setDialCode] = useState(DEFAULT_SOUTH_AMERICA_DIAL_CODE);
+  const [localPhone, setLocalPhone] = useState("");
+
   const { loading, error, googleContainerRef, submitWithPassword } =
     useRegisterLogin({ mode: "register", getRegisterValues: getValues, redirectTo: redirect });
 
@@ -67,7 +78,35 @@ function RegisterPageContent() {
 
         <div>
           <label className="mb-1 block text-sm text-dark-gray">Teléfono</label>
-          <input className="app-input" placeholder="Ej: 3511234567" {...register("telefono")} />
+          <div className="grid grid-cols-[150px_minmax(0,1fr)] gap-2">
+            <select
+              className="app-input"
+              value={dialCode}
+              onChange={(event) => {
+                const nextDialCode = event.target.value;
+                setDialCode(nextDialCode);
+                setValue("telefono", buildSouthAmericaPhone(nextDialCode, localPhone));
+              }}
+            >
+              {SOUTH_AMERICA_PHONE_OPTIONS.map((option) => (
+                <option key={option.dialCode} value={option.dialCode}>
+                  {option.country} ({option.dialCode})
+                </option>
+              ))}
+            </select>
+
+            <input
+              className="app-input"
+              inputMode="numeric"
+              placeholder="Ej: 3511234567"
+              value={localPhone}
+              onChange={(event) => {
+                const nextLocalPhone = event.target.value.replace(/\D/g, "");
+                setLocalPhone(nextLocalPhone);
+                setValue("telefono", buildSouthAmericaPhone(dialCode, nextLocalPhone));
+              }}
+            />
+          </div>
         </div>
 
         <div>

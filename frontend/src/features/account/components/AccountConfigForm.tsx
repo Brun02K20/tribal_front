@@ -1,6 +1,7 @@
 "use client";
 
 import type { UseAccountConfigResult } from "@/features/account/hooks/useAccountConfig";
+import { SOUTH_AMERICA_PHONE_OPTIONS } from "@/shared/lib/south-america-phone";
 import ErrorState from "@/shared/ui/ErrorState";
 import LoadingState from "@/shared/ui/LoadingState";
 import EmptyState from "@/shared/ui/EmptyState";
@@ -21,6 +22,10 @@ export default function AccountConfigForm({ model }: AccountConfigFormProps) {
     formState,
     addressFields,
     watch,
+    telefonoDialCode,
+    telefonoLocalNumber,
+    onTelefonoDialCodeChange,
+    onTelefonoLocalNumberChange,
     addAddress,
     removeAddress,
     onProvinciaChange,
@@ -64,11 +69,27 @@ export default function AccountConfigForm({ model }: AccountConfigFormProps) {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-dark-gray">Teléfono</label>
-            <input
-              className="app-input"
-              placeholder="Ej: 3511234567"
-              {...register("telefono")}
-            />
+            <div className="grid grid-cols-[150px_minmax(0,1fr)] gap-2">
+              <select
+                className="app-input"
+                value={telefonoDialCode}
+                onChange={(event) => onTelefonoDialCodeChange(event.target.value)}
+              >
+                {SOUTH_AMERICA_PHONE_OPTIONS.map((option) => (
+                  <option key={option.dialCode} value={option.dialCode}>
+                    {option.country} ({option.dialCode})
+                  </option>
+                ))}
+              </select>
+
+              <input
+                className="app-input"
+                inputMode="numeric"
+                placeholder="Ej: 3511234567"
+                value={telefonoLocalNumber}
+                onChange={(event) => onTelefonoLocalNumberChange(event.target.value)}
+              />
+            </div>
           </div>
         </div>
       </section>

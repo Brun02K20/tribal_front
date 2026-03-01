@@ -6,6 +6,11 @@ import { useAuth } from "@/shared/providers/AuthContext";
 import { useToast } from "@/shared/providers/ToastContext";
 import { usuariosService } from "@/entities/usuarios/api/usuarios.service";
 import { locationsService } from "@/entities/locations/api/locations.service";
+import {
+  buildSouthAmericaPhone,
+  DEFAULT_SOUTH_AMERICA_DIAL_CODE,
+  splitSouthAmericaPhone,
+} from "@/shared/lib/south-america-phone";
 import type { Ciudad, Provincia } from "@/types/locations";
 import type {
   AccountConfigAddress,
@@ -43,6 +48,10 @@ export type UseAccountConfigResult = {
   formState: ReturnType<typeof useForm<AccountConfigFormValues>>["formState"];
   addressFields: ReturnType<typeof useFieldArray<AccountConfigFormValues, "direcciones">>["fields"];
   watch: ReturnType<typeof useForm<AccountConfigFormValues>>["watch"];
+  telefonoDialCode: string;
+  telefonoLocalNumber: string;
+  onTelefonoDialCodeChange: (dialCode: string) => void;
+  onTelefonoLocalNumberChange: (localNumber: string) => void;
   addAddress: () => void;
   removeAddress: (index: number) => void;
   onProvinciaChange: (index: number, idProvincia: number) => void;
@@ -58,6 +67,8 @@ export function useAccountConfig(): UseAccountConfigResult {
   const [error, setError] = useState<string | null>(null);
   const [provincias, setProvincias] = useState<Provincia[]>([]);
   const [citiesByProvincia, setCitiesByProvincia] = useState<Record<number, Ciudad[]>>({});
+  const [telefonoDialCode, setTelefonoDialCode] = useState(DEFAULT_SOUTH_AMERICA_DIAL_CODE);
+  const [telefonoLocalNumber, setTelefonoLocalNumber] = useState("");
 
   const requestedProvinciasRef = useRef<Set<number>>(new Set());
 
@@ -132,6 +143,10 @@ export function useAccountConfig(): UseAccountConfigResult {
         direcciones: mappedAddresses,
       });
 
+      const parsedPhone = splitSouthAmericaPhone(config.telefono);
+      setTelefonoDialCode(parsedPhone.dialCode);
+      setTelefonoLocalNumber(parsedPhone.localNumber);
+
       const provinceIds = [...new Set(mappedAddresses.map((d) => Number(d.id_provincia)).filter(Boolean))];
       await Promise.all(provinceIds.map((idProvincia) => ensureCitiesLoaded(idProvincia)));
     } catch (err) {
@@ -183,6 +198,21 @@ export function useAccountConfig(): UseAccountConfigResult {
 
   const getCitiesByProvincia = (idProvincia: number) => citiesByProvincia[idProvincia] ?? [];
 
+  const onTelefonoDialCodeChange = (dialCode: string) => {
+    setTelefonoDialCode(dialCode);
+    setValue("telefono", buildSouthAmericaPhone(dialCode, telefonoLocalNumber), {
+      shouldDirty: true,
+    });
+  };
+
+  const onTelefonoLocalNumberChange = (localNumber: string) => {
+    const sanitizedLocalNumber = localNumber.replace(/\D/g, "");
+    setTelefonoLocalNumber(sanitizedLocalNumber);
+    setValue("telefono", buildSouthAmericaPhone(telefonoDialCode, sanitizedLocalNumber), {
+      shouldDirty: true,
+    });
+  };
+
   const submit = async (values: AccountConfigFormValues) => {
     if (!user?.id) {
       setError("No se pudo identificar el usuario");
@@ -193,9 +223,11 @@ export function useAccountConfig(): UseAccountConfigResult {
     setError(null);
 
     try {
+      const telefono = buildSouthAmericaPhone(telefonoDialCode, telefonoLocalNumber);
+
       const payload: UpdateAccountConfigPayload = {
         username: values.username,
-        telefono: values.telefono,
+        telefono: telefono || undefined,
         direcciones: (values.direcciones ?? []).map((direccion) => ({
           cod_postal_destino: direccion.cod_postal_destino,
           calle: direccion.calle,
@@ -233,6 +265,10 @@ export function useAccountConfig(): UseAccountConfigResult {
     formState,
     addressFields: fields,
     watch,
+    telefonoDialCode,
+    telefonoLocalNumber,
+    onTelefonoDialCodeChange,
+    onTelefonoLocalNumberChange,
     addAddress,
     removeAddress,
     onProvinciaChange,

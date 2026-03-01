@@ -14,6 +14,7 @@ import { ProductosModule } from './productos/productos.module';
 import { EstadosEnviosModule } from './estadoenvios/estadoenvios.module';
 import { PedidosModule } from './pedidos/pedidos.module';
 import { MetricasModule } from './metricas/metricas.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { MetricasModule } from './metricas/metricas.module';
     EstadosEnviosModule,
     PedidosModule,
     MetricasModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],
