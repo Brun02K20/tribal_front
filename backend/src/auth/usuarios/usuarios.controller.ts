@@ -1,8 +1,14 @@
-import { Body, Controller, Get, Param, Query, Put, UseGuards, ParseIntPipe, Req, ForbiddenException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Query, Put, Post, UseGuards, ParseIntPipe, Req, ForbiddenException } from '@nestjs/common';
 import { ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { UsuariosService } from './usuarios.service';
-import { AccountConfigDto, AccountConfigGetDto, SuccessConfigUpdateDto } from '../DTOs/user.dto';
+import {
+    AccountConfigDto,
+    AccountConfigGetDto,
+    SuccessConfigUpdateDto,
+    CreateDireccionDto,
+    UserDireccionDto,
+} from '../DTOs/user.dto';
 import { AuthGuard } from '../utils/auth.guard';
 import { Role2Guard } from '../utils/role2.guard';
 
@@ -41,5 +47,39 @@ export class UsuariosController {
             throw new ForbiddenException('No puedes ver la configuración de otro usuario');
         }
         return this.usuariosService.getAccountConfig(userId);
+    }
+
+    @UseGuards(AuthGuard, Role2Guard)
+    @ApiBearerAuth('bearer')
+    @Get(':userId/direcciones')
+    @ApiParam({ name: 'userId', type: Number, description: 'ID del usuario', example: 1 })
+    @ApiOkResponse({ type: UserDireccionDto, isArray: true })
+    async getUserAddresses(
+        @Param('userId', ParseIntPipe) userId: number,
+        @Req() req: Request & { user?: { sub?: number } },
+    ): Promise<UserDireccionDto[]> {
+        if (req.user?.sub !== userId) {
+            throw new ForbiddenException('No puedes ver direcciones de otro usuario');
+        }
+
+        return this.usuariosService.getUserAddresses(userId);
+    }
+
+    @UseGuards(AuthGuard, Role2Guard)
+    @ApiBearerAuth('bearer')
+    @Post(':userId/direcciones')
+    @ApiParam({ name: 'userId', type: Number, description: 'ID del usuario', example: 1 })
+    @ApiBody({ type: CreateDireccionDto })
+    @ApiOkResponse({ type: UserDireccionDto })
+    async createUserAddress(
+        @Param('userId', ParseIntPipe) userId: number,
+        @Req() req: Request & { user?: { sub?: number } },
+        @Body() data: CreateDireccionDto,
+    ): Promise<UserDireccionDto> {
+        if (req.user?.sub !== userId) {
+            throw new ForbiddenException('No puedes crear direcciones para otro usuario');
+        }
+
+        return this.usuariosService.createUserAddress(userId, data);
     }
 }

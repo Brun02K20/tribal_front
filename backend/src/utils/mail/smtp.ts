@@ -1,4 +1,4 @@
-import {createTransport} from 'nodemailer';
+import { createTransport, SendMailOptions } from 'nodemailer';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -10,25 +10,35 @@ const transporter = createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
   },
-  secure: false, // true for 465, false for other ports
+  secure: false,
 });
 
-const mailOptions = {
-    from: "Tribal Trend <commerce@mail.tribaltrend.com.ar>",
-    to: "bvirinni@gmail.com",
-    subject: "Test Email from Node.js",
-    text: "This is a test email sent from Node.js using Nodemailer.",
+const defaultFromAddress = process.env.SMTP_FROM ?? 'Tribal Trend <commerce@mail.tribaltrend.com.ar>';
+
+export interface SendEmailOptions {
+  to: string | string[];
+  subject: string;
+  text?: string;
+  html?: string;
+  from?: string;
+  replyTo?: string;
 }
 
-const sendTestEmail = async () => {
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log("Email sent: " + info.response);
-    } catch (error) {
-        console.error("Error sending email: ", error);
-    }
-}
+const normalizeRecipients = (to: string | string[]): string => {
+  return Array.isArray(to) ? to.join(', ') : to;
+};
 
+const sendEmail = async ({ to, subject, text, html, from, replyTo }: SendEmailOptions) => {
+  const mailOptions: SendMailOptions = {
+    from: from ?? defaultFromAddress,
+    to: normalizeRecipients(to),
+    subject,
+    text,
+    html,
+    replyTo,
+  };
 
+  return transporter.sendMail(mailOptions);
+};
 
-export {sendTestEmail, transporter};
+export { sendEmail, transporter };

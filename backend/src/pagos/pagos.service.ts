@@ -9,9 +9,17 @@ import { Envios } from 'src/envios/models/Envios';
 import { EstadoPedidos } from 'src/estadopedidos/models/EstadoPedidos';
 import { EstadoEnvios } from 'src/estadoenvios/models/EstadoEnvios';
 import { Productos } from 'src/productos/models/Productos';
+import { Usuarios } from 'src/auth/models/Usuarios';
+import { sendEmail } from 'src/utils/mail/smtp';
+import {
+	NotificacionProducto,
+	PurchaseNotificationContext,
+	buildPurchaseNotificationContent,
+} from 'src/utils/mail/templates/purchase-notification.template';
 
 interface MetadataProducto {
 	id_producto: number;
+	nombre?: string;
 	unidades: number;
 	subtotal: number;
 	medidas?: {
@@ -24,6 +32,8 @@ interface MetadataProducto {
 interface PaymentMetadata {
 	usuario?: {
 		id?: number;
+		nombre?: string;
+		email?: string;
 	};
 	pedido?: {
 		id_usuario?: number;
@@ -40,6 +50,8 @@ interface PaymentMetadata {
 @Injectable()
 export class PagosService {
 	private readonly logger = new Logger(PagosService.name);
+	private readonly adminUserId = 10;
+	private readonly frontendBaseUrl = (process.env.FRONTEND_PUBLIC_URL ?? 'https://tribaltrend.com.ar').replace(/\/$/, '');
 
 	// aca es donde se recibe la notificacion de pago de mercado pago, y se procesa el pago
 	// esta ruta debe ser la misma que se configura en el webhook de mercado pago
@@ -71,6 +83,8 @@ export class PagosService {
 			const usuarioId = Number(pedidoMetadata?.id_usuario ?? metadata.usuario?.id);
 			const direccionId = Number(pedidoMetadata?.id_direccion);
 			const detalles = Array.isArray(metadata.productos) ? metadata.productos : [];
+			const productNamesById = new Map<number, string>();
+			let pedidoCreadoId: number | null = null;
 
 			this.logger.log(
 				`Metadata parseada. usuarioId=${usuarioId} direccionId=${direccionId} cantidad_detalles=${detalles.length}`,
@@ -84,17 +98,17 @@ export class PagosService {
 				throw new BadRequestException('Metadata de pago incompleta para registrar pedido/pago/envio');
 			}
 
-			const estadoPedidoAprobado =
-				(await EstadoPedidos.findOne({ where: { nombre: 'Aprobado' } })) ??
-				(await EstadoPedidos.findOne({ where: { nombre: 'Pagado' } })) ??
-				(await EstadoPedidos.findOne({ where: { nombre: 'Pendiente' } })) ??
-				(await EstadoPedidos.findOne({ order: [['id', 'ASC']] }));
+			const estadoPedidoAprobado = await this.findPedidoStateByPriority([
+				'Aprobado',
+				'Pagado',
+				'Pendiente',
+			]);
 
-			const estadoEnvioPendiente =
-				(await EstadoEnvios.findOne({ where: { nombre: 'Pendiente' } })) ??
-				(await EstadoEnvios.findOne({ where: { nombre: 'En preparación' } })) ??
-				(await EstadoEnvios.findOne({ where: { nombre: 'En preparacion' } })) ??
-				(await EstadoEnvios.findOne({ order: [['id', 'ASC']] }));
+			const estadoEnvioPendiente = await this.findEnvioStateByPriority([
+				'Pendiente',
+				'En preparación',
+				'En preparacion',
+			]);
 
 			if (!estadoPedidoAprobado || !estadoEnvioPendiente) {
 				this.logger.error(
@@ -147,6 +161,7 @@ export class PagosService {
 				);
 
 				this.logger.debug(`Pedido creado. pedidoId=${pedido.id}`);
+				pedidoCreadoId = pedido.id;
 				this.logger.debug(`Paso 2/4 creando Pago`);
 
 				await Pagos.create(
@@ -212,6 +227,7 @@ export class PagosService {
 					}
 
 					const stockActual = Number(producto.stock ?? 0);
+					productNamesById.set(idProducto, producto.nombre);
 					if (stockActual < unidadesDescontar) {
 						throw new BadRequestException(
 							`Stock insuficiente al confirmar pago para producto ${producto.nombre} (id=${idProducto}). stock=${stockActual}, requerido=${unidadesDescontar}`,
@@ -227,6 +243,29 @@ export class PagosService {
 
 				this.logger.log(`Transacción OK. paymentId=${paymentId} pedidoId=${pedido.id}`);
 			});
+
+			if (pedidoCreadoId) {
+				const productosNotificacion = detalles.map((detalle) => ({
+					nombre:
+						productNamesById.get(Number(detalle.id_producto)) ??
+						detalle.nombre ??
+						`Producto #${Number(detalle.id_producto)}`,
+					unidades: Number(detalle.unidades),
+					subtotal: Number(detalle.subtotal),
+				}));
+
+				await this.sendPurchaseNotifications({
+					pedidoId: pedidoCreadoId,
+					usuarioId,
+					nombreCliente: String(metadata.usuario?.nombre ?? ''),
+					emailCliente: String(metadata.usuario?.email ?? ''),
+					productos: productosNotificacion,
+					costoTotalProductos,
+					costoEnvio,
+					costoGananciaEnvio,
+					montoTotalPago,
+				});
+			}
 		} catch (error) {
 			const errorDetails = this.buildErrorDetails(error);
 			this.logger.error(
@@ -285,5 +324,78 @@ export class PagosService {
 			parent: errorObject.parent,
 			original: errorObject.original,
 		});
+	}
+
+	private async findPedidoStateByPriority(nombres: string[]): Promise<EstadoPedidos | null> {
+		for (const nombre of nombres) {
+			const estado = await EstadoPedidos.findOne({ where: { nombre } });
+			if (estado) {
+				return estado;
+			}
+		}
+
+		return EstadoPedidos.findOne({ order: [['id', 'ASC']] });
+	}
+
+	private async findEnvioStateByPriority(nombres: string[]): Promise<EstadoEnvios | null> {
+		for (const nombre of nombres) {
+			const estado = await EstadoEnvios.findOne({ where: { nombre } });
+			if (estado) {
+				return estado;
+			}
+		}
+
+		return EstadoEnvios.findOne({ order: [['id', 'ASC']] });
+	}
+
+	private async sendPurchaseNotifications(context: PurchaseNotificationContext): Promise<void> {
+		try {
+			const [adminUser, clienteDb] = await Promise.all([
+				Usuarios.findByPk(this.adminUserId),
+				Usuarios.findByPk(context.usuarioId),
+			]);
+
+			const emailClienteFinal = clienteDb?.email ?? context.emailCliente;
+			const nombreClienteFinal = clienteDb?.nombre ?? context.nombreCliente ?? `Usuario #${context.usuarioId}`;
+
+			const finalContext: PurchaseNotificationContext = {
+				...context,
+				emailCliente: emailClienteFinal,
+				nombreCliente: nombreClienteFinal,
+			};
+
+			const { text: bodyText, html: bodyHtml } = buildPurchaseNotificationContent(finalContext, this.frontendBaseUrl);
+
+			if (adminUser?.email) {
+				await sendEmail({
+					to: adminUser.email,
+					subject: `Nueva compra registrada #${finalContext.pedidoId}`,
+					text: bodyText,
+					html: bodyHtml,
+				});
+				this.logger.log(`Email de nueva compra enviado al admin. pedidoId=${finalContext.pedidoId}`);
+			} else {
+				this.logger.warn(`No se pudo enviar email al admin (id=${this.adminUserId}) por falta de email.`);
+			}
+
+			if (emailClienteFinal) {
+				await sendEmail({
+					to: emailClienteFinal,
+					subject: `Confirmación de compra #${finalContext.pedidoId}`,
+					text: bodyText,
+					html: bodyHtml,
+				});
+				this.logger.log(`Email de confirmación enviado al cliente. pedidoId=${finalContext.pedidoId} usuarioId=${finalContext.usuarioId}`);
+			} else {
+				this.logger.warn(`No se pudo enviar email al cliente por falta de email. usuarioId=${finalContext.usuarioId}`);
+			}
+		} catch (error) {
+			this.logger.error(
+				`Error enviando emails de compra para pedidoId=${context.pedidoId}: ${
+					error instanceof Error ? error.message : String(error)
+				}`,
+				error instanceof Error ? error.stack : undefined,
+			);
+		}
 	}
 }

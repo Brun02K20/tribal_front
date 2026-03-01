@@ -21,7 +21,7 @@ export class AuthService {
 	constructor(private readonly jwtService: JwtService) { }
 
 	async register(data: RegisterInput) {
-		try {
+		return this.handleAuthAction('Error during registration:', 'Error al registrar el usuario', async () => {
 			const existing = await Usuarios.findOne({ where: { email: data.email } });
 			if (existing) {
 				throw new BadRequestException('El email ya está registrado');
@@ -39,17 +39,11 @@ export class AuthService {
 			});
 
 			return this.buildAuthResponse(user);
-		} catch (error) {
-			console.error('Error during registration:', error);
-			if (error instanceof HttpException) {
-				throw error;
-			}
-			throw new BadRequestException('Error al registrar el usuario');
-		}
+		});
 	}
 
 	async login(data: LoginInput) {
-		try {
+		return this.handleAuthAction('Error during login:', 'Error al iniciar sesión', async () => {
 			const user = await Usuarios.findOne({ where: { email: data.email } });
 			if (!user || !user.password_hash) {
 				throw new UnauthorizedException(
@@ -68,17 +62,11 @@ export class AuthService {
 			}
 
 			return this.buildAuthResponse(user);
-		} catch (error) {
-			console.error('Error during login:', error);
-			if (error instanceof HttpException) {
-				throw error;
-			}
-			throw new UnauthorizedException('Error al iniciar sesión');
-		}
+		});
 	}
 
 	async registerWithGoogle(data: GoogleInput) {
-		try {
+		return this.handleAuthAction('Error during Google registration:', 'Error al registrar con Google', async () => {
 			const googleData = await this.verifyGoogleIdToken(data.idToken);
 			const existingByEmail = await Usuarios.findOne({
 				where: { email: googleData.email, google_id: googleData.sub },
@@ -109,17 +97,11 @@ export class AuthService {
 			});
 
 			return this.buildAuthResponse(user);
-		} catch (error) {
-			console.error('Error during Google registration:', error);
-			if (error instanceof HttpException) {
-				throw error;
-			}
-			throw new BadRequestException('Error al registrar con Google');
-		}
+		});
 	}
 
 	async loginWithGoogle(idToken: string) {
-		try {
+		return this.handleAuthAction('Error during Google login:', 'Error al iniciar sesión con Google', async () => {
 			const googleData = await this.verifyGoogleIdToken(idToken);
 
 			let user = await Usuarios.findOne({
@@ -142,12 +124,22 @@ export class AuthService {
 			}
 
 			return this.buildAuthResponse(user);
+		});
+	}
+
+	private async handleAuthAction<T>(
+		logPrefix: string,
+		fallbackMessage: string,
+		action: () => Promise<T>,
+	): Promise<T> {
+		try {
+			return await action();
 		} catch (error) {
-			console.error('Error during Google login:', error);
+			console.error(logPrefix, error);
 			if (error instanceof HttpException) {
 				throw error;
 			}
-			throw new UnauthorizedException('Error al iniciar sesión con Google');
+			throw new BadRequestException(fallbackMessage);
 		}
 	}
 

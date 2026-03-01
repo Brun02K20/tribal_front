@@ -30,6 +30,14 @@ export class ProductosController {
             return this.productosService.findAll();
         }
 
+        @UseGuards(AuthGuard, Role1Guard)
+        @ApiBearerAuth('bearer')
+        @Get('admin/all')
+        @ApiOkResponse({ type: GetProductDto, isArray: true })
+        async findAllForAdmin(): Promise<GetProductDto[]> {
+            return this.productosService.findAllForAdmin();
+        }
+
         @Get('search')
         @ApiQuery({ name: 'name', type: String, required: false, description: 'Término de búsqueda para nombre o descripción' })
         @ApiQuery({ name: 'id_categoria', type: Number, required: false, description: 'ID de la categoría para filtrar (opcional)' })

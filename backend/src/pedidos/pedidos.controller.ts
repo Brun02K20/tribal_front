@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { PedidosService } from './pedidos.service';
 import { CreatePedidoDto } from './DTOs/createpedido.dto';
 import { DetallePedidoResponseDto } from './DTOs/getpedido.dto';
+import { UpdateEstadoEnvioDto, UpdateEstadoPedidoDto } from './DTOs/update-estados.dto';
 import { AuthGuard } from 'src/auth/utils/auth.guard';
 import { Role2Guard } from 'src/auth/utils/role2.guard';
 import { Role1Guard } from 'src/auth/utils/role1.guard';
@@ -57,6 +58,26 @@ export class PedidosController {
 
 	@UseGuards(AuthGuard, Role1OrOwnerPedidoGuard)
 	@ApiBearerAuth('bearer')
+	@Get('usuario/:id_usuario')
+	@ApiOperation({
+		summary: 'Obtener pedidos por usuario (admin o dueño)',
+		description:
+			'Permite obtener todos los pedidos de un usuario. Acceden administradores o el propio usuario.',
+	})
+	@ApiParam({ name: 'id_usuario', type: Number, description: 'ID del usuario', example: 13 })
+	@ApiOkResponse({
+		description: 'Listado de pedidos del usuario.',
+		type: DetallePedidoResponseDto,
+		isArray: true,
+	})
+	async getAllPedidosForUser(
+		@Param('id_usuario', ParseIntPipe) id_usuario: number,
+	): Promise<DetallePedidoResponseDto[]> {
+		return this.pedidosService.getAllPedidosForUser(id_usuario);
+	}
+
+	@UseGuards(AuthGuard, Role1OrOwnerPedidoGuard)
+	@ApiBearerAuth('bearer')
 	@Get(':id')
 	@ApiOperation({
 		summary: 'Obtener pedido por ID (admin o dueño)',
@@ -74,24 +95,44 @@ export class PedidosController {
 		return this.pedidosService.getPedidoById(id);
 	}
 
-	@UseGuards(AuthGuard, Role1OrOwnerPedidoGuard)
+	@UseGuards(AuthGuard, Role1Guard)
 	@ApiBearerAuth('bearer')
-	@Get('usuario/:id_usuario')
+	@Put(':id/estado-pedido')
 	@ApiOperation({
-		summary: 'Obtener pedidos por usuario (admin o dueño)',
-		description:
-			'Permite obtener todos los pedidos de un usuario. Acceden administradores o el propio usuario.',
+		summary: 'Modificar estado de pedido (admin)',
+		description: 'Actualiza únicamente el id_estado_pedido del pedido indicado.',
 	})
-	@ApiParam({ name: 'id_usuario', type: Number, description: 'ID del usuario', example: 13 })
+	@ApiParam({ name: 'id', type: Number, description: 'ID del pedido', example: 1 })
+	@ApiBody({ type: UpdateEstadoPedidoDto })
 	@ApiOkResponse({
-		description: 'Listado de pedidos del usuario.',
+		description: 'Pedido actualizado con su nuevo estado.',
 		type: DetallePedidoResponseDto,
-		isArray: true,
 	})
-	async getAllPedidosForUser(
-		@Param('id_usuario', ParseIntPipe) id_usuario: number,
-	): Promise<DetallePedidoResponseDto[]> {
-		return this.pedidosService.getAllPedidosForUser(id_usuario);
+	async updateEstadoPedido(
+		@Param('id', ParseIntPipe) id: number,
+		@Body() body: UpdateEstadoPedidoDto,
+	): Promise<DetallePedidoResponseDto> {
+		return this.pedidosService.updateEstadoPedido(id, body.id_estado_pedido);
+	}
+
+	@UseGuards(AuthGuard, Role1Guard)
+	@ApiBearerAuth('bearer')
+	@Put(':id/estado-envio')
+	@ApiOperation({
+		summary: 'Modificar estado de envío (admin)',
+		description: 'Actualiza únicamente el id_estado_envio del envío asociado al pedido indicado.',
+	})
+	@ApiParam({ name: 'id', type: Number, description: 'ID del pedido', example: 1 })
+	@ApiBody({ type: UpdateEstadoEnvioDto })
+	@ApiOkResponse({
+		description: 'Pedido actualizado con su nuevo estado de envío.',
+		type: DetallePedidoResponseDto,
+	})
+	async updateEstadoEnvio(
+		@Param('id', ParseIntPipe) id: number,
+		@Body() body: UpdateEstadoEnvioDto,
+	): Promise<DetallePedidoResponseDto> {
+		return this.pedidosService.updateEstadoEnvio(id, body.id_estado_envio);
 	}
 
     

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, HttpException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, HttpException, NotFoundException, Logger } from '@nestjs/common';
 import { client, Preference, mpMode } from '../mercadopago/mercadopago';
 import { Op } from 'sequelize';
 import { Direcciones } from 'src/auth/usuarios/direcciones/models/Direcciones';
@@ -16,15 +16,171 @@ import { Envios } from 'src/envios/models/Envios';
 import { Pagos } from 'src/pagos/models/Pagos';
 import { EstadoPedidos } from 'src/estadopedidos/models/EstadoPedidos';
 import { EstadoEnvios } from 'src/estadoenvios/models/EstadoEnvios';
+import { sendEmail } from 'src/utils/mail/smtp';
+import { buildShippingStatusUpdateEmailContent } from 'src/utils/mail/templates/shipping-status-update.template';
 
 @Injectable()
 export class PedidosService {
+    private readonly logger = new Logger(PedidosService.name);
+    private readonly frontendBaseUrl = (process.env.FRONTEND_PUBLIC_URL ?? 'https://tribaltrend.com.ar').replace(/\/$/, '');
+
     constructor(
         
     ) {}
 
+    private buildPedidoInclude() {
+        return [
+            {
+                model: DetallePedidos,
+                as: 'detallePedidos',
+                attributes: ['id', 'id_producto', 'subtotal', 'unidades'],
+                include: [
+                    {
+                        model: Productos,
+                        as: 'producto',
+                        attributes: ['id', 'nombre', 'precio', 'id_categoria', 'id_subcategoria', 'ancho', 'alto', 'profundo'],
+                        include: [
+                            {
+                                model: Categorias,
+                                as: 'categoria',
+                                attributes: ['id', 'nombre'],
+                            },
+                            {
+                                model: Subcategorias,
+                                as: 'subcategoria',
+                                attributes: ['id', 'nombre'],
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                model: Envios,
+                as: 'envio',
+                attributes: ['id', 'id_estado_envio', 'ancho_paquete', 'alto_paquete', 'profundo_paquete', 'costo_envio', 'id_direccion'],
+                include: [
+                    {
+                        model: EstadoEnvios,
+                        as: 'estado_envio',
+                        attributes: ['id', 'nombre'],
+                    },
+                    {
+                        model: Direcciones,
+                        as: 'direccion',
+                        attributes: ['id', 'calle', 'altura', 'cod_postal_destino'],
+                        include: [
+                            {
+                                model: Ciudades,
+                                as: 'ciudad',
+                                attributes: ['id', 'nombre'],
+                            },
+                            {
+                                model: Provincias,
+                                as: 'provincia',
+                                attributes: ['id', 'nombre'],
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                model: Usuarios,
+                as: 'usuario',
+                attributes: ['id', 'nombre', 'email', 'telefono'],
+            },
+            {
+                model: Pagos,
+                as: 'pago',
+                attributes: ['id', 'monto_total', 'fecha_pago', 'aprobado'],
+            },
+            {
+                model: EstadoPedidos,
+                as: 'estadoPedido',
+                attributes: ['id', 'nombre'],
+            },
+        ];
+    }
+
+    private mapPedidoResponse(pedido: Pedidos, includeDetalles = false): DetallePedidoResponseDto {
+        return {
+            id: pedido.id,
+            fecha_pedido: pedido.fecha_pedido ? new Date(pedido.fecha_pedido).toISOString() : '',
+            costo_total_productos: Number(pedido.costo_total_productos),
+            costo_envio: Number(pedido.costo_envio),
+            costo_ganancia_envio: Number(pedido.costo_ganancia_envio),
+            usuario: {
+                id: pedido.usuario?.id ?? 0,
+                nombre: pedido.usuario?.nombre ?? '',
+                email: pedido.usuario?.email ?? '',
+                telefono: pedido.usuario?.telefono ?? '',
+            },
+            pago: {
+                id: pedido.pago?.id ?? 0,
+                monto_total: Number(pedido.pago?.monto_total ?? 0),
+                fecha_pago: pedido.pago?.fecha_pago ? new Date(pedido.pago.fecha_pago).toISOString() : '',
+                aprobado: Boolean(pedido.pago?.aprobado),
+            },
+            envio: {
+                id: pedido.envio?.id ?? 0,
+                ancho_paquete: Number(pedido.envio?.ancho_paquete ?? 0),
+                alto_paquete: Number(pedido.envio?.alto_paquete ?? 0),
+                profundo_paquete: Number(pedido.envio?.profundo_paquete ?? 0),
+                estado_envio: {
+                    id: pedido.envio?.estado_envio?.id ?? 0,
+                    nombre: pedido.envio?.estado_envio?.nombre ?? '',
+                },
+                direccion: {
+                    provincia: {
+                        nombre: pedido.envio?.direccion?.provincia?.nombre ?? '',
+                    },
+                    ciudad: {
+                        nombre: pedido.envio?.direccion?.ciudad?.nombre ?? '',
+                    },
+                    calle: pedido.envio?.direccion?.calle ?? '',
+                    altura: pedido.envio?.direccion?.altura ?? '',
+                    cod_postal_destino: pedido.envio?.direccion?.cod_postal_destino ?? '',
+                },
+            },
+            detalles: includeDetalles
+                ? (pedido.detallePedidos ?? []).map((detalle) => {
+                    const precioUnitario = Number(detalle.unidades) > 0
+                        ? Number(detalle.subtotal) / Number(detalle.unidades)
+                        : 0;
+
+                    return {
+                        id: detalle.id,
+                        id_producto: detalle.id_producto,
+                        nombre_producto: detalle.producto?.nombre ?? '',
+                        unidades: Number(detalle.unidades),
+                        subtotal: Number(detalle.subtotal),
+                        precio_unitario: Number(precioUnitario.toFixed(2)),
+                        ancho_producto: Number(detalle.producto?.ancho ?? 0),
+                        alto_producto: Number(detalle.producto?.alto ?? 0),
+                        profundo_producto: Number(detalle.producto?.profundo ?? 0),
+                        categoria: detalle.producto?.categoria
+                            ? {
+                                id: detalle.producto.categoria.id,
+                                nombre: detalle.producto.categoria.nombre,
+                            }
+                            : null,
+                        subcategoria: detalle.producto?.subcategoria
+                            ? {
+                                id: detalle.producto.subcategoria.id,
+                                nombre: detalle.producto.subcategoria.nombre,
+                            }
+                            : null,
+                    };
+                })
+                : undefined,
+            estado_pedido: {
+                id: pedido.estadoPedido?.id ?? 0,
+                nombre: pedido.estadoPedido?.nombre ?? '',
+            },
+        };
+    }
+
     async createPedido(createPedidoDto: CreatePedidoDto): Promise<string> {
-        try {
+        return this.handlePedidoAction('Error creating pedido', async () => {
             if (!createPedidoDto.detalles?.length) {
                 throw new BadRequestException('El pedido debe tener al menos un producto');
             }
@@ -221,394 +377,143 @@ export class PedidosService {
             });
 
             return preference.init_point!;
-        } catch (error) {
-            if (error instanceof HttpException) {
-                throw error;
-            }
-            throw new BadRequestException('Error creating pedido');
-        }
+        });
     }
 
     async getAllPedidosForAdmin(): Promise<DetallePedidoResponseDto[]> {
-        try {
-            const pedidos = await Pedidos.findAll({
-                include: [
-                    {
-                        model: DetallePedidos,
-                        as: 'detallePedidos',
-                        attributes: ['id', 'id_producto', 'subtotal', 'unidades'],
-                        include: [
-                            {
-                                model: Productos,
-                                as: 'producto',
-                                attributes: ['id', 'nombre', 'precio', 'id_categoria', 'id_subcategoria'],
-                                include: [
-                                    {
-                                        model: Categorias,
-                                        as: 'categoria',
-                                        attributes: ['id', 'nombre'],
-                                    },
-                                    {
-                                        model: Subcategorias,
-                                        as: 'subcategoria',
-                                        attributes: ['id', 'nombre'],
-                                    }
-                                ]
-                            },
-                        ],
-                    },
-                    {
-                        model: Envios,
-                        as: 'envio',
-                        attributes: ['id', 'id_estado_envio', 'ancho_paquete', 'alto_paquete', 'profundo_paquete', 'costo_envio', 'id_direccion'],
-                        include: [
-                            {
-                                model: EstadoEnvios,
-                                as: 'estado_envio',
-                                attributes: ['id', 'nombre'],
-                            },
-                            {
-                                model: Direcciones,
-                                as: 'direccion',
-                                attributes: ['id', 'calle', 'altura', 'cod_postal_destino'],
-                                include: [
-                                    {
-                                        model: Ciudades,
-                                        as: 'ciudad',
-                                        attributes: ['id', 'nombre'],
-                                    },
-                                    {
-                                        model: Provincias,
-                                        as: 'provincia',
-                                        attributes: ['id', 'nombre'],
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        model: Usuarios,
-                        as: 'usuario',
-                        attributes: ['id', 'nombre', 'email', 'telefono'],
-                    },
-                    {
-                        model: Pagos,
-                        as: 'pago',
-                        attributes: ['id', 'monto_total', 'fecha_pago', 'aprobado'],
-                    },
-                    {
-                        model: EstadoPedidos,
-                        as: 'estadoPedido',
-                        attributes: ['id', 'nombre'],
-                    }
-                ],
-            });
+        const pedidos = await Pedidos.findAll({
+            include: this.buildPedidoInclude(),
+        });
 
-            return pedidos.map((pedido) => ({
-                id: pedido.id,
-                fecha_pedido: pedido.fecha_pedido ? new Date(pedido.fecha_pedido).toISOString() : '',
-                costo_total_productos: Number(pedido.costo_total_productos),
-                costo_envio: Number(pedido.costo_envio),
-                costo_ganancia_envio: Number(pedido.costo_ganancia_envio),
-                usuario: {
-                    id: pedido.usuario?.id ?? 0,
-                    nombre: pedido.usuario?.nombre ?? '',
-                    email: pedido.usuario?.email ?? '',
-                    telefono: pedido.usuario?.telefono ?? '',
-                },
-                pago: {
-                    id: pedido.pago?.id ?? 0,
-                    monto_total: Number(pedido.pago?.monto_total ?? 0),
-                    fecha_pago: pedido.pago?.fecha_pago ? new Date(pedido.pago.fecha_pago).toISOString() : '',
-                    aprobado: Boolean(pedido.pago?.aprobado),
-                },
-                envio: {
-                    id: pedido.envio?.id ?? 0,
-                    ancho_paquete: Number(pedido.envio?.ancho_paquete ?? 0),
-                    alto_paquete: Number(pedido.envio?.alto_paquete ?? 0),
-                    profundo_paquete: Number(pedido.envio?.profundo_paquete ?? 0),
-                    estado_envio: {
-                        nombre: pedido.envio?.estado_envio?.nombre ?? '',
-                    },
-                    direccion: {
-                        provincia: {
-                            nombre: pedido.envio?.direccion?.provincia?.nombre ?? '',
-                        },
-                        ciudad: {
-                            nombre: pedido.envio?.direccion?.ciudad?.nombre ?? '',
-                        },
-                        calle: pedido.envio?.direccion?.calle ?? '',
-                        altura: pedido.envio?.direccion?.altura ?? '',
-                        cod_postal_destino: pedido.envio?.direccion?.cod_postal_destino ?? '',
-                    },
-                },
-                estado_pedido: {
-                    nombre: pedido.estadoPedido?.nombre ?? '',
-                },
-            }));
-
-        } catch (error) {
-            if (error instanceof HttpException) {
-                throw error;
-            }
-            throw new BadRequestException('Error fetching pedidos');
-        }
+        return pedidos.map((pedido) => this.mapPedidoResponse(pedido));
     }
 
     async getPedidoById(id: number): Promise<DetallePedidoResponseDto> {
-        try {
-            const pedido = await Pedidos.findByPk(id, {
-                include: [
-                    {
-                        model: DetallePedidos,
-                        as: 'detallePedidos',
-                        attributes: ['id', 'id_producto', 'subtotal', 'unidades'],
-                        include: [
-                            {
-                                model: Productos,
-                                as: 'producto',
-                                attributes: ['id', 'nombre', 'precio', 'id_categoria', 'id_subcategoria'],
-                                include: [
-                                    {
-                                        model: Categorias,
-                                        as: 'categoria',
-                                        attributes: ['id', 'nombre'],
-                                    },
-                                    {
-                                        model: Subcategorias,
-                                        as: 'subcategoria',
-                                        attributes: ['id', 'nombre'],
-                                    }
-                                ]
-                            },
-                        ],
-                    },
-                    {
-                        model: Envios,
-                        as: 'envio',
-                        attributes: ['id', 'id_estado_envio', 'ancho_paquete', 'alto_paquete', 'profundo_paquete', 'costo_envio', 'id_direccion'],
-                        include: [
-                            {
-                                model: EstadoEnvios,
-                                as: 'estado_envio',
-                                attributes: ['id', 'nombre'],
-                            },
-                            {
-                                model: Direcciones,
-                                as: 'direccion',
-                                attributes: ['id', 'calle', 'altura', 'cod_postal_destino'],
-                                include: [
-                                    {
-                                        model: Ciudades,
-                                        as: 'ciudad',
-                                        attributes: ['id', 'nombre'],
-                                    },
-                                    {
-                                        model: Provincias,
-                                        as: 'provincia',
-                                        attributes: ['id', 'nombre'],
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        model: Usuarios,
-                        as: 'usuario',
-                        attributes: ['id', 'nombre', 'email', 'telefono'],
-                    },
-                    {
-                        model: Pagos,
-                        as: 'pago',
-                        attributes: ['id', 'monto_total', 'fecha_pago', 'aprobado'],
-                    },
-                    {
-                        model: EstadoPedidos,
-                        as: 'estadoPedido',
-                        attributes: ['id', 'nombre'],
-                    }
-                ],
-            })
+        const pedido = await Pedidos.findByPk(id, {
+            include: this.buildPedidoInclude(),
+        });
+
+        if (!pedido) {
+            throw new NotFoundException('Pedido no encontrado');
+        }
+
+        return this.mapPedidoResponse(pedido, true);
+    }
+
+    async getAllPedidosForUser(id_usuario: number): Promise<DetallePedidoResponseDto[]> {
+        const pedidos = await Pedidos.findAll({
+            where: {
+                id_usuario,
+            },
+            include: this.buildPedidoInclude(),
+        });
+
+        return pedidos.map((pedido) => this.mapPedidoResponse(pedido));
+    }
+
+    async updateEstadoPedido(id_pedido: number, id_estado_pedido: number): Promise<DetallePedidoResponseDto> {
+        return this.handlePedidoAction('Error actualizando estado del pedido', async () => {
+            const [pedido, estadoPedido] = await Promise.all([
+                Pedidos.findByPk(id_pedido),
+                EstadoPedidos.findByPk(id_estado_pedido),
+            ]);
 
             if (!pedido) {
                 throw new NotFoundException('Pedido no encontrado');
             }
 
-            return {
-                id: pedido.id,
-                fecha_pedido: pedido.fecha_pedido ? new Date(pedido.fecha_pedido).toISOString() : '',
-                costo_total_productos: Number(pedido.costo_total_productos),
-                costo_envio: Number(pedido.costo_envio),
-                costo_ganancia_envio: Number(pedido.costo_ganancia_envio),
-                usuario: {
-                    id: pedido.usuario?.id ?? 0,
-                    nombre: pedido.usuario?.nombre ?? '',
-                    email: pedido.usuario?.email ?? '',
-                    telefono: pedido.usuario?.telefono ?? '',
-                },
-                pago: {
-                    id: pedido.pago?.id ?? 0,
-                    monto_total: Number(pedido.pago?.monto_total ?? 0),
-                    fecha_pago: pedido.pago?.fecha_pago ? new Date(pedido.pago.fecha_pago).toISOString() : '',
-                    aprobado: Boolean(pedido.pago?.aprobado),
-                },
-                envio: {
-                    id: pedido.envio?.id ?? 0,
-                    ancho_paquete: Number(pedido.envio?.ancho_paquete ?? 0),
-                    alto_paquete: Number(pedido.envio?.alto_paquete ?? 0),
-                    profundo_paquete: Number(pedido.envio?.profundo_paquete ?? 0),
-                    estado_envio: {
-                        nombre: pedido.envio?.estado_envio?.nombre ?? '',
-                    },
-                    direccion: {
-                        provincia: {
-                            nombre: pedido.envio?.direccion?.provincia?.nombre ?? '',
-                        },
-                        ciudad: {
-                            nombre: pedido.envio?.direccion?.ciudad?.nombre ?? '',
-                        },
-                        calle: pedido.envio?.direccion?.calle ?? '',
-                        altura: pedido.envio?.direccion?.altura ?? '',
-                        cod_postal_destino: pedido.envio?.direccion?.cod_postal_destino ?? '',
-                    },
-                },
-                estado_pedido: {
-                    nombre: pedido.estadoPedido?.nombre ?? '',
-                },
-            };
-        } catch (error) {
-            if (error instanceof HttpException) {
-                throw error;
+            if (!estadoPedido) {
+                throw new NotFoundException('Estado de pedido no encontrado');
             }
-            throw new BadRequestException('Error fetching pedido by ID');
+
+            await pedido.update({ id_estado_pedido });
+            return this.getPedidoById(id_pedido);
+        });
+    }
+
+    async updateEstadoEnvio(id_pedido: number, id_estado_envio: number): Promise<DetallePedidoResponseDto> {
+        return this.handlePedidoAction('Error actualizando estado del envío', async () => {
+            const [pedido, estadoEnvio] = await Promise.all([
+                Pedidos.findByPk(id_pedido),
+                EstadoEnvios.findByPk(id_estado_envio),
+            ]);
+
+            if (!pedido) {
+                throw new NotFoundException('Pedido no encontrado');
+            }
+
+            if (!estadoEnvio) {
+                throw new NotFoundException('Estado de envío no encontrado');
+            }
+
+            const cliente = await Usuarios.findByPk(pedido.id_usuario, {
+                attributes: ['id', 'nombre', 'email'],
+            });
+
+            const envio = await Envios.findOne({ where: { id_pedido } });
+            if (!envio) {
+                throw new NotFoundException('Envío no encontrado para el pedido');
+            }
+
+            await envio.update({ id_estado_envio });
+            await this.sendShippingStatusUpdateToClient({
+                pedidoId: id_pedido,
+                estadoEnvioNombre: estadoEnvio.nombre,
+                clienteNombre: cliente?.nombre ?? `Cliente #${pedido.id_usuario}`,
+                clienteEmail: cliente?.email,
+            });
+
+            return this.getPedidoById(id_pedido);
+        });
+    }
+
+    private async sendShippingStatusUpdateToClient(params: {
+        pedidoId: number;
+        estadoEnvioNombre: string;
+        clienteNombre: string;
+        clienteEmail?: string;
+    }): Promise<void> {
+        const { pedidoId, estadoEnvioNombre, clienteNombre, clienteEmail } = params;
+
+        if (!clienteEmail) {
+            this.logger.warn(`No se envió email de estado de envío: cliente sin email. pedidoId=${pedidoId}`);
+            return;
+        }
+
+        try {
+            const { text, html } = buildShippingStatusUpdateEmailContent(
+                {
+                    pedidoId,
+                    nombreCliente: clienteNombre,
+                    estadoEnvio: estadoEnvioNombre,
+                },
+                this.frontendBaseUrl,
+            );
+
+            await sendEmail({
+                to: clienteEmail,
+                subject: `Actualización de envío de tu pedido #${pedidoId}`,
+                text,
+                html,
+            });
+        } catch (error) {
+            this.logger.error(
+                `Error enviando email de actualización de envío para pedidoId=${pedidoId}: ${
+                    error instanceof Error ? error.message : String(error)
+                }`,
+                error instanceof Error ? error.stack : undefined,
+            );
         }
     }
 
-    async getAllPedidosForUser(id_usuario: number): Promise<DetallePedidoResponseDto[]> {
+    private async handlePedidoAction<T>(fallbackMessage: string, action: () => Promise<T>): Promise<T> {
         try {
-            const pedidos = await Pedidos.findAll({
-                where: {
-                    id_usuario,
-                },
-                include: [
-                    {
-                        model: DetallePedidos,
-                        as: 'detallePedidos',
-                        attributes: ['id', 'id_producto', 'subtotal', 'unidades'],
-                        include: [
-                            {
-                                model: Productos,
-                                as: 'producto',
-                                attributes: ['id', 'nombre', 'precio', 'id_categoria', 'id_subcategoria'],
-                                include: [
-                                    {
-                                        model: Categorias,
-                                        as: 'categoria',
-                                        attributes: ['id', 'nombre'],
-                                    },
-                                    {
-                                        model: Subcategorias,
-                                        as: 'subcategoria',
-                                        attributes: ['id', 'nombre'],
-                                    }
-                                ]
-                            },
-                        ],
-                    },
-                    {
-                        model: Envios,
-                        as: 'envio',
-                        attributes: ['id', 'id_estado_envio', 'ancho_paquete', 'alto_paquete', 'profundo_paquete', 'costo_envio', 'id_direccion'],
-                        include: [
-                            {
-                                model: EstadoEnvios,
-                                as: 'estado_envio',
-                                attributes: ['id', 'nombre'],
-                            },
-                            {
-                                model: Direcciones,
-                                as: 'direccion',
-                                attributes: ['id', 'calle', 'altura', 'cod_postal_destino'],
-                                include: [
-                                    {
-                                        model: Ciudades,
-                                        as: 'ciudad',
-                                        attributes: ['id', 'nombre'],
-                                    },
-                                    {
-                                        model: Provincias,
-                                        as: 'provincia',
-                                        attributes: ['id', 'nombre'],
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        model: Usuarios,
-                        as: 'usuario',
-                        attributes: ['id', 'nombre', 'email', 'telefono'],
-                    },
-                    {
-                        model: Pagos,
-                        as: 'pago',
-                        attributes: ['id', 'monto_total', 'fecha_pago', 'aprobado'],
-                    },
-                    {
-                        model: EstadoPedidos,
-                        as: 'estadoPedido',
-                        attributes: ['id', 'nombre'],
-                    }
-                ]
-            });
-
-            return pedidos.map((pedido) => ({
-                id: pedido.id,
-                fecha_pedido: pedido.fecha_pedido ? new Date(pedido.fecha_pedido).toISOString() : '',
-                costo_total_productos: Number(pedido.costo_total_productos),
-                costo_envio: Number(pedido.costo_envio),
-                costo_ganancia_envio: Number(pedido.costo_ganancia_envio),
-                usuario: {
-                    id: pedido.usuario?.id ?? 0,
-                    nombre: pedido.usuario?.nombre ?? '',
-                    email: pedido.usuario?.email ?? '',
-                    telefono: pedido.usuario?.telefono ?? '',
-                },
-                pago: {
-                    id: pedido.pago?.id ?? 0,
-                    monto_total: Number(pedido.pago?.monto_total ?? 0),
-                    fecha_pago: pedido.pago?.fecha_pago ? new Date(pedido.pago.fecha_pago).toISOString() : '',
-                    aprobado: Boolean(pedido.pago?.aprobado),
-                },
-                envio: {
-                    id: pedido.envio?.id ?? 0,
-                    ancho_paquete: Number(pedido.envio?.ancho_paquete ?? 0),
-                    alto_paquete: Number(pedido.envio?.alto_paquete ?? 0),
-                    profundo_paquete: Number(pedido.envio?.profundo_paquete ?? 0),
-                    estado_envio: {
-                        nombre: pedido.envio?.estado_envio?.nombre ?? '',
-                    },
-                    direccion: {
-                        provincia: {
-                            nombre: pedido.envio?.direccion?.provincia?.nombre ?? '',
-                        },
-                        ciudad: {
-                            nombre: pedido.envio?.direccion?.ciudad?.nombre ?? '',
-                        },
-                        calle: pedido.envio?.direccion?.calle ?? '',
-                        altura: pedido.envio?.direccion?.altura ?? '',
-                        cod_postal_destino: pedido.envio?.direccion?.cod_postal_destino ?? '',
-                    },
-                },
-                estado_pedido: {
-                    nombre: pedido.estadoPedido?.nombre ?? '',
-                },
-            }));
+            return await action();
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error;
             }
-            throw new BadRequestException('Error fetching pedido by ID');
+            throw new BadRequestException(fallbackMessage);
         }
     }
 }

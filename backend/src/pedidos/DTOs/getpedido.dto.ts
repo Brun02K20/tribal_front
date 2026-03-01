@@ -1,6 +1,49 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsInt, IsString, IsDecimal } from 'class-validator';
 
+export class DetalleItemPedidoDto {
+    @ApiProperty({ example: 1 })
+    @IsInt()
+    id!: number;
+
+    @ApiProperty({ example: 1 })
+    @IsInt()
+    id_producto!: number;
+
+    @ApiProperty({ example: 'Mate Camionero' })
+    @IsString()
+    nombre_producto!: string;
+
+    @ApiProperty({ example: 2 })
+    @IsInt()
+    unidades!: number;
+
+    @ApiProperty({ example: 15999.99 })
+    subtotal!: number;
+
+    @ApiProperty({ example: 7999.99 })
+    precio_unitario!: number;
+
+    @ApiProperty({ example: 14 })
+    ancho_producto!: number;
+
+    @ApiProperty({ example: 18 })
+    alto_producto!: number;
+
+    @ApiProperty({ example: 14 })
+    profundo_producto!: number;
+
+    categoria!: {
+        id: number;
+        nombre: string;
+    } | null;
+
+    subcategoria!: {
+        id: number;
+        nombre: string;
+    } | null;
+}
+
 export class PagoPedidoDto {
     @ApiProperty({ example: 1 })
     @IsInt()
@@ -84,9 +127,11 @@ export class EnvioPedidoDto {
     profundo_paquete!: number;
 
     @ApiProperty({ example: {
+        id: 1,
         nombre: 'En transporte'
     } })
     estado_envio!: {
+        id: number;
         nombre: string;
     }
 
@@ -114,7 +159,11 @@ export class DetallePedidoResponseDto {
     pago!: PagoPedidoDto;
     envio!: EnvioPedidoDto;
 
+    @ApiProperty({ type: DetalleItemPedidoDto, isArray: true, required: false })
+    detalles?: DetalleItemPedidoDto[];
+
     estado_pedido!: {
+        id: number;
         nombre: string;
     }
 }

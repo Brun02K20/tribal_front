@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
     IsArray,
     IsInt,
+    IsNumberString,
     IsOptional,
     IsString,
     ValidateNested,
@@ -18,7 +19,7 @@ export class DireccionDto {
     calle!: string;
 
     @ApiProperty({ example: '123' })
-    @IsString()
+    @IsNumberString()
     altura!: string;
 
     @ApiProperty({ example: 1 })
@@ -130,4 +131,64 @@ export class SuccessConfigUpdateDto {
     @ApiProperty({ example: 'Configuración de cuenta actualizada exitosamente' })
     @IsString()
     message!: string;
+}
+
+export class CreateDireccionDto {
+    @ApiProperty({ example: 'X5016' })
+    @IsString()
+    cod_postal_destino!: string;
+
+    @ApiProperty({ example: 'Calle Falsa' })
+    @IsString()
+    calle!: string;
+
+    @ApiProperty({ example: '123' })
+    @IsNumberString()
+    altura!: string;
+
+    @ApiProperty({ example: 1 })
+    @IsInt()
+    id_provincia!: number;
+
+    @ApiProperty({ example: 1 })
+    @IsInt()
+    id_ciudad!: number;
+}
+
+export class UserDireccionDto {
+    @ApiProperty({ example: 10 })
+    @IsInt()
+    id!: number;
+
+    @ApiProperty({ example: 'X5016' })
+    @IsString()
+    cod_postal_destino!: string;
+
+    @ApiProperty({ example: 'Calle Falsa' })
+    @IsString()
+    calle!: string;
+
+    @ApiProperty({ example: '123' })
+    @IsString()
+    altura!: string;
+
+    @ApiProperty({ example: 1 })
+    @IsInt()
+    id_provincia!: number;
+
+    @ApiProperty({ example: 'Córdoba' })
+    @IsString()
+    provincia!: string;
+
+    @ApiProperty({ example: 15 })
+    @IsInt()
+    id_ciudad!: number;
+
+    @ApiProperty({ example: 'Córdoba Capital' })
+    @IsString()
+    ciudad!: string;
+
+    @ApiProperty({ example: 1 })
+    @IsInt()
+    id_usuario!: number;
 }

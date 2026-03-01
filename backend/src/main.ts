@@ -2,11 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { connectToDatabase } from './database/database';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { sendTestEmail } from './utils/mail/smtp';
+import { GlobalExceptionFilter } from './errors/global-exception.filter';
+import { xssValidationMiddleware } from './middlewares/xss-validation.middleware';
 
 async function bootstrap() {
   await connectToDatabase();
   const app = await NestFactory.create(AppModule);
+  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.use(xssValidationMiddleware);
   const expressApp = app.getHttpAdapter().getInstance();
 
   const swaggerConfig = new DocumentBuilder()
@@ -38,6 +41,5 @@ async function bootstrap() {
     credentials: true,
   });
   await app.listen(process.env.PORT ?? 3001);
-  // await sendTestEmail();
 }
 bootstrap();
