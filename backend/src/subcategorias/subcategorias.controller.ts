@@ -1,6 +1,6 @@
 
 import { Controller, Get, Post, Body, Put, Delete, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { SubcategoriasService } from './subcategorias.service';
 import { CreateSubcategoriaDto, SuccessDeleteSubcategoriaDto, SubcategoriaResponseDto } from './DTOs/subcategorias.dto';
 import type { SubcategoriaListResponse } from './types/subcategorias.types';
@@ -38,7 +38,7 @@ export class SubcategoriasController {
     @ApiBearerAuth('bearer')
     @Post()
     @ApiBody({ type: CreateSubcategoriaDto })
-    @ApiOkResponse({ type: SubcategoriaResponseDto })
+    @ApiCreatedResponse({ type: SubcategoriaResponseDto })
     async create(@Body() createSubcategoriaDto: CreateSubcategoriaDto): Promise<SubcategoriaListResponse[0]> {
         return this.subcategoriasService.create(createSubcategoriaDto);
     }

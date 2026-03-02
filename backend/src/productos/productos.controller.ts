@@ -1,5 +1,5 @@
 import { BadRequestException, Controller, Get, Post, Req, Res, Param, Query, Put, Delete, UseGuards } from '@nestjs/common';
-import { ApiBody, ApiConsumes, ApiTags, ApiOkResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiTags, ApiCreatedResponse, ApiOkResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -7,7 +7,7 @@ import SftpSingleton from '../utils/sftp/sftp_instance';
 import { upload } from '../utils/sftp/upload';
 import { ProductosService } from './productos.service';
 import { FotosService } from 'src/fotos/fotos.service';
-import { GetProductDto, SuccessDeleteProductDto, CreateUpdateProductDto, ProductFiltersDto, PaginatedProductsResponseDto } from './DTOs/products.dto';
+import { GetProductDto, SuccessDeleteProductDto, CreateUpdateProductDto, ProductFiltersDto, PaginatedProductsResponseDto, PaginatedProductsListResponseDto } from './DTOs/products.dto';
 import { CreateProductFotosDto } from 'src/fotos/DTOs/fotos.dto';
 import { AuthGuard } from 'src/auth/utils/auth.guard';
 import { Role1Guard } from 'src/auth/utils/role1.guard';
@@ -25,7 +25,8 @@ export class ProductosController {
     ) {}
        
         @Get()
-        @ApiOkResponse({ type: Object })
+        @ApiQuery({ name: 'page', type: Number, required: false, description: 'Página (1-based)' })
+        @ApiOkResponse({ type: PaginatedProductsListResponseDto })
         async findAll(@Query('page') page?: string): Promise<PaginatedProductsResponseDto<GetProductDto>> {
             return this.productosService.findAllPaginated(this.parseOptionalNumber(page));
         }
@@ -33,7 +34,9 @@ export class ProductosController {
         @UseGuards(AuthGuard, Role1Guard)
         @ApiBearerAuth('bearer')
         @Get('admin/all')
-        @ApiOkResponse({ type: Object })
+        @ApiQuery({ name: 'page', type: Number, required: false, description: 'Página (1-based)' })
+        @ApiQuery({ name: 'pageSize', type: Number, required: false, description: 'Tamaño de página (10, 15, 20)' })
+        @ApiOkResponse({ type: PaginatedProductsListResponseDto })
         async findAllForAdmin(
             @Query('page') page?: string,
             @Query('pageSize') pageSize?: string,
@@ -51,7 +54,7 @@ export class ProductosController {
         @ApiQuery({ name: 'precio_min', type: Number, required: false, description: 'Precio mínimo para filtrar (opcional)' })
         @ApiQuery({ name: 'precio_max', type: Number, required: false, description: 'Precio máximo para filtrar (opcional)' })
         @ApiQuery({ name: 'page', type: Number, required: false, description: 'Página (1-based)' })
-        @ApiOkResponse({ type: Object })
+        @ApiOkResponse({ type: PaginatedProductsListResponseDto })
         async findByFilters(
             @Query('name') name?: string,
             @Query('id_categoria') id_categoria?: string,
@@ -81,7 +84,7 @@ export class ProductosController {
         @ApiQuery({ name: 'precio_max', type: Number, required: false, description: 'Precio máximo para filtrar (opcional)' })
         @ApiQuery({ name: 'page', type: Number, required: false, description: 'Página (1-based)' })
         @ApiQuery({ name: 'pageSize', type: Number, required: false, description: 'Tamaño de página (10, 15, 20)' })
-        @ApiOkResponse({ type: Object })
+        @ApiOkResponse({ type: PaginatedProductsListResponseDto })
         async findByFiltersForAdmin(
             @Query('name') name?: string,
             @Query('id_categoria') id_categoria?: string,
@@ -162,7 +165,7 @@ export class ProductosController {
                 },
             },
         })
-        @ApiOkResponse({ type: GetProductDto })
+        @ApiCreatedResponse({ type: GetProductDto })
         async create(@Req() req: Request, @Res() res: Response): Promise<void> {
             await this.runMulter(req, res);
 

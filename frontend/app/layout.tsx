@@ -7,10 +7,11 @@ import { ToastProvider } from "@/shared/providers/ToastContext";
 import AppHeader from "@/shared/layout/AppHeader";
 import AutumnLeavesBackground from "@/shared/ui/AutumnLeavesBackground";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://tribaltrend.com.ar").replace(/\/+$/, "");
 const siteName = "Tribal Trend";
-const siteDescription = "Tienda de artesanías";
+const siteDescription = "Tribal Trend: tienda online de artesanías, regalos y decoración hecha a mano en Argentina.";
 const logoPath = "/icons/logo_tribal_trnasparente.png";
+const logoAbsoluteUrl = `${siteUrl}${logoPath}`;
 
 const oldenburg = Oldenburg({
   variable: "--font-oldenburg",
@@ -32,6 +33,20 @@ export const metadata: Metadata = {
   },
   description: siteDescription,
   applicationName: siteName,
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
   keywords: ["tribal", "artesanías", "tienda", "deco", "hecho a mano"],
   openGraph: {
     title: siteName,
@@ -42,7 +57,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: logoPath,
+        url: logoAbsoluteUrl,
         width: 512,
         height: 512,
         alt: "Logo Tribal Trend",
@@ -50,15 +65,21 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: siteName,
     description: siteDescription,
-    images: [logoPath],
+    images: [logoAbsoluteUrl],
   },
   icons: {
-    icon: logoPath,
-    shortcut: logoPath,
-    apple: logoPath,
+    icon: [
+      { url: logoPath, type: 'image/png' },
+    ],
+    shortcut: [
+      { url: logoPath, type: 'image/png' },
+    ],
+    apple: [
+      { url: logoPath, type: 'image/png' },
+    ],
   },
 };
 
@@ -73,6 +94,8 @@ export default function RootLayout({
         className={`${oldenburg.variable} ${medievalSharp.variable} antialiased`}
       >
         <AutumnLeavesBackground />
+        <div className="app-bg-knot" aria-hidden="true" />
+        <div className="app-bg-bracelet" aria-hidden="true" />
         <AuthProvider>
           <ToastProvider>
             <CartProvider>

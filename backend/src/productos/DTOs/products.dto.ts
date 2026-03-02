@@ -159,3 +159,20 @@ export class PaginatedProductsResponseDto<T> {
 
     data!: T[];
 }
+
+export class PaginatedProductsListResponseDto {
+    @ApiProperty({ example: 1 })
+    page!: number;
+
+    @ApiProperty({ example: 18 })
+    pageSize!: number;
+
+    @ApiProperty({ example: 280 })
+    totalItems!: number;
+
+    @ApiProperty({ example: 16 })
+    totalPages!: number;
+
+    @ApiProperty({ type: GetProductDto, isArray: true })
+    data!: GetProductDto[];
+}

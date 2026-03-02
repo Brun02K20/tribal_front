@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Query, Put, Post, UseGuards, ParseIntPipe, Req, ForbiddenException } from '@nestjs/common';
-import { ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { UsuariosService } from './usuarios.service';
 import {
@@ -20,6 +20,7 @@ export class UsuariosController {
     @UseGuards(AuthGuard, Role2Guard)
     @ApiBearerAuth('bearer')
     @Put('update-config')
+    @ApiQuery({ name: 'userId', type: Number, required: true, description: 'ID del usuario a actualizar', example: 1 })
     @ApiBody({ type: AccountConfigDto })
     @ApiOkResponse({ type: SuccessConfigUpdateDto })
     async updateAccountConfig(
@@ -70,7 +71,7 @@ export class UsuariosController {
     @Post(':userId/direcciones')
     @ApiParam({ name: 'userId', type: Number, description: 'ID del usuario', example: 1 })
     @ApiBody({ type: CreateDireccionDto })
-    @ApiOkResponse({ type: UserDireccionDto })
+    @ApiCreatedResponse({ type: UserDireccionDto })
     async createUserAddress(
         @Param('userId', ParseIntPipe) userId: number,
         @Req() req: Request & { user?: { sub?: number } },

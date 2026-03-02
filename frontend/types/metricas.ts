@@ -14,6 +14,13 @@ export type ProductSalesMetricItem = {
   unidadesVendidas: number;
 };
 
+export type ProductRatingMetricItem = {
+  id: number;
+  nombre: string;
+  promedioCalificacion: number;
+  totalResenas: number;
+};
+
 export type ClientOrdersMetricItem = {
   id: number;
   nombre: string;
@@ -26,6 +33,8 @@ export type MetricasResponse = {
     topMasVendidos: ProductSalesMetricItem[];
     topMenosVendidos: ProductSalesMetricItem[];
     vendidosPorMes: BarMetricItem[];
+    topMejorCalificados: ProductRatingMetricItem[];
+    topPeorCalificados: ProductRatingMetricItem[];
   };
   ventasPagos: {
     promedioGastadoTotal: number;
@@ -47,6 +56,7 @@ export type MetricasResponse = {
       porcentajeSinPedido: number;
       totalClientes: number;
     };
+    usuariosRegistradosPeriodo: number;
     topConMasPedidos: ClientOrdersMetricItem[];
   };
 };

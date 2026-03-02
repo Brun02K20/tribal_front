@@ -1,6 +1,6 @@
 
 import { Controller, Get, Post, Body, Put, Delete, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { EstadoEnviosService } from './estadoenvios.service';
 import { CreateEstadoEnvioDto, EstadoEnvioResponseDto, SuccessDeleteEstadoEnvioDto } from './DTOs/estadoenvios.dto';
 import type { EstadoEnvioListResponse } from './types/estadoenvios.types';
@@ -31,7 +31,7 @@ export class EstadosEnviosController {
     @ApiBearerAuth('bearer')
     @Post()
     @ApiBody({ type: CreateEstadoEnvioDto })
-    @ApiOkResponse({ type: EstadoEnvioResponseDto })
+    @ApiCreatedResponse({ type: EstadoEnvioResponseDto })
     async create(@Body() createEstadoEnvioDto: CreateEstadoEnvioDto): Promise<EstadoEnvioListResponse[0]> {
         return this.estadosEnviosService.createEstadoEnvio(createEstadoEnvioDto);
     }

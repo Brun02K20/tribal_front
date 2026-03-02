@@ -1,6 +1,6 @@
 
 import { Controller, Get, Post, Body, Put, Delete, Param, UseGuards } from '@nestjs/common';
-import { ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { CategoriasService } from './categorias.service';
 import { CreateCategoriaDto, SuccessDeleteCategoriaDto, CategoriaResponseDto } from './DTOs/categorias.dto';
 import type { CategoriaListResponse } from './types/categorias.types';
@@ -29,7 +29,7 @@ export class CategoriasController {
     @ApiBearerAuth('bearer')
     @Post()
     @ApiBody({ type: CreateCategoriaDto })
-    @ApiOkResponse({ type: CategoriaResponseDto })
+    @ApiCreatedResponse({ type: CategoriaResponseDto })
     async create(@Body() createCategoriaDto: CreateCategoriaDto): Promise<CategoriaListResponse[0]> {
         return this.categoriasService.createCategoria(createCategoriaDto);
     }

@@ -1,10 +1,10 @@
 import { BadRequestException, Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { PedidosService } from './pedidos.service';
 import { CreatePedidoDto } from './DTOs/createpedido.dto';
 import { DetallePedidoResponseDto } from './DTOs/getpedido.dto';
 import { UpdateEstadoEnvioDto, UpdateEstadoPedidoDto } from './DTOs/update-estados.dto';
-import { FindPedidosFiltersDto, PaginatedPedidosResponseDto } from './DTOs/find-pedidos-filters.dto';
+import { FindPedidosFiltersDto, PaginatedPedidosListResponseDto, PaginatedPedidosResponseDto } from './DTOs/find-pedidos-filters.dto';
 import { AuthGuard } from 'src/auth/utils/auth.guard';
 import { Role2Guard } from 'src/auth/utils/role2.guard';
 import { Role1Guard } from 'src/auth/utils/role1.guard';
@@ -24,7 +24,7 @@ export class PedidosController {
 			'Genera la preferencia de Mercado Pago para el pedido y devuelve el init_point de checkout.',
 	})
 	@ApiBody({ type: CreatePedidoDto })
-	@ApiOkResponse({
+	@ApiCreatedResponse({
 		description: 'URL de checkout de Mercado Pago (init_point).',
 		schema: {
 			type: 'object',
@@ -44,13 +44,15 @@ export class PedidosController {
 	@UseGuards(AuthGuard, Role1Guard)
 	@ApiBearerAuth('bearer')
 	@Get('admin/all')
+	@ApiQuery({ name: 'page', type: Number, required: false, description: 'Página (1-based)' })
+	@ApiQuery({ name: 'pageSize', type: Number, required: false, description: 'Tamaño de página' })
 	@ApiOperation({
 		summary: 'Obtener todos los pedidos (admin)',
 		description: 'Permite al administrador visualizar todos los pedidos del sistema.',
 	})
 	@ApiOkResponse({
 		description: 'Listado completo de pedidos.',
-			type: Object,
+		type: PaginatedPedidosListResponseDto,
 	})
 		async getAllPedidosForAdmin(
 			@Query('page') page?: string,
@@ -65,6 +67,8 @@ export class PedidosController {
 	@UseGuards(AuthGuard, Role1OrOwnerPedidoGuard)
 	@ApiBearerAuth('bearer')
 	@Get('usuario/:id_usuario')
+	@ApiQuery({ name: 'page', type: Number, required: false, description: 'Página (1-based)' })
+	@ApiQuery({ name: 'pageSize', type: Number, required: false, description: 'Tamaño de página' })
 	@ApiOperation({
 		summary: 'Obtener pedidos por usuario (admin o dueño)',
 		description:
@@ -73,7 +77,7 @@ export class PedidosController {
 	@ApiParam({ name: 'id_usuario', type: Number, description: 'ID del usuario', example: 13 })
 	@ApiOkResponse({
 		description: 'Listado de pedidos del usuario.',
-		type: Object,
+		type: PaginatedPedidosListResponseDto,
 	})
 	async getAllPedidosForUser(
 		@Param('id_usuario', ParseIntPipe) id_usuario: number,
@@ -90,6 +94,15 @@ export class PedidosController {
 	@UseGuards(AuthGuard, Role1OrOwnerPedidoGuard)
 	@ApiBearerAuth('bearer')
 	@Get('filters')
+	@ApiQuery({ name: 'id_usuario', type: Number, required: false, description: 'ID del usuario' })
+	@ApiQuery({ name: 'nombre_usuario', type: String, required: false, description: 'Nombre del usuario' })
+	@ApiQuery({ name: 'email_usuario', type: String, required: false, description: 'Email del usuario' })
+	@ApiQuery({ name: 'fecha_pedido_min', type: String, required: false, description: 'Fecha mínima (YYYY-MM-DD)' })
+	@ApiQuery({ name: 'fecha_pedido_max', type: String, required: false, description: 'Fecha máxima (YYYY-MM-DD)' })
+	@ApiQuery({ name: 'id_estado_pedido', type: Number, required: false, description: 'ID estado de pedido' })
+	@ApiQuery({ name: 'id_estado_envio', type: Number, required: false, description: 'ID estado de envío' })
+	@ApiQuery({ name: 'page', type: Number, required: false, description: 'Página (1-based)' })
+	@ApiQuery({ name: 'pageSize', type: Number, required: false, description: 'Tamaño de página' })
 	@ApiOperation({
 		summary: 'Buscar pedidos por filtros (admin o dueño)',
 		description:
@@ -97,7 +110,7 @@ export class PedidosController {
 	})
 	@ApiOkResponse({
 		description: 'Listado paginado de pedidos filtrados.',
-		type: Object,
+		type: PaginatedPedidosListResponseDto,
 	})
 	async findPedidosByFilters(
 		@Query('id_usuario') id_usuario?: string,

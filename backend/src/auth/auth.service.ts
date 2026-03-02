@@ -36,6 +36,7 @@ export class AuthService {
 				password_hash,
 				google_id: null,
 				id_rol: data.id_rol ?? 2,
+				fecha_registro: new Date(),
 			});
 
 			return this.buildAuthResponse(user);
@@ -94,6 +95,7 @@ export class AuthService {
 				password_hash: null,
 				google_id: googleData.sub,
 				id_rol: data.id_rol ?? 2,
+				fecha_registro: new Date(),
 			});
 
 			return this.buildAuthResponse(user);

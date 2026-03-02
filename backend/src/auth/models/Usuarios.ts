@@ -13,10 +13,11 @@ interface UsuarioAttributes {
 	password_hash: string | null;
 	google_id: string | null;
 	id_rol: number;
+	fecha_registro: Date;
 }
 
 interface UsuarioCreationAttributes
-	extends Optional<UsuarioAttributes, 'id' | 'username' | 'telefono' | 'password_hash' | 'google_id'> {}
+	extends Optional<UsuarioAttributes, 'id' | 'username' | 'telefono' | 'password_hash' | 'google_id' | 'fecha_registro'> {}
 
 export class Usuarios
 	extends Model<UsuarioAttributes, UsuarioCreationAttributes>
@@ -30,6 +31,7 @@ export class Usuarios
 	declare password_hash: string | null;
 	declare google_id: string | null;
 	declare id_rol: number;
+	declare fecha_registro: Date;
 
 	// asociación cargada por include
     declare direcciones?: NonAttribute<Direcciones[]>;
@@ -76,6 +78,11 @@ Usuarios.init(
 			type: DataTypes.INTEGER,
 			allowNull: false,
 			defaultValue: 2,
+		},
+		fecha_registro: {
+			type: DataTypes.DATE,
+			allowNull: false,
+			defaultValue: DataTypes.NOW,
 		},
 	},
 	{

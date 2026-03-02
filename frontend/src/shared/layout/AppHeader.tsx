@@ -140,24 +140,28 @@ export default function AppHeader() {
             {user?.nombre ?? "Usuario"}
           </button>
 
-          {isUserMenuOpen && (
-            <div className="mt-2 w-full rounded-md border border-earth-brown bg-cream shadow-lg">
-              <Link
-                href="/AccounConfig"
-                className="block cursor-pointer px-4 py-2 text-sm text-black hover:bg-earth-brown hover:text-cream"
-                onClick={closeMenus}
-              >
-                Configuración de cuenta
-              </Link>
-              <button
-                type="button"
-                className="block w-full cursor-pointer px-4 py-2 text-left text-sm text-black hover:bg-earth-brown hover:text-cream"
-                onClick={handleLogout}
-              >
-                Cerrar sesión
-              </button>
-            </div>
-          )}
+          <div
+            className="app-collapsible mt-2 w-full rounded-md border border-earth-brown bg-cream shadow-lg"
+            data-open={isUserMenuOpen}
+            aria-hidden={!isUserMenuOpen}
+          >
+            <Link
+              href="/AccounConfig"
+              className="block cursor-pointer px-4 py-2 text-sm text-black hover:bg-earth-brown hover:text-cream"
+              onClick={closeMenus}
+              tabIndex={isUserMenuOpen ? 0 : -1}
+            >
+              Configuración de cuenta
+            </Link>
+            <button
+              type="button"
+              className="block w-full cursor-pointer px-4 py-2 text-left text-sm text-black hover:bg-earth-brown hover:text-cream"
+              onClick={handleLogout}
+              tabIndex={isUserMenuOpen ? 0 : -1}
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       );
     }
@@ -178,10 +182,12 @@ export default function AppHeader() {
           {user?.nombre ?? "Usuario"}
         </button>
 
-        {isMounted && isDesktopViewport && isUserMenuOpen && createPortal(
+        {isMounted && isDesktopViewport && createPortal(
           <div
             ref={desktopMenuRef}
-            className="rounded-md border border-earth-brown bg-cream shadow-lg"
+            className="app-dropdown-panel rounded-md border border-earth-brown bg-cream shadow-lg"
+            data-open={isUserMenuOpen}
+            aria-hidden={!isUserMenuOpen}
             style={{
               position: "fixed",
               top: desktopMenuPosition.top,
@@ -194,6 +200,7 @@ export default function AppHeader() {
               href="/AccounConfig"
               className="block cursor-pointer px-4 py-2 text-sm text-black hover:bg-earth-brown hover:text-cream"
               onClick={closeMenus}
+              tabIndex={isUserMenuOpen ? 0 : -1}
             >
               Configuración de cuenta
             </Link>
@@ -201,6 +208,7 @@ export default function AppHeader() {
               type="button"
               className="block w-full cursor-pointer px-4 py-2 text-left text-sm text-black hover:bg-earth-brown hover:text-cream"
               onClick={handleLogout}
+              tabIndex={isUserMenuOpen ? 0 : -1}
             >
               Cerrar sesión
             </button>
@@ -270,8 +278,11 @@ export default function AppHeader() {
         </div>
       </div>
 
-      {isMobileOpen && (
-        <nav className="relative z-110 flex flex-col gap-3 border-t border-earth-brown px-4 py-3 md:hidden">
+      <nav
+        className="app-collapsible relative z-110 flex flex-col gap-3 border-t border-earth-brown px-4 py-3 md:hidden"
+        data-open={isMobileOpen}
+        aria-hidden={!isMobileOpen}
+      >
           <Link href="/products" className="app-nav-link cursor-pointer" onClick={closeMenus}>
             Productos
           </Link>
@@ -286,8 +297,7 @@ export default function AppHeader() {
             </Link>
           )}
           {renderUserDropdown({ mobile: true })}
-        </nav>
-      )}
+      </nav>
     </header>
   );
 }

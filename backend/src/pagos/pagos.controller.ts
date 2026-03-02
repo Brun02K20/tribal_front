@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Logger, Post } from '@nestjs/common';
 import {
+    ApiBody,
 	ApiOkResponse,
 	ApiTags,
 } from '@nestjs/swagger';
@@ -13,8 +14,33 @@ export class PagosController {
 	constructor(private readonly pagosService: PagosService) {}
 
     @Post('mercadopago/impact')
+        @ApiBody({
+            schema: {
+                type: 'object',
+                properties: {
+                    type: { type: 'string', example: 'payment' },
+                    topic: { type: 'string', example: 'payment' },
+                    action: { type: 'string', example: 'payment.created' },
+                    data: {
+                        type: 'object',
+                        properties: {
+                            id: { type: 'string', example: '123456789' },
+                        },
+                    },
+                },
+            },
+        })
     @ApiOkResponse({
       description: 'Notificación de pago recibida correctamente',
+            schema: {
+                type: 'object',
+                properties: {
+                    message: {
+                        type: 'string',
+                        example: 'Notificación de pago recibida correctamente',
+                    },
+                },
+            },
     })
     async receiveMercadoPagoNotification(
         @Body() mercadoPagoDto: any

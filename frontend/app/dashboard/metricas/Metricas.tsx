@@ -153,6 +153,16 @@ export default function Metricas() {
     value: item.pedidos,
   }));
 
+  const topMejorCalificadosData = metricas.productos.topMejorCalificados.map((item) => ({
+    label: item.nombre,
+    value: item.promedioCalificacion,
+  }));
+
+  const topPeorCalificadosData = metricas.productos.topPeorCalificados.map((item) => ({
+    label: item.nombre,
+    value: item.promedioCalificacion,
+  }));
+
   const clientesConPedidoPie: PieMetricItem[] = [
     { label: "Con pedido", value: metricas.clientes.porcentajeConPedido.conPedido },
     { label: "Sin pedido", value: metricas.clientes.porcentajeConPedido.sinPedido },
@@ -193,12 +203,18 @@ export default function Metricas() {
           <p className="app-subtitle text-sm">Mínima venta</p>
           <p className="app-title mt-2 text-2xl">{formatCurrencyArs(metricas.ventasPagos.minimaVenta)}</p>
         </article>
+        <article className="app-panel p-4">
+          <p className="app-subtitle text-sm">Usuarios registrados en período</p>
+          <p className="app-title mt-2 text-2xl">{metricas.clientes.usuariosRegistradosPeriodo}</p>
+        </article>
       </section>
 
       <section className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <BarChartCard title="Productos más vendidos (Top 10)" data={topMasVendidosData} />
         <BarChartCard title="Productos menos vendidos (Top 10)" data={topMenosVendidosData} />
         <BarChartCard title="Productos vendidos por mes" data={metricas.productos.vendidosPorMes} />
+        <BarChartCard title="Productos mejor calificados (Top 10)" data={topMejorCalificadosData} />
+        <BarChartCard title="Productos peor calificados (Top 10)" data={topPeorCalificadosData} />
         <BarChartCard title="Ventas por mes (cantidad)" data={metricas.ventasPagos.ventasPorMesCantidad} />
         <BarChartCard title="Ventas por mes (monto)" data={metricas.ventasPagos.ventasPorMesMonto} />
         <BarChartCard title="Pedidos realizados por mes" data={metricas.pedidos.pedidosPorMes} />

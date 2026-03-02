@@ -1,6 +1,6 @@
 
 import { Controller, Get, Post, Body, Put, Delete, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { EstadoPedidosService } from './estadopedido.service';
 import { CreateEstadoPedidoDto, EstadoPedidoResponseDto, SuccessDeleteEstadoPedidoDto } from './DTOs/estadopedidos.dto';
 import type { EstadoPedidoListResponse } from './types/estadopedidos.types';
@@ -31,7 +31,7 @@ export class EstadosPedidosController {
     @ApiBearerAuth('bearer')
     @Post()
     @ApiBody({ type: CreateEstadoPedidoDto })
-    @ApiOkResponse({ type: EstadoPedidoResponseDto })
+    @ApiCreatedResponse({ type: EstadoPedidoResponseDto })
     async create(@Body() createEstadoPedidoDto: CreateEstadoPedidoDto): Promise<EstadoPedidoListResponse[0]> {
         return this.estadosPedidosService.createEstadoPedido(createEstadoPedidoDto);
     }

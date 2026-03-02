@@ -15,6 +15,7 @@ import { EstadosEnviosModule } from './estadoenvios/estadoenvios.module';
 import { PedidosModule } from './pedidos/pedidos.module';
 import { MetricasModule } from './metricas/metricas.module';
 import { AiModule } from './ai/ai.module';
+import { ResenasModule } from './resenas/resenas.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AiModule } from './ai/ai.module';
     PedidosModule,
     MetricasModule,
     AiModule,
+    ResenasModule,
   ],
   controllers: [AppController],
   providers: [AppService],

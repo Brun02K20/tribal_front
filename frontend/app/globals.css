@@ -67,7 +67,37 @@ body::after {
   z-index: 0;
 }
 
-body > *:not(.app-leaves):not(.app-modal-root):not(.app-modal-backdrop) {
+.app-bg-knot {
+  position: fixed;
+  left: clamp(-16px, -1.2vw, -6px);
+  top: clamp(-14px, -1vw, -4px);
+  width: clamp(84px, 11vw, 200px);
+  aspect-ratio: 1 / 1;
+  background-image: url("/assets/friendship-knot-svgrepo-com.svg");
+  background-repeat: no-repeat;
+  background-position: left top;
+  background-size: contain;
+  opacity: 0.78;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app-bg-bracelet {
+  position: fixed;
+  left: clamp(-28px, -2vw, -10px);
+  bottom: clamp(-28px, -2vh, -10px);
+  width: clamp(92px, 14vw, 230px);
+  aspect-ratio: 1 / 1;
+  background-image: url("/assets/bracelet-svgrepo-com.svg");
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: contain;
+  opacity: 0.78;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body > *:not(.app-leaves):not(.app-bg-knot):not(.app-bg-bracelet):not(.app-modal-root):not(.app-modal-backdrop) {
   position: relative;
   z-index: 2;
 }
@@ -310,6 +340,57 @@ main {
   }
 }
 
+@keyframes app-soft-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.app-fade-swap {
+  animation: app-soft-fade 0.34s ease;
+}
+
+.app-dropdown-panel {
+  transform-origin: top right;
+  transition: opacity 220ms ease, transform 220ms ease, visibility 220ms ease;
+  will-change: opacity, transform;
+}
+
+.app-dropdown-panel[data-open="false"] {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.app-dropdown-panel[data-open="true"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+}
+
+.app-collapsible {
+  overflow: hidden;
+  transition: max-height 260ms ease, opacity 220ms ease, transform 220ms ease, padding 220ms ease;
+  will-change: max-height, opacity, transform;
+}
+
+.app-collapsible[data-open="false"] {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+}
+
+.app-collapsible[data-open="true"] {
+  max-height: 80vh;
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-leaf,
   .app-modal-backdrop,
@@ -317,7 +398,10 @@ main {
   .app-panel,
   .app-btn-primary,
   .app-btn-secondary,
-  .app-input {
+  .app-input,
+  .app-dropdown-panel,
+  .app-collapsible,
+  .app-fade-swap {
     animation: none !important;
     transition: none !important;
   }

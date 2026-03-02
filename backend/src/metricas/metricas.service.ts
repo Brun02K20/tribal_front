@@ -6,11 +6,18 @@ import type {
   ClientOrdersMetricItem,
   MetricasResponse,
   PieMetricItem,
+  ProductRatingMetricItem,
   ProductSalesMetricItem,
 } from './types/metricas.types';
 
 type MonthlyRow = { month: string; value: number | string | null };
 type ProductSalesRow = { id: number | string; nombre: string; unidades_vendidas: number | string | null };
+type ProductRatingRow = {
+  id: number | string;
+  nombre: string;
+  promedio_calificacion: number | string | null;
+  total_resenas: number | string | null;
+};
 type PieRow = { label: string; value: number | string | null };
 type NumericRow = { value: number | string | null };
 type ClientRatioRow = {
@@ -58,6 +65,15 @@ export class MetricasService {
     }));
   }
 
+  private toProductRatingItems(rows: ProductRatingRow[]): ProductRatingMetricItem[] {
+    return rows.map((row) => ({
+      id: this.toNumber(row.id),
+      nombre: row.nombre,
+      promedioCalificacion: this.toNumber(row.promedio_calificacion),
+      totalResenas: this.toNumber(row.total_resenas),
+    }));
+  }
+
   private toPieItems(rows: PieRow[]): PieMetricItem[] {
     return rows.map((row) => ({
       label: row.label,
@@ -91,6 +107,9 @@ export class MetricasService {
       pedidosPorMesRows,
       clientesConPedidoRows,
       topClientesRows,
+      topMejorCalificadosRows,
+      topPeorCalificadosRows,
+      usuariosRegistradosRows,
     ] = await Promise.all([
       sequelize.query<ProductSalesRow>(
         `SELECT p.id, p.nombre, COALESCE(SUM(dp.unidades), 0) AS unidades_vendidas
@@ -241,6 +260,43 @@ export class MetricasService {
          LIMIT 10`,
         { type: QueryTypes.SELECT, replacements: { fechaDesde } },
       ),
+      sequelize.query<ProductRatingRow>(
+        `SELECT p.id,
+                p.nombre,
+                ROUND(AVG(r.calificacion), 2) AS promedio_calificacion,
+                COUNT(r.id) AS total_resenas
+         FROM Resenas r
+         INNER JOIN Productos p ON p.id = r.id_producto AND p.es_activo = 1
+         WHERE r.es_activo = 1
+           AND r.fecha >= :fechaDesde
+         GROUP BY p.id, p.nombre
+         HAVING COUNT(r.id) > 0
+         ORDER BY promedio_calificacion DESC, total_resenas DESC, p.nombre ASC
+         LIMIT 10`,
+        { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+      ),
+      sequelize.query<ProductRatingRow>(
+        `SELECT p.id,
+                p.nombre,
+                ROUND(AVG(r.calificacion), 2) AS promedio_calificacion,
+                COUNT(r.id) AS total_resenas
+         FROM Resenas r
+         INNER JOIN Productos p ON p.id = r.id_producto AND p.es_activo = 1
+         WHERE r.es_activo = 1
+           AND r.fecha >= :fechaDesde
+         GROUP BY p.id, p.nombre
+         HAVING COUNT(r.id) > 0
+         ORDER BY promedio_calificacion ASC, total_resenas DESC, p.nombre ASC
+         LIMIT 10`,
+        { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+      ),
+      sequelize.query<NumericRow>(
+        `SELECT COUNT(u.id) AS value
+         FROM Usuarios u
+         WHERE u.id_rol = 2
+           AND u.fecha_registro >= :fechaDesde`,
+        { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+      ),
     ]);
 
     const promedioGastadoTotal = this.toNumber(promedioGastadoRows[0]?.value);
@@ -259,6 +315,8 @@ export class MetricasService {
         topMasVendidos: this.toProductSalesItems(topMasVendidosRows),
         topMenosVendidos: this.toProductSalesItems(topMenosVendidosRows),
         vendidosPorMes: this.toMonthlyItems(productosVendidosPorMesRows),
+        topMejorCalificados: this.toProductRatingItems(topMejorCalificadosRows),
+        topPeorCalificados: this.toProductRatingItems(topPeorCalificadosRows),
       },
       ventasPagos: {
         promedioGastadoTotal,
@@ -280,6 +338,7 @@ export class MetricasService {
           porcentajeSinPedido,
           totalClientes,
         },
+        usuariosRegistradosPeriodo: this.toNumber(usuariosRegistradosRows[0]?.value),
         topConMasPedidos: this.toClientOrdersItems(topClientesRows),
       },
     };

@@ -150,9 +150,10 @@ export default function ProductsPage() {
                       <article key={product.id} className="app-panel">
                         {product.fotos?.length ? (
                           <img
+                            key={`${product.id}-${activeImageByProduct[product.id] ?? 0}`}
                             src={product.fotos[activeImageByProduct[product.id] ?? 0]?.url}
                             alt={product.nombre}
-                            className="mb-3 h-48 w-full rounded-md border border-earth-brown/40 bg-white object-contain p-2"
+                            className="app-fade-swap mb-3 h-48 w-full rounded-md border border-earth-brown/40 bg-white object-contain p-2"
                           />
                         ) : (
                           <ImagePlaceholder className="mb-3 flex h-44 w-full items-center justify-center rounded-md bg-zinc-100" />
