@@ -12,6 +12,18 @@ const siteName = "Tribal Trend";
 const siteDescription = "Tribal Trend: tienda online de artesanías, regalos y decoración hecha a mano en Argentina.";
 const logoPath = "/icons/logo_tribal_trnasparente.png";
 const logoAbsoluteUrl = `${siteUrl}${logoPath}`;
+const openGraphImageUrl = `${siteUrl}/opengraph-image`;
+const twitterImageUrl = `${siteUrl}/twitter-image`;
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Store',
+  name: siteName,
+  url: siteUrl,
+  logo: logoAbsoluteUrl,
+  image: [logoAbsoluteUrl],
+  description: siteDescription,
+  sameAs: [siteUrl],
+};
 
 const oldenburg = Oldenburg({
   variable: "--font-oldenburg",
@@ -47,6 +59,9 @@ export const metadata: Metadata = {
       'max-video-preview': -1,
     },
   },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+  },
   keywords: ["tribal", "artesanías", "tienda", "deco", "hecho a mano"],
   openGraph: {
     title: siteName,
@@ -57,9 +72,9 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: logoAbsoluteUrl,
-        width: 512,
-        height: 512,
+        url: openGraphImageUrl,
+        width: 1200,
+        height: 630,
         alt: "Logo Tribal Trend",
       },
     ],
@@ -68,7 +83,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: siteName,
     description: siteDescription,
-    images: [logoAbsoluteUrl],
+    images: [twitterImageUrl],
   },
   icons: {
     icon: [
@@ -93,6 +108,10 @@ export default function RootLayout({
       <body
         className={`${oldenburg.variable} ${medievalSharp.variable} antialiased`}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         <AutumnLeavesBackground />
         <div className="app-bg-knot" aria-hidden="true" />
         <div className="app-bg-bracelet" aria-hidden="true" />
