@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import * as dotenv from 'dotenv';
+import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ProvinciasModule } from './provincias/provincias.module';
@@ -16,9 +18,13 @@ import { PedidosModule } from './pedidos/pedidos.module';
 import { MetricasModule } from './metricas/metricas.module';
 import { AiModule } from './ai/ai.module';
 import { ResenasModule } from './resenas/resenas.module';
+import { ChatModule } from './chat/chat.module';
+
+dotenv.config();
 
 @Module({
   imports: [
+    MongooseModule.forRoot(process.env.MONGODB_URI ?? 'mongodb://localhost:27017/tribal_trend'),
     ProvinciasModule, 
     AuthModule,
     FotosModule, 
@@ -34,6 +40,7 @@ import { ResenasModule } from './resenas/resenas.module';
     MetricasModule,
     AiModule,
     ResenasModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

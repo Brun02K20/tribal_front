@@ -1,0 +1,37 @@
+Paso 1: en firewall de donweb habilitar el puerto 27017 para solamente mi IP
+Paso 2: ir al servidor e instalarlo
+
+PARA DEBIAN/UBUNTU:
+# Importar la clave GPG de MongoDB
+curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+
+# Agregar el repositorio (para Ubuntu 22.04)
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+
+# Actualizar e instalar
+sudo apt-get update
+sudo apt-get install -y mongodb-org
+
+Paso 3: Verificar si se instalo bien:
+# Iniciar y habilitar
+systemctl start mongod
+systemctl enable mongod
+
+# Verificar que corre
+systemctl status mongod
+
+Paso 4: Permitir mongodb desde cualquier IP, de todos modos el firewall del paso 1 protege
+nano /etc/mongod.conf
+
+# Cambiar esto:
+bindIp: 127.0.0.1
+
+# Por esto:
+bindIp: 0.0.0.0
+
+Paso 5: en los .env configurar cadena de conexion a mongoDB: 
+mongodb://168.197.49.212:27017/tribal_trend -- para local
+mongodb://localhost:27017/tribal_trend -- para prod
+
+
+Paso 6: Codear

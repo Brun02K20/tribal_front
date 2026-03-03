@@ -268,9 +268,19 @@ export default function AppHeader() {
                 Mis pedidos
               </Link>
             )}
+            {isAuthenticated && user?.id_rol === 2 && (
+              <Link href="/chat" className="app-nav-link cursor-pointer">
+                Chat
+              </Link>
+            )}
             {isAuthenticated && user?.id_rol === 1 && (
               <Link href="/dashboard" className="app-nav-link cursor-pointer">
                 Dashboard
+              </Link>
+            )}
+            {isAuthenticated && user?.id_rol === 1 && (
+              <Link href="/dashboard/chat" className="app-nav-link cursor-pointer">
+                Chat
               </Link>
             )}
             {renderUserDropdown({ mobile: false })}
@@ -291,9 +301,19 @@ export default function AppHeader() {
               Mis pedidos
             </Link>
           )}
+          {isAuthenticated && user?.id_rol === 2 && (
+            <Link href="/chat" className="app-nav-link cursor-pointer" onClick={closeMenus}>
+              Chat
+            </Link>
+          )}
           {isAuthenticated && user?.id_rol === 1 && (
             <Link href="/dashboard" className="app-nav-link cursor-pointer" onClick={closeMenus}>
               Dashboard
+            </Link>
+          )}
+          {isAuthenticated && user?.id_rol === 1 && (
+            <Link href="/dashboard/chat" className="app-nav-link cursor-pointer" onClick={closeMenus}>
+              Chat
             </Link>
           )}
           {renderUserDropdown({ mobile: true })}

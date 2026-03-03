@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/shared/providers/AuthContext";
 import type { AdminShellProps } from "@/types/admin-ui";
 
 const menuItems = [
@@ -11,6 +12,7 @@ const menuItems = [
   { label: "Subcategorias", href: "/dashboard/subcategorias" },
   { label: "Estados Pedido", href: "/dashboard/estados-pedido" },
   { label: "Estados Envio", href: "/dashboard/estados-envio" },
+  { label: "Chat", href: "/dashboard/chat" },
   { label: "Metricas", href: "/dashboard/metricas" },
   { label: "AI", href: "/dashboard/ai" },
 ];
@@ -21,6 +23,15 @@ export default function AdminShell({
   children,
 }: AdminShellProps) {
   const pathname = usePathname();
+  const { isAuthenticated, user } = useAuth();
+
+  const visibleMenuItems = menuItems.filter((item) => {
+    if (item.href === "/dashboard/chat") {
+      return isAuthenticated && user?.id_rol === 1;
+    }
+
+    return true;
+  });
 
   return (
     <main className="app-page">
@@ -29,7 +40,7 @@ export default function AdminShell({
           <aside className="border-b border-line p-4 md:border-b-0 md:border-r">
             <h1 className="app-title mb-4 text-xl">Dashboard Admin</h1>
             <nav className="flex flex-col gap-2">
-              {menuItems.map((item) => {
+              {visibleMenuItems.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 return (
                   <Link
