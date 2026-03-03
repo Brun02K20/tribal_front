@@ -178,6 +178,8 @@ export class ChatController {
 
     this.chatGateway.emitNewMessage({
       conversationId: String(result.message.conversacion_id),
+      clienteId: Number(result.conversation?.cliente_id),
+      clienteNombre: String(result.conversation?.cliente_nombre ?? ''),
       message: result.message,
       ultimoMensaje: result.conversation?.ultimo_mensaje ?? String(result.message.contenido ?? ''),
       ultimoMensajeFecha: result.message.fecha_creacion,

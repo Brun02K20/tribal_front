@@ -34,6 +34,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   emitNewMessage(payload: {
     conversationId: string;
+    clienteId?: number;
+    clienteNombre?: string;
     message: {
       _id?: unknown;
       conversacion_id?: unknown;
@@ -55,8 +57,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.server.to('admins').emit('chat:conversation-updated', {
       conversacion_id: payload.conversationId,
+      cliente_id: payload.clienteId,
+      cliente_nombre: payload.clienteNombre,
       ultimo_mensaje: payload.ultimoMensaje ?? String(payload.message.contenido ?? ''),
       ultimo_mensaje_fecha: payload.ultimoMensajeFecha ?? payload.message.fecha_creacion,
+      autor_rol: payload.message.rol,
     });
   }
 
@@ -189,6 +194,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const conversationId = String(result.message.conversacion_id);
     this.emitNewMessage({
       conversationId,
+      clienteId: Number(result.conversation?.cliente_id),
+      clienteNombre: String(result.conversation?.cliente_nombre ?? ''),
       message: result.message,
       ultimoMensaje: result.conversation?.ultimo_mensaje ?? String(result.message.contenido ?? ''),
       ultimoMensajeFecha: result.message.fecha_creacion,

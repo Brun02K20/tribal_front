@@ -71,13 +71,11 @@ export const useAdminChat = () => {
         const sorted = sortConversations(data);
         setConversations(sorted);
         setSelectedConversationId((prev) => {
-          if (prev) {
-            return sorted.some((conversation) => conversation._id === prev)
-              ? prev
-              : (sorted[0]?._id ?? null);
+          if (!prev) {
+            return null;
           }
 
-          return sorted[0]?._id ?? null;
+          return sorted.some((conversation) => conversation._id === prev) ? prev : null;
         });
       } catch (err) {
         if (mounted) {
@@ -147,40 +145,50 @@ export const useAdminChat = () => {
     });
 
     socket.on('chat:new-message', (payload: { conversacion_id: string; message: ChatMessage }) => {
-      setConversations((prev) => {
-        const next = prev.map((conversation) => {
-          if (conversation._id !== payload.conversacion_id) {
-            return conversation;
-          }
-
-          const unreadIncrement = payload.message.rol === 'cliente' ? 1 : 0;
-          return {
-            ...conversation,
-            ultimo_mensaje: payload.message.contenido,
-            ultimo_mensaje_fecha: payload.message.fecha_creacion,
-            no_leidos: (conversation.no_leidos ?? 0) + unreadIncrement,
-          };
-        });
-
-        return sortConversations(next);
-      });
-
       if (payload.conversacion_id === selectedConversationId) {
         setMessages((prev) => (prev.some((msg) => msg._id === payload.message._id) ? prev : [...prev, payload.message]));
       }
     });
 
-    socket.on('chat:conversation-updated', (payload: { conversacion_id: string; ultimo_mensaje: string; ultimo_mensaje_fecha: string }) => {
+    socket.on('chat:conversation-updated', (payload: {
+      conversacion_id: string;
+      cliente_id?: number;
+      cliente_nombre?: string;
+      ultimo_mensaje: string;
+      ultimo_mensaje_fecha: string;
+      autor_rol?: 'cliente' | 'admin';
+    }) => {
       setConversations((prev) => {
-        const next = prev.map((conversation) => (
-          conversation._id === payload.conversacion_id
-            ? {
-                ...conversation,
-                ultimo_mensaje: payload.ultimo_mensaje,
-                ultimo_mensaje_fecha: payload.ultimo_mensaje_fecha,
-              }
-            : conversation
-        ));
+        const isSelected = payload.conversacion_id === selectedConversationId;
+        const shouldIncrementUnread = payload.autor_rol === 'cliente' && !isSelected;
+
+        const existingIndex = prev.findIndex((conversation) => conversation._id === payload.conversacion_id);
+        if (existingIndex === -1) {
+          const fallbackName = payload.cliente_id ? `Cliente #${payload.cliente_id}` : 'Cliente';
+          const createdConversation: ChatConversation = {
+            _id: payload.conversacion_id,
+            cliente_id: Number(payload.cliente_id ?? 0),
+            cliente_nombre: payload.cliente_nombre?.trim() || fallbackName,
+            fecha_creacion: payload.ultimo_mensaje_fecha,
+            ultimo_mensaje: payload.ultimo_mensaje,
+            ultimo_mensaje_fecha: payload.ultimo_mensaje_fecha,
+            no_leidos: shouldIncrementUnread ? 1 : 0,
+          };
+
+          return sortConversations([createdConversation, ...prev]);
+        }
+
+        const next = [...prev];
+        const current = next[existingIndex];
+        next[existingIndex] = {
+          ...current,
+          cliente_nombre: payload.cliente_nombre?.trim() || current.cliente_nombre,
+          ultimo_mensaje: payload.ultimo_mensaje,
+          ultimo_mensaje_fecha: payload.ultimo_mensaje_fecha,
+          no_leidos: shouldIncrementUnread
+            ? (current.no_leidos ?? 0) + 1
+            : current.no_leidos,
+        };
 
         return sortConversations(next);
       });

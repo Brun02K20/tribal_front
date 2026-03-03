@@ -53,6 +53,11 @@ export class ChatService {
     }));
   }
 
+  private async getClientNameById(clienteId: number): Promise<string> {
+    const user = await Usuarios.findByPk(clienteId);
+    return user?.nombre ?? `Cliente #${clienteId}`;
+  }
+
   async getOrCreateConversationForClient(clienteId: number) {
     if (!Number.isInteger(clienteId) || clienteId < 1) {
       throw new BadRequestException('ID de cliente inválido para crear conversación');
@@ -212,9 +217,16 @@ export class ChatService {
 
     const createdMessage = created.toObject();
     const updatedConversation = await this.conversacionModel.findById(conversation._id).lean();
+    const clientId = Number(updatedConversation?.cliente_id ?? conversation.cliente_id);
+    const clientName = Number.isFinite(clientId) ? await this.getClientNameById(clientId) : 'Cliente';
 
     return {
-      conversation: updatedConversation,
+      conversation: updatedConversation
+        ? {
+            ...updatedConversation,
+            cliente_nombre: clientName,
+          }
+        : updatedConversation,
       message: createdMessage,
     };
   }

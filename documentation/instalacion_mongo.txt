@@ -29,6 +29,9 @@ bindIp: 127.0.0.1
 # Por esto:
 bindIp: 0.0.0.0
 
+# Y reiniciar:
+sudo systemctl restart mongod
+
 Paso 5: en los .env configurar cadena de conexion a mongoDB: 
 mongodb://168.197.49.212:27017/tribal_trend -- para local
 mongodb://localhost:27017/tribal_trend -- para prod
