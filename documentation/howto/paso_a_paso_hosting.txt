@@ -149,13 +149,5 @@ sudo systemctl reload nginx
 
 
 
-OAuth: 
-ClientId: 486897855245-av20posd834r3pbcdpuvkgugsr1c5ilo.apps.googleusercontent.com
-Client Secret: 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
-Proyecto OAuth: https://console.cloud.google.com/auth/overview?hl=es-419&project=tribaltrend&supportedpurview=project
-
-
-
-
 
 

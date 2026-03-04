@@ -25,8 +25,11 @@ const inspectUnknown = (value: unknown, path: string, hits: string[]): void => {
   }
 };
 
-export const findSuspiciousInputPaths = (payload: unknown): string[] => {
+export const findSuspiciousInputPaths = (
+  payload: unknown,
+  rootPath = 'body',
+): string[] => {
   const hits: string[] = [];
-  inspectUnknown(payload, 'body', hits);
+  inspectUnknown(payload, rootPath, hits);
   return [...new Set(hits)];
 };

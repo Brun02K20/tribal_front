@@ -9,6 +9,20 @@ export const xssValidationMiddleware = (
   _res: Response,
   next: NextFunction,
 ): void => {
+  const suspiciousQueryPaths = findSuspiciousInputPaths(req.query, 'query');
+  if (suspiciousQueryPaths.length) {
+    throw new BadRequestException(
+      `Entrada rechazada por seguridad. Query params sospechosos: ${suspiciousQueryPaths.join(', ')}`,
+    );
+  }
+
+  const suspiciousParamsPaths = findSuspiciousInputPaths(req.params, 'params');
+  if (suspiciousParamsPaths.length) {
+    throw new BadRequestException(
+      `Entrada rechazada por seguridad. Params sospechosos: ${suspiciousParamsPaths.join(', ')}`,
+    );
+  }
+
   if (!MUTATING_METHODS.has(req.method.toUpperCase())) {
     next();
     return;

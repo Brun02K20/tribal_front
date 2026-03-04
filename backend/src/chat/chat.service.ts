@@ -5,6 +5,7 @@ import { Conversacion } from './schemas/conversacion.schema';
 import { Mensaje } from './schemas/mensaje.schema';
 import { Usuarios } from 'src/auth/models/Usuarios';
 import { SendMessageInput } from './types/chat.types';
+import { findSuspiciousInputPaths } from 'src/utils/security/xss-detector';
 
 @Injectable()
 export class ChatService {
@@ -23,6 +24,13 @@ export class ChatService {
 
     if (clean.length > 2000) {
       throw new BadRequestException('El contenido del mensaje excede el máximo permitido (2000)');
+    }
+
+    const suspicious = findSuspiciousInputPaths({ contenido: clean }, 'chat');
+    if (suspicious.length) {
+      throw new BadRequestException(
+        `Entrada rechazada por seguridad. Campos sospechosos: ${suspicious.join(', ')}`,
+      );
     }
 
     return clean;
