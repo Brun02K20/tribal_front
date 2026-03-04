@@ -175,6 +175,8 @@ docker compose -f docker-compose.prod.yml up --build -d
 - La página no debe tardar más de 5 segundos en cargar
 - Se debe contar con prácticas de seguridad informática básicas
 - Se debe mandar un mail al administrador y al cliente posterior a la compra
+- La página debe incluir un footer compartido con una frase central resaltada de identidad de marca
+- El footer debe incluir un acceso al Instagram oficial, mediante ícono, abriendo en una nueva ventana
 
 ## 5. Modelado de Datos
 

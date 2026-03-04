@@ -5,6 +5,7 @@ import { AuthProvider } from "@/shared/providers/AuthContext";
 import { CartProvider } from "@/shared/providers/CartContext";
 import { ToastProvider } from "@/shared/providers/ToastContext";
 import AppHeader from "@/shared/layout/AppHeader";
+import AppFooter from "@/shared/layout/AppFooter";
 import AutumnLeavesBackground from "@/shared/ui/AutumnLeavesBackground";
 
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://tribaltrend.com.ar").replace(/\/+$/, "");
@@ -120,6 +121,7 @@ export default function RootLayout({
             <CartProvider>
               <AppHeader />
               {children}
+              <AppFooter />
             </CartProvider>
           </ToastProvider>
         </AuthProvider>
