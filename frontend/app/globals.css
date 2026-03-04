@@ -118,7 +118,6 @@ a {
 }
 
 .app-page {
-  min-height: calc(100vh - 88px);
   padding: 1.5rem;
 }
 

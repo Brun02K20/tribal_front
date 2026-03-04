@@ -119,9 +119,11 @@ export default function RootLayout({
         <AuthProvider>
           <ToastProvider>
             <CartProvider>
-              <AppHeader />
-              {children}
-              <AppFooter />
+              <div className="flex min-h-screen flex-col">
+                <AppHeader />
+                <main className="flex-1">{children}</main>
+                <AppFooter />
+              </div>
             </CartProvider>
           </ToastProvider>
         </AuthProvider>

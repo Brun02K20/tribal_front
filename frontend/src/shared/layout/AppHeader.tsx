@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/shared/providers/AuthContext";
+import InstagramButton from "@/shared/ui/InstagramButton";
 
 export default function AppHeader() {
   const { isAuthenticated, user, loading, logout } = useAuth();
@@ -260,6 +261,7 @@ export default function AppHeader() {
           </button>
 
           <nav className="hidden items-center gap-6 md:flex">
+            <InstagramButton />
             <Link href="/products" className="app-nav-link cursor-pointer">
               Productos
             </Link>
@@ -293,6 +295,7 @@ export default function AppHeader() {
         data-open={isMobileOpen}
         aria-hidden={!isMobileOpen}
       >
+          <InstagramButton onClick={closeMenus} />
           <Link href="/products" className="app-nav-link cursor-pointer" onClick={closeMenus}>
             Productos
           </Link>
