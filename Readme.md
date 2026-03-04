@@ -21,8 +21,6 @@
 #### Prerrequisitos
 - Node.js 20+
 - npm 10+
-- MySQL (según variables del backend)
-- MongoDB (local o remoto)
 
 #### 1) Backend
 ```bash
@@ -55,10 +53,7 @@ npm run dev
 El frontend levanta en `http://localhost:3000`.
 
 #### Variables de entorno
-- Backend local: `backend/.env`
-- Backend producción: `backend/.env.prod`
-
-> Nota: para usar Mongo local, la URI típica es `mongodb://localhost:27017/tribal_trend`.
+Para acceso a estas por favor contactarse de forma directa conmigo.
 
 ### B. Con Docker
 
