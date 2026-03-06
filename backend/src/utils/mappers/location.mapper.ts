@@ -1,5 +1,5 @@
-import { Ciudades } from 'src/ciudades/models/Ciudades';
-import { Provincias } from 'src/provincias/models/Provincias';
+import { Ciudades } from 'src/domain/ciudades/models/Ciudades';
+import { Provincias } from 'src/domain/provincias/models/Provincias';
 
 export const mapProvincia = (provincia: Provincias) => ({
   id: provincia.id,

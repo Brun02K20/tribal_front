@@ -51,8 +51,8 @@ export default function AppHeader() {
     });
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     setIsUserMenuOpen(false);
     setIsMobileOpen(false);
     router.replace("/products");

@@ -1,8 +1,8 @@
 import { DataTypes, Model, NonAttribute, Optional } from 'sequelize';
-import { sequelize } from '../../../../database/database';
-import { Envios } from 'src/envios/models/Envios';
-import { Ciudades } from 'src/ciudades/models/Ciudades';
-import { Provincias } from 'src/provincias/models/Provincias';
+import { sequelize } from 'src/database/database';
+import { Envios } from 'src/domain/envios/models/Envios';
+import { Ciudades } from 'src/domain/ciudades/models/Ciudades';
+import { Provincias } from 'src/domain/provincias/models/Provincias';
 
 interface DireccionAttributes {
     id: number;

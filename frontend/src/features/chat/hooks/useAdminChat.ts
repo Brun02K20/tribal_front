@@ -16,7 +16,7 @@ const sortConversations = (conversations: ChatConversation[]) => {
 };
 
 export const useAdminChat = () => {
-  const { token, isAuthenticated, loading: authLoading, user } = useAuth();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [conversationFilter, setConversationFilter] = useState('');
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -132,11 +132,11 @@ export const useAdminChat = () => {
   }, [isAuthenticated, selectedConversationId, user?.id_rol]);
 
   useEffect(() => {
-    if (!isAuthenticated || user?.id_rol !== 1 || !token) {
+    if (!isAuthenticated || user?.id_rol !== 1) {
       return;
     }
 
-    const socket: Socket = createChatSocket(token);
+    const socket: Socket = createChatSocket();
 
     socket.on('connect', () => {
       if (selectedConversationId) {
@@ -208,7 +208,7 @@ export const useAdminChat = () => {
     return () => {
       socket.disconnect();
     };
-  }, [isAuthenticated, selectedConversationId, token, user?.id_rol]);
+  }, [isAuthenticated, selectedConversationId, user?.id_rol]);
 
   const selectConversation = useCallback((conversationId: string) => {
     setSelectedConversationId(conversationId);

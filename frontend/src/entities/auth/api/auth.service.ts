@@ -54,4 +54,27 @@ export const authService = {
       });
     }
   },
+
+  async me() {
+    try {
+      const { data } = await apiClient.get<AuthResponse>("/auth/me");
+      return data;
+    } catch (error) {
+      throw parseApiError(error, {
+        fallbackMessage: "No se pudo validar la sesión",
+        prefix: "Autenticación",
+      });
+    }
+  },
+
+  async logout() {
+    try {
+      await apiClient.post("/auth/logout");
+    } catch (error) {
+      throw parseApiError(error, {
+        fallbackMessage: "No se pudo cerrar sesión",
+        prefix: "Autenticación",
+      });
+    }
+  },
 };

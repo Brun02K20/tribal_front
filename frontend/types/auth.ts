@@ -9,7 +9,6 @@ export type AuthUser = {
 };
 
 export type AuthResponse = {
-  token: string;
   user: AuthUser;
 };
 
@@ -52,7 +51,6 @@ export type AuthContextType = {
   isAuthenticated: boolean;
   loading: boolean;
   user: AuthUser | null;
-  token: string | null;
-  login: (params: { user: AuthUser; token: string }) => void;
-  logout: () => void;
+  login: (params: { user: AuthUser }) => void;
+  logout: () => Promise<void>;
 };

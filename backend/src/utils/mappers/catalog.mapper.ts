@@ -1,5 +1,5 @@
-import { Categorias } from 'src/categorias/models/Categorias';
-import { Subcategorias } from 'src/subcategorias/models/Subcategorias';
+import { Categorias } from 'src/domain/categorias/models/Categorias';
+import { Subcategorias } from 'src/domain/subcategorias/models/Subcategorias';
 
 export const mapSubcategoria = (subcategoria: Subcategorias) => ({
   id: subcategoria.id,

@@ -42,7 +42,7 @@ export const useRegisterLogin = ({ mode, getRegisterValues, redirectTo }: UseReg
 
   const loginSuccess = useCallback(
     (data: AuthResponse) => {
-      login({ user: data.user, token: data.token });
+      login({ user: data.user });
       showToast(
         mode === "login" ? "Sesión iniciada correctamente" : "Cuenta creada correctamente",
         "success",

@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Query, Put, Post, UseGuards, ParseIntPipe, Req, ForbiddenException } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiTags, ApiBody, ApiParam, ApiQuery, ApiCookieAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { UsuariosService } from './usuarios.service';
 import {
@@ -18,7 +18,7 @@ export class UsuariosController {
     constructor(private readonly usuariosService: UsuariosService) { }
 
     @UseGuards(AuthGuard, Role2Guard)
-    @ApiBearerAuth('bearer')
+    @ApiCookieAuth('cookieAuth')
     @Put('update-config')
     @ApiQuery({ name: 'userId', type: Number, required: true, description: 'ID del usuario a actualizar', example: 1 })
     @ApiBody({ type: AccountConfigDto })
@@ -36,7 +36,7 @@ export class UsuariosController {
     }
 
     @UseGuards(AuthGuard, Role2Guard)
-    @ApiBearerAuth('bearer')
+    @ApiCookieAuth('cookieAuth')
     @Get('get-config/:userId')
     @ApiParam({ name: 'userId', type: Number, description: 'ID of the user to get config for', example: 1 })
     @ApiOkResponse({ type: AccountConfigGetDto })
@@ -51,7 +51,7 @@ export class UsuariosController {
     }
 
     @UseGuards(AuthGuard, Role2Guard)
-    @ApiBearerAuth('bearer')
+    @ApiCookieAuth('cookieAuth')
     @Get(':userId/direcciones')
     @ApiParam({ name: 'userId', type: Number, description: 'ID del usuario', example: 1 })
     @ApiOkResponse({ type: UserDireccionDto, isArray: true })
@@ -67,7 +67,7 @@ export class UsuariosController {
     }
 
     @UseGuards(AuthGuard, Role2Guard)
-    @ApiBearerAuth('bearer')
+    @ApiCookieAuth('cookieAuth')
     @Post(':userId/direcciones')
     @ApiParam({ name: 'userId', type: Number, description: 'ID del usuario', example: 1 })
     @ApiBody({ type: CreateDireccionDto })
@@ -84,3 +84,4 @@ export class UsuariosController {
         return this.usuariosService.createUserAddress(userId, data);
     }
 }
+

@@ -18,6 +18,15 @@ const jwtExpiresInSeconds = Number(process.env.JWT_EXPIRES_IN_SECONDS ?? 604800)
 
 @Injectable()
 export class AuthService {
+		async getSessionUser(userId: number) {
+			const user = await Usuarios.findByPk(userId);
+			if (!user) {
+				throw new UnauthorizedException('Sesión inválida');
+			}
+
+			return { user: this.serializeUser(user) };
+		}
+
 	constructor(private readonly jwtService: JwtService) { }
 
 	async register(data: RegisterInput) {
@@ -198,15 +207,19 @@ export class AuthService {
 
 		return {
 			token,
-			user: {
-				id: user.id,
-				nombre: user.nombre,
-				username: user.username,
-				email: user.email,
-				telefono: user.telefono,
-				google_id: user.google_id,
-				id_rol: user.id_rol,
-			},
+			user: this.serializeUser(user),
+		};
+	}
+
+	private serializeUser(user: Usuarios) {
+		return {
+			id: user.id,
+			nombre: user.nombre,
+			username: user.username,
+			email: user.email,
+			telefono: user.telefono,
+			google_id: user.google_id,
+			id_rol: user.id_rol,
 		};
 	}
 }

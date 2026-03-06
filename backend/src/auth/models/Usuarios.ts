@@ -1,7 +1,7 @@
 import { DataTypes, Model, NonAttribute, Optional } from 'sequelize';
-import { sequelize } from '../../database/database';
+import { sequelize } from 'src/database/database';
 import { Direcciones } from '../usuarios/direcciones/models/Direcciones';
-import { Pedidos } from 'src/pedidos/models/Pedidos';
+import { Pedidos } from 'src/domain/pedidos/models/Pedidos';
 import { Roles } from './Roles';
 
 interface UsuarioAttributes {

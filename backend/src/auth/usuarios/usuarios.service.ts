@@ -15,8 +15,8 @@ import {
     UserDireccionDto,
 } from '../DTOs/user.dto';
 import { Direcciones } from './direcciones/models/Direcciones';
-import { Ciudades } from 'src/ciudades/models/Ciudades';
-import { Provincias } from 'src/provincias/models/Provincias';
+import { Ciudades } from 'src/domain/ciudades/models/Ciudades';
+import { Provincias } from 'src/domain/provincias/models/Provincias';
 
 @Injectable()
 export class UsuariosService {

@@ -8,7 +8,7 @@ import { useAuth } from '@/shared/providers/AuthContext';
 import type { ChatConversation, ChatMessage } from '@/types/chat';
 
 export const useClientChat = () => {
-  const { token, isAuthenticated, loading: authLoading, user } = useAuth();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
   const [conversation, setConversation] = useState<ChatConversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
@@ -63,11 +63,11 @@ export const useClientChat = () => {
   }, [authLoading, isAuthenticated, user?.id_rol]);
 
   useEffect(() => {
-    if (!isAuthenticated || user?.id_rol !== 2 || !token || !conversation?._id) {
+    if (!isAuthenticated || user?.id_rol !== 2 || !conversation?._id) {
       return;
     }
 
-    const socket: Socket = createChatSocket(token);
+    const socket: Socket = createChatSocket();
 
     socket.on('connect', () => {
       socket.emit('chat:join', { conversacion_id: conversation._id });
@@ -94,7 +94,7 @@ export const useClientChat = () => {
     return () => {
       socket.disconnect();
     };
-  }, [conversation?._id, isAuthenticated, token, user?.id_rol]);
+  }, [conversation?._id, isAuthenticated, user?.id_rol]);
 
   const sendMessage = useCallback(async () => {
     const contenido = draft.trim();
