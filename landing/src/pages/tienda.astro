@@ -1,0 +1,43 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const target = 'https://tribaltrend.com.ar';
+---
+
+<Layout title="Redirigiendo a la Tienda | Tribal Trend" description="Redireccion a la tienda principal de Tribal Trend.">
+  <main class="app-shell redirect-wrap">
+    <section class="app-panel redirect-card">
+      <h1>Te estamos llevando a la tienda</h1>
+      <p>Si no sos redirigido automaticamente, usa el boton de abajo.</p>
+      <a class="app-btn-primary" href={target}>Ir ahora a Tribal Trend</a>
+    </section>
+  </main>
+
+  <script define:vars={{ target }}>
+    window.location.replace(target);
+  </script>
+</Layout>
+
+<style>
+  .redirect-wrap {
+    align-items: center;
+    display: grid;
+    min-height: 80vh;
+  }
+
+  .redirect-card {
+    justify-self: center;
+    max-width: 640px;
+    padding: 1.2rem;
+    text-align: center;
+  }
+
+  .redirect-card h1 {
+    font-size: clamp(1.9rem, 3vw, 2.5rem);
+    margin-bottom: 0.5rem;
+  }
+
+  .redirect-card p {
+    margin-bottom: 1rem;
+  }
+</style>

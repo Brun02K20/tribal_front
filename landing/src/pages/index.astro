@@ -1,0 +1,297 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+	title="Tribal Trend | Tu Tienda Online Siempre Disponible"
+	description="Descubri una experiencia ecommerce confiable, con atencion personalizada y disponibilidad real para tu negocio."
+>
+	<main class="app-shell">
+		<header class="hero app-panel">
+			<nav class="nav">
+				<a class="brand" href="#inicio">Tribal Trend</a>
+				<div class="nav-links">
+					<a href="#beneficios">Beneficios</a>
+					<a href="#testimonios">Testimonios</a>
+					<a href="/preguntas-frecuentes">FAQ</a>
+					<a class="app-btn-secondary" href="/tienda">Ir a la tienda</a>
+				</div>
+			</nav>
+
+			<section id="inicio" class="hero-content">
+				<div class="hero-copy">
+					<p class="eyebrow">Ecommerce con identidad artesanal</p>
+					<h1>Converti visitas en clientes con una experiencia que inspira confianza</h1>
+					<p class="section-lead">
+						En Tribal Trend unimos diseño, disponibilidad y atencion real para que tu marca venda con
+						personalidad propia y sin fricciones.
+					</p>
+					<div class="hero-cta">
+						<a class="app-btn-primary" href="#contacto">Quiero que me contacten</a>
+						<a class="app-btn-secondary" href="/preguntas-frecuentes">Ver preguntas frecuentes</a>
+					</div>
+				</div>
+				<div class="hero-logo-wrap">
+					<img src="/icons/logo_tribal_trnasparente.png" alt="Logo Tribal Trend" class="hero-logo" />
+				</div>
+			</section>
+		</header>
+
+		<section id="beneficios" class="section">
+			<h2 class="section-title">Beneficios que hacen la diferencia</h2>
+			<div class="benefits-grid">
+				<article class="app-panel benefit-card">
+					<h3>Confiabilidad</h3>
+					<p>Procesos estables, flujos claros y una experiencia consistente para tus clientes.</p>
+				</article>
+				<article class="app-panel benefit-card">
+					<h3>Disponibilidad</h3>
+					<p>Tu negocio visible 24/7 para vender sin depender de horarios comerciales.</p>
+				</article>
+				<article class="app-panel benefit-card">
+					<h3>Soporte cercano</h3>
+					<p>Atencion al cliente humana para resolver dudas y acompañar cada compra.</p>
+				</article>
+			</div>
+		</section>
+
+		<section id="testimonios" class="section">
+			<h2 class="section-title">Lo que dicen nuestros clientes</h2>
+			<div class="testimonials-grid">
+				<blockquote class="app-panel testimonial">
+					<p>"Desde que trabajamos con Tribal Trend, nuestras consultas se convirtieron en ventas reales."</p>
+					<footer>- Mariana, emprendimiento de deco</footer>
+				</blockquote>
+				<blockquote class="app-panel testimonial">
+					<p>"La disponibilidad y la atencion al cliente nos dieron tranquilidad desde el primer dia."</p>
+					<footer>- Lucas, tienda de regalos</footer>
+				</blockquote>
+				<blockquote class="app-panel testimonial">
+					<p>"El diseño transmite confianza y nuestros clientes lo notaron de inmediato."</p>
+					<footer>- Sofia, marca artesanal</footer>
+				</blockquote>
+			</div>
+		</section>
+
+		<section id="contacto" class="section contact-section app-panel">
+			<div class="contact-copy">
+				<h2 class="section-title">Hablemos de tu proyecto</h2>
+				<p class="section-lead">
+					Completá el formulario y te contactamos para mostrarte como llevar tu ecommerce al siguiente nivel.
+				</p>
+			</div>
+
+			<form id="contactForm" class="contact-form">
+				<label>
+					Nombre
+					<input class="app-input" type="text" name="nombre" required />
+				</label>
+				<label>
+					Email
+					<input class="app-input" type="email" name="email" required />
+				</label>
+				<label>
+					Telefono
+					<input class="app-input" type="text" name="telefono" />
+				</label>
+				<label>
+					Mensaje
+					<textarea class="app-input" name="mensaje" rows="5" required></textarea>
+				</label>
+				<button class="app-btn-primary" type="submit">Enviar consulta</button>
+				<p id="formStatus" class="form-status" aria-live="polite"></p>
+			</form>
+		</section>
+	</main>
+
+	<script>
+		const form = document.getElementById('contactForm');
+		const status = document.getElementById('formStatus');
+
+		if (!(form instanceof HTMLFormElement) || !(status instanceof HTMLElement)) {
+			throw new Error('No se encontraron los elementos del formulario de contacto.');
+		}
+
+		form.addEventListener('submit', async (event) => {
+			event.preventDefault();
+			const submitButton = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+			if (!submitButton || !status) {
+				return;
+			}
+
+			submitButton.setAttribute('disabled', 'true');
+			status.textContent = 'Enviando...';
+
+			const formData = new FormData(form);
+			const payload = {
+				nombre: String(formData.get('nombre') ?? ''),
+				email: String(formData.get('email') ?? ''),
+				telefono: String(formData.get('telefono') ?? ''),
+				mensaje: String(formData.get('mensaje') ?? ''),
+			};
+
+			try {
+				const response = await fetch('/api/contact', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload),
+				});
+
+				const result = await response.json();
+				if (!response.ok || !result.ok) {
+					throw new Error(result.message ?? 'No se pudo enviar el mensaje.');
+				}
+
+				form.reset();
+				status.textContent = 'Mensaje enviado. Te contactaremos pronto.';
+			} catch (error) {
+				status.textContent =
+					error instanceof Error ? error.message : 'No se pudo enviar el mensaje en este momento.';
+			} finally {
+				submitButton.removeAttribute('disabled');
+			}
+		});
+	</script>
+</Layout>
+
+<style>
+	.hero {
+		padding: 1.1rem;
+	}
+
+	.nav {
+		align-items: center;
+		display: flex;
+		gap: 1rem;
+		justify-content: space-between;
+	}
+
+	.brand {
+		color: var(--color-black);
+		font-family: 'MedievalSharp', serif;
+		font-size: 1.3rem;
+	}
+
+	.nav-links {
+		align-items: center;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.85rem;
+	}
+
+	.hero-content {
+		align-items: center;
+		display: grid;
+		gap: 1rem;
+		grid-template-columns: 1.2fr 0.8fr;
+		margin-top: 1rem;
+	}
+
+	.eyebrow {
+		color: var(--color-earth-brown);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
+
+	h1 {
+		font-size: clamp(2rem, 4vw, 3.2rem);
+		margin-bottom: 0.7rem;
+		margin-top: 0.4rem;
+	}
+
+	.hero-cta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.7rem;
+		margin-top: 1rem;
+	}
+
+	.hero-logo-wrap {
+		align-items: center;
+		display: flex;
+		justify-content: center;
+		min-height: 260px;
+	}
+
+	.hero-logo {
+		animation: float-in 0.8s ease-out;
+		max-width: min(100%, 360px);
+		width: 100%;
+	}
+
+	.section {
+		margin-top: 1.6rem;
+	}
+
+	.benefits-grid,
+	.testimonials-grid {
+		display: grid;
+		gap: 0.85rem;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		margin-top: 0.85rem;
+	}
+
+	.benefit-card,
+	.testimonial {
+		padding: 1rem;
+	}
+
+	.benefit-card h3 {
+		margin-bottom: 0.35rem;
+	}
+
+	.testimonial footer {
+		color: var(--color-earth-brown);
+		margin-top: 0.6rem;
+	}
+
+	.contact-section {
+		align-items: start;
+		display: grid;
+		gap: 1rem;
+		grid-template-columns: 1fr 1fr;
+		padding: 1rem;
+	}
+
+	.contact-form {
+		display: grid;
+		gap: 0.72rem;
+	}
+
+	.contact-form label {
+		display: grid;
+		gap: 0.35rem;
+	}
+
+	.form-status {
+		min-height: 1.2rem;
+		opacity: 0.95;
+	}
+
+	@keyframes float-in {
+		from {
+			opacity: 0;
+			transform: translateY(10px) scale(0.97);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+	}
+
+	@media (max-width: 980px) {
+		.hero-content,
+		.contact-section {
+			grid-template-columns: 1fr;
+		}
+
+		.benefits-grid,
+		.testimonials-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.hero-logo {
+			max-width: 300px;
+		}
+	}
+</style>

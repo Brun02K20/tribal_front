@@ -27,3 +27,17 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+  landing:
+    container_name: tribal_landing
+    build:
+      context: ./landing
+      dockerfile: Dockerfile
+    env_file:
+      - ./landing/.env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3003:3000"
+    restart: unless-stopped

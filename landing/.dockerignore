@@ -1,0 +1,6 @@
+node_modules
+.astro
+dist
+.git
+.vscode
+npm-debug.log*

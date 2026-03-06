@@ -1,0 +1,85 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const faqs = [
+  {
+    q: 'Que tipo de negocio puede usar Tribal Trend?',
+    a: 'Tribal Trend es ideal para marcas de productos artesanales, decoracion, regalos y emprendimientos que buscan vender online con identidad propia.',
+  },
+  {
+    q: 'La tienda esta disponible todo el tiempo?',
+    a: 'Si. Tu ecommerce queda disponible 24/7 para recibir consultas y ventas en cualquier momento.',
+  },
+  {
+    q: 'Como funciona la atencion al cliente?',
+    a: 'Contas con soporte orientado a resolver dudas de compra, seguimiento y experiencia postventa.',
+  },
+  {
+    q: 'Puedo derivar visitantes directamente a la tienda principal?',
+    a: 'Si, podes usar la pagina de redireccion para enviar trafico a tribaltrend.com.ar en un solo click.',
+  },
+  {
+    q: 'Como me contacto para una propuesta personalizada?',
+    a: 'En la landing principal tenes un formulario directo. Completa tus datos y te respondemos a la brevedad.',
+  },
+];
+---
+
+<Layout title="Preguntas Frecuentes | Tribal Trend" description="Respuestas a las dudas mas comunes sobre Tribal Trend.">
+  <main class="app-shell faq-wrap">
+    <header class="faq-header app-panel">
+      <h1>Preguntas Frecuentes</h1>
+      <p class="section-lead">Todo lo que necesitas saber para empezar con Tribal Trend.</p>
+      <div class="faq-links">
+        <a class="app-btn-secondary" href="/">Volver a la landing</a>
+        <a class="app-btn-primary" href="/tienda">Ir a la tienda</a>
+      </div>
+    </header>
+
+    <section class="faq-list">
+      {faqs.map((item) => (
+        <article class="app-panel faq-item">
+          <h2>{item.q}</h2>
+          <p>{item.a}</p>
+        </article>
+      ))}
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .faq-wrap {
+    display: grid;
+    gap: 1rem;
+    padding-block: 1rem 2rem;
+  }
+
+  .faq-header {
+    padding: 1rem;
+  }
+
+  .faq-header h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+  }
+
+  .faq-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 0.9rem;
+  }
+
+  .faq-list {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .faq-item {
+    padding: 1rem;
+  }
+
+  .faq-item h2 {
+    font-size: 1.25rem;
+    margin-bottom: 0.4rem;
+  }
+</style>
