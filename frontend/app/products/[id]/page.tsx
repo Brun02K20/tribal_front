@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import ProductPageClient from "./ProductPageClient";
 
 export const metadata: Metadata = {
@@ -10,8 +11,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ProductPage({ params }: { params: { id: string } }) {
-  const productId = Number(params.id);
+type ProductPageProps = {
+  params: { id: string } | Promise<{ id: string }>;
+};
+
+export default async function ProductPage({ params }: ProductPageProps) {
+  const resolvedParams = await Promise.resolve(params);
+  const productId = Number.parseInt(String(resolvedParams?.id ?? ""), 10);
+
+  if (!Number.isFinite(productId) || productId < 1) {
+    notFound();
+  }
+
   return <ProductPageClient productId={productId} />;
 }
 
