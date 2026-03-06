@@ -3,33 +3,53 @@ import Layout from '../layouts/Layout.astro';
 
 const faqs = [
   {
-    q: 'Que tipo de negocio puede usar Tribal Trend?',
-    a: 'Tribal Trend es ideal para marcas de productos artesanales, decoracion, regalos y emprendimientos que buscan vender online con identidad propia.',
+    q: 'Que puedo comprar en Tribal Trend?',
+    a: 'En Tribal Trend vas a encontrar arte, decoraciones y artesanias para regalar o decorar tu hogar.',
   },
   {
     q: 'La tienda esta disponible todo el tiempo?',
-    a: 'Si. Tu ecommerce queda disponible 24/7 para recibir consultas y ventas en cualquier momento.',
+    a: 'Si. Podes comprar online las 24 horas, todos los dias.',
   },
   {
     q: 'Como funciona la atencion al cliente?',
-    a: 'Contas con soporte orientado a resolver dudas de compra, seguimiento y experiencia postventa.',
+    a: 'Te ayudamos con dudas sobre productos, pagos, envios y seguimiento de pedidos.',
   },
   {
-    q: 'Puedo derivar visitantes directamente a la tienda principal?',
-    a: 'Si, podes usar la pagina de redireccion para enviar trafico a tribaltrend.com.ar en un solo click.',
+    q: 'A que zonas realizan envios?',
+    a: 'Realizamos envios en Cordoba y en todo el territorio de Argentina.',
   },
   {
-    q: 'Como me contacto para una propuesta personalizada?',
-    a: 'En la landing principal tenes un formulario directo. Completa tus datos y te respondemos a la brevedad.',
+    q: 'Como me contacto si tengo una consulta?',
+    a: 'En la landing principal tenes un formulario de contacto. Completa tus datos y te respondemos a la brevedad.',
   },
 ];
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: item.a,
+    },
+  })),
+};
 ---
 
-<Layout title="Preguntas Frecuentes | Tribal Trend" description="Respuestas a las dudas mas comunes sobre Tribal Trend.">
+<Layout
+  title="Preguntas frecuentes | Arte, decoraciones y artesanias"
+  description="Resuelve dudas sobre arte, decoraciones y artesanias: compras online, envios en Cordoba y Argentina, y atencion al cliente."
+  keywords="preguntas frecuentes, arte, decoraciones, artesanias, tienda de artesanias, cordoba, argentina"
+  canonicalPath="/preguntas-frecuentes"
+  ogType="article"
+  additionalJsonLd={faqJsonLd}
+>
   <main class="app-shell faq-wrap">
     <header class="faq-header app-panel">
-      <h1>Preguntas Frecuentes</h1>
-      <p class="section-lead">Todo lo que necesitas saber para empezar con Tribal Trend.</p>
+      <h1>Preguntas frecuentes sobre comprar artesanias online</h1>
+      <p class="section-lead">Todo lo que necesitas saber para comprar en la tienda de forma simple.</p>
       <div class="faq-links">
         <a class="app-btn-secondary" href="/">Volver a la landing</a>
         <a class="app-btn-primary" href="/tienda">Ir a la tienda</a>

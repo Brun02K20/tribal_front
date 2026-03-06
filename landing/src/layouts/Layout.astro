@@ -2,12 +2,42 @@
 interface Props {
 	title?: string;
 	description?: string;
+	keywords?: string;
+	canonicalPath?: string;
+	ogType?: 'website' | 'article';
+	noindex?: boolean;
+	additionalJsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
 
 const {
 	title = 'Tribal Trend | Tienda Online de Artesanias',
-	description = 'Tribal Trend: tienda online de artesanias, regalos y decoracion hecha a mano en Argentina.',
+	description = 'Tribal Trend: tienda de arte, decoraciones y artesanias con envios a Cordoba y toda Argentina.',
+	keywords = 'arte, decoraciones, artesanias, tienda de artesanias, tienda de arte, regalos artesanales, cordoba, argentina',
+	canonicalPath = Astro.url.pathname,
+	ogType = 'website',
+	noindex = false,
+	additionalJsonLd,
 } = Astro.props;
+
+const siteUrl = (import.meta.env.SITE_URL ?? 'https://tribaltrend.com.ar').replace(/\/+$/, '');
+const canonicalUrl = `${siteUrl}${canonicalPath.startsWith('/') ? canonicalPath : `/${canonicalPath}`}`;
+const ogImagePath = '/icons/logo_tribal_trnasparente.png';
+const ogImageUrl = `${siteUrl}${ogImagePath}`;
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Store',
+  name: 'Tribal Trend',
+  url: siteUrl,
+  logo: ogImageUrl,
+  image: [ogImageUrl],
+  description,
+};
+
+const jsonLdPayload = Array.isArray(additionalJsonLd)
+  ? [organizationJsonLd, ...additionalJsonLd]
+  : additionalJsonLd
+    ? [organizationJsonLd, additionalJsonLd]
+    : [organizationJsonLd];
 ---
 
 <!doctype html>
@@ -17,6 +47,23 @@ const {
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content={description} />
+		<meta name="keywords" content={keywords} />
+		<meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
+		<link rel="canonical" href={canonicalUrl} />
+
+		<meta property="og:locale" content="es_AR" />
+		<meta property="og:type" content={ogType} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:url" content={canonicalUrl} />
+		<meta property="og:site_name" content="Tribal Trend" />
+		<meta property="og:image" content={ogImageUrl} />
+		<meta property="og:image:alt" content="Logo Tribal Trend" />
+
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={ogImageUrl} />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
@@ -25,6 +72,7 @@ const {
 		/>
 		<link rel="icon" href="/icons/logo_tribal_trnasparente.png" />
 		<title>{title}</title>
+		<script type="application/ld+json" set:html={JSON.stringify(jsonLdPayload)}></script>
 	</head>
 	<body>
 		<slot />

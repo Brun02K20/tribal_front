@@ -10,7 +10,7 @@ import AutumnLeavesBackground from "@/shared/ui/AutumnLeavesBackground";
 
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://tribaltrend.com.ar").replace(/\/+$/, "");
 const siteName = "Tribal Trend";
-const siteDescription = "Tribal Trend: tienda online de artesanías, regalos y decoración hecha a mano en Argentina.";
+const siteDescription = "Tribal Trend: tienda de arte, decoraciones y artesanias con envios a Cordoba y toda Argentina.";
 const logoPath = "/icons/logo_tribal_trnasparente.png";
 const logoAbsoluteUrl = `${siteUrl}${logoPath}`;
 const openGraphImageUrl = `${siteUrl}/opengraph-image`;
@@ -63,7 +63,19 @@ export const metadata: Metadata = {
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
   },
-  keywords: ["tribal", "artesanías", "tienda", "deco", "hecho a mano"],
+  keywords: [
+    "arte",
+    "decoraciones",
+    "artesanias",
+    "tienda de artesanias",
+    "tienda de arte",
+    "regalos artesanales",
+    "decoracion para el hogar",
+    "cordoba",
+    "cordoba argentina",
+    "argentina",
+    "Tribal Trend",
+  ],
   openGraph: {
     title: siteName,
     description: siteDescription,
