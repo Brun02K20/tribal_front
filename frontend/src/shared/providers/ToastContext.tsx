@@ -63,7 +63,6 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
       }}
     >
       {toasts.map((toast) => (
-        <div key={toast.id} className="app-panel pointer-events-auto p-3">
         <div
           key={toast.id}
           className="app-panel pointer-events-auto p-3"
