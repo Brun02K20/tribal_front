@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Logger, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Logger, Post, Query } from '@nestjs/common';
 import {
     ApiBody,
 	ApiOkResponse,
@@ -43,18 +43,36 @@ export class PagosController {
             },
     })
     async receiveMercadoPagoNotification(
-        @Body() mercadoPagoDto: any
+        @Body() mercadoPagoDto: any,
+        @Query() queryParams: Record<string, unknown>,
     ){
         this.logger.log(`Webhook MercadoPago recibido`);
         this.logger.debug(`Webhook raw payload=${JSON.stringify(mercadoPagoDto)}`);
+        this.logger.debug(`Webhook query params=${JSON.stringify(queryParams)}`);
 
-        const topic = mercadoPagoDto?.type ?? mercadoPagoDto?.topic ?? 'N/A';
+        const topic =
+            mercadoPagoDto?.type ??
+            mercadoPagoDto?.topic ??
+            (typeof queryParams?.type === 'string' ? queryParams.type : undefined) ??
+            (typeof queryParams?.topic === 'string' ? queryParams.topic : undefined) ??
+            'N/A';
         const action = mercadoPagoDto?.action ?? 'N/A';
         this.logger.debug(`Webhook metadata topic=${topic} action=${action}`);
 
-        const paymentId = mercadoPagoDto?.data?.id;
+        if (topic !== 'payment') {
+            this.logger.warn(`Webhook ignorado por topic no soportado: ${topic}`);
+            return { message: 'Notificación ignorada (topic no payment)' };
+        }
+
+        const paymentId =
+            mercadoPagoDto?.data?.id ??
+            (typeof queryParams?.['data.id'] === 'string' ? queryParams['data.id'] : undefined) ??
+            (typeof queryParams?.id === 'string' ? queryParams.id : undefined);
+
         if (!paymentId) {
-            this.logger.error(`Webhook sin data.id. payload=${JSON.stringify(mercadoPagoDto)}`);
+            this.logger.error(
+                `Webhook sin paymentId. payload=${JSON.stringify(mercadoPagoDto)} query=${JSON.stringify(queryParams)}`,
+            );
             throw new BadRequestException('Webhook inválido: falta data.id');
         }
 

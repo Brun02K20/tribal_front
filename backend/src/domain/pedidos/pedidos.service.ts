@@ -26,6 +26,10 @@ import { buildShippingStatusUpdateEmailContent } from 'src/utils/mail/templates/
 export class PedidosService {
     private readonly logger = new Logger(PedidosService.name);
     private readonly frontendBaseUrl = (process.env.FRONTEND_PUBLIC_URL ?? 'https://tribaltrend.com.ar').replace(/\/$/, '');
+    private readonly backendBaseUrl = (
+        process.env.BACKEND_PUBLIC_URL ?? process.env.BACKEND_URL ?? 'http://localhost:3001'
+    ).replace(/\/$/, '');
+    private readonly mercadoPagoWebhookUrl = `${this.backendBaseUrl}/pagos/mercadopago/impact`;
 
     constructor(
         private readonly descuentosService: DescuentosService,
@@ -470,6 +474,7 @@ export class PedidosService {
                         failure: 'https://tribaltrend.com.ar/',
                         pending: 'https://tribaltrend.com.ar/',
                     },
+                    notification_url: this.mercadoPagoWebhookUrl,
                     auto_return: 'approved',
                     metadata: {
                         status: 'pending',
