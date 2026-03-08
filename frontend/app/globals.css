@@ -107,7 +107,7 @@ body::after {
   z-index: 0;
 }
 
-body > *:not(.app-leaves):not(.app-bg-knot):not(.app-bg-bracelet):not(.app-modal-root):not(.app-modal-backdrop) {
+body > *:not(.app-leaves):not(.app-bg-knot):not(.app-bg-bracelet):not(.app-modal-root):not(.app-modal-backdrop):not(.app-toast-root) {
   position: relative;
   z-index: 2;
 }
