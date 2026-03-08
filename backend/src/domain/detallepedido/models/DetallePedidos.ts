@@ -1,6 +1,6 @@
 import { sequelize } from "src/database/database";
 import { DataTypes, Model, NonAttribute, Optional } from 'sequelize';
-import type { Productos } from "src/domain/productos/models/Productos";
+import { Productos } from "src/domain/productos/models/Productos";
 import { Descuentos } from 'src/domain/descuentos/models/Descuentos';
 
 interface DetallePedidosAttributes {
@@ -77,5 +77,10 @@ DetallePedidos.init(
 DetallePedidos.belongsTo(Descuentos, {
     foreignKey: 'id_descuento',
     as: 'descuento',
+});
+
+DetallePedidos.belongsTo(Productos, {
+    foreignKey: 'id_producto',
+    as: 'producto',
 });
 
