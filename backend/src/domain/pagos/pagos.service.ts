@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, HttpException, Logger } from '@nestjs/
 import { client } from '../mercadopago/mercadopago';
 import { Payment as MPayment } from 'mercadopago';
 import { sequelize } from 'src/database/database';
+import { Transaction } from 'sequelize';
 import { Pedidos } from 'src/domain/pedidos/models/Pedidos';
 import { Pagos } from './models/Pagos';
 import { DetallePedidos } from 'src/domain/detallepedido/models/DetallePedidos';
@@ -53,6 +54,7 @@ export class PagosService {
 	private readonly logger = new Logger(PagosService.name);
 	private readonly adminUserId = 10;
 	private readonly frontendBaseUrl = (process.env.FRONTEND_PUBLIC_URL ?? 'https://tribaltrend.com.ar').replace(/\/$/, '');
+	private paymentLockTableReadyPromise: Promise<void> | null = null;
 
 	// aca es donde se recibe la notificacion de pago de mercado pago, y se procesa el pago
 	// esta ruta debe ser la misma que se configura en el webhook de mercado pago
@@ -146,6 +148,14 @@ export class PagosService {
 
 			await sequelize.transaction(async (transaction) => {
 				this.logger.log(`Iniciando transacción de persistencia para paymentId=${paymentId}`);
+				const lockAcquired = await this.acquirePaymentProcessingLock(paymentId, transaction);
+				if (!lockAcquired) {
+					this.logger.warn(
+						`Se omite procesamiento duplicado para paymentId=${paymentId} (ya procesado o en curso).`,
+					);
+					return;
+				}
+
 				this.logger.debug(`Paso 1/4 creando Pedido`);
 
 				const pedido = await Pedidos.create(
@@ -290,6 +300,64 @@ export class PagosService {
 					: 'Error processing payment notification',
 			);
 		}
+	}
+
+	private ensurePaymentLockTableReady(): Promise<void> {
+		if (!this.paymentLockTableReadyPromise) {
+			this.paymentLockTableReadyPromise = sequelize
+				.query(
+					`CREATE TABLE IF NOT EXISTS WebhookPaymentLocks (
+						payment_id VARCHAR(64) NOT NULL,
+						created_at DATETIME NOT NULL,
+						PRIMARY KEY (payment_id)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+				)
+				.then(() => undefined)
+				.catch((error) => {
+					this.paymentLockTableReadyPromise = null;
+					throw error;
+				});
+		}
+
+		return this.paymentLockTableReadyPromise;
+	}
+
+	private async acquirePaymentProcessingLock(paymentId: string, transaction: Transaction): Promise<boolean> {
+		await this.ensurePaymentLockTableReady();
+
+		try {
+			await sequelize.query(
+				`INSERT INTO WebhookPaymentLocks (payment_id, created_at) VALUES (:paymentId, NOW())`,
+				{
+					replacements: { paymentId },
+					transaction,
+				},
+			);
+			return true;
+		} catch (error) {
+			if (this.isDuplicateEntryError(error)) {
+				return false;
+			}
+
+			throw error;
+		}
+	}
+
+	private isDuplicateEntryError(error: unknown): boolean {
+		if (!error || typeof error !== 'object') {
+			return false;
+		}
+
+		const dbError = error as {
+			name?: string;
+			parent?: { code?: string; errno?: number };
+			original?: { code?: string; errno?: number };
+		};
+
+		const parentCode = dbError.parent?.code ?? dbError.original?.code;
+		const parentErrno = dbError.parent?.errno ?? dbError.original?.errno;
+
+		return parentCode === 'ER_DUP_ENTRY' || parentErrno === 1062;
 	}
 
 	private buildErrorDetails(error: unknown): string {

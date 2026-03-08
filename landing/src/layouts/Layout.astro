@@ -105,10 +105,58 @@ const jsonLdPayload = Array.isArray(additionalJsonLd)
 	body {
 		color: var(--color-dark-gray);
 		background:
-			radial-gradient(circle at 10% 10%, rgba(154, 123, 90, 0.16), transparent 42%),
-			radial-gradient(circle at 90% 18%, rgba(122, 74, 43, 0.14), transparent 38%),
-			linear-gradient(180deg, rgba(248, 243, 231, 0.94) 0%, rgba(248, 243, 231, 1) 100%);
+			linear-gradient(
+				180deg,
+				rgba(248, 243, 231, 0.36) 0%,
+				rgba(248, 243, 231, 0.5) 100%
+			),
+			url('/assets/background.png');
+		background-repeat: no-repeat;
+		background-size: cover;
+		background-position: center;
+		background-attachment: fixed;
 		font-family: 'Oldenburg', serif;
+		overflow-x: hidden;
+		position: relative;
+	}
+
+	body::before {
+		content: '';
+		position: fixed;
+		right: -4vw;
+		bottom: -8vh;
+		transform: scaleX(-1);
+		width: clamp(160px, 22vw, 420px);
+		aspect-ratio: 1 / 1;
+		background-image: url('/assets/leaf-svgrepo-com.svg');
+		background-repeat: no-repeat;
+		background-position: right bottom;
+		background-size: contain;
+		opacity: 0.78;
+		pointer-events: none;
+		z-index: 0;
+	}
+
+	body::after {
+		content: '';
+		position: fixed;
+		left: 50%;
+		top: 52%;
+		transform: translate(-50%, -50%);
+		width: clamp(280px, 52vw, 980px);
+		aspect-ratio: 1 / 1;
+		background-image: url('/icons/logo_tribal_trnasparente.png');
+		background-repeat: no-repeat;
+		background-position: center;
+		background-size: contain;
+		opacity: 0.34;
+		pointer-events: none;
+		z-index: 0;
+	}
+
+	body > * {
+		position: relative;
+		z-index: 2;
 	}
 
 	h1,

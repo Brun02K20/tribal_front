@@ -51,12 +51,12 @@ export class PagosController {
         this.logger.debug(`Webhook query params=${JSON.stringify(queryParams)}`);
 
         const topic =
-            mercadoPagoDto?.type ??
-            mercadoPagoDto?.topic ??
             (typeof queryParams?.type === 'string' ? queryParams.type : undefined) ??
             (typeof queryParams?.topic === 'string' ? queryParams.topic : undefined) ??
             'N/A';
-        const action = mercadoPagoDto?.action ?? 'N/A';
+        const action =
+            (typeof queryParams?.action === 'string' ? queryParams.action : undefined) ??
+            'N/A';
         this.logger.debug(`Webhook metadata topic=${topic} action=${action}`);
 
         if (topic !== 'payment') {
@@ -65,15 +65,13 @@ export class PagosController {
         }
 
         const paymentId =
-            mercadoPagoDto?.data?.id ??
-            (typeof queryParams?.['data.id'] === 'string' ? queryParams['data.id'] : undefined) ??
-            (typeof queryParams?.id === 'string' ? queryParams.id : undefined);
+            (typeof queryParams?.['data.id'] === 'string' ? queryParams['data.id'] : undefined);
 
         if (!paymentId) {
-            this.logger.error(
-                `Webhook sin paymentId. payload=${JSON.stringify(mercadoPagoDto)} query=${JSON.stringify(queryParams)}`,
+            this.logger.warn(
+                `Webhook ignorado por formato no soportado (se requiere query.data.id). payload=${JSON.stringify(mercadoPagoDto)} query=${JSON.stringify(queryParams)}`,
             );
-            throw new BadRequestException('Webhook inválido: falta data.id');
+            return { message: 'Notificación ignorada (falta query.data.id)' };
         }
 
         this.logger.debug(`paymentId=${paymentId}`,'POST /mercadopago/impact');
