@@ -39,7 +39,17 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed right-4 top-24 z-90 flex w-full max-w-sm flex-col gap-2">
+      <div
+        className="pointer-events-none fixed flex flex-col gap-2"
+        style={{
+          top: "1rem",
+          right: "1rem",
+          left: "auto",
+          bottom: "auto",
+          width: "min(22rem, calc(100vw - 2rem))",
+          zIndex: 11000,
+        }}
+      >
         {toasts.map((toast) => (
           <div key={toast.id} className="app-panel pointer-events-auto p-3">
             <div className="flex items-start justify-between gap-3">

@@ -19,6 +19,7 @@ import { MetricasModule } from './domain/metricas/metricas.module';
 import { AiModule } from './domain/ai/ai.module';
 import { ResenasModule } from './domain/resenas/resenas.module';
 import { ChatModule } from './domain/chat/chat.module';
+import { DescuentosModule } from './domain/descuentos/descuentos.module';
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ dotenv.config();
     AiModule,
     ResenasModule,
     ChatModule,
+    DescuentosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

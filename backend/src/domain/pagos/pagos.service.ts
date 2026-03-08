@@ -19,6 +19,7 @@ import {
 
 interface MetadataProducto {
 	id_producto: number;
+	id_descuento?: number | null;
 	nombre?: string;
 	unidades: number;
 	subtotal: number;
@@ -182,6 +183,10 @@ export class PagosService {
 					detalles.map((detalle) => ({
 						id_pedido: pedido.id,
 						id_producto: Number(detalle.id_producto),
+						id_descuento:
+							typeof detalle.id_descuento === 'number' && Number(detalle.id_descuento) > 0
+								? Number(detalle.id_descuento)
+								: null,
 						unidades: Number(detalle.unidades),
 						subtotal: Number(detalle.subtotal),
 						es_activo: true,

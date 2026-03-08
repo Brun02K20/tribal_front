@@ -18,6 +18,11 @@ export default function Dashboard() {
           <h3 className="app-title text-lg">Gestión de subcategorías</h3>
           <p className="app-subtitle mt-2">Administrá las subcategorías por categoría.</p>
         </div>
+
+        <div className="app-panel p-4">
+          <h3 className="app-title text-lg">Gestión de descuentos</h3>
+          <p className="app-subtitle mt-2">Configurá descuentos por producto, subcategoría o categoría.</p>
+        </div>
       </div>
     </AdminShell>
   );

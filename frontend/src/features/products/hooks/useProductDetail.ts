@@ -61,10 +61,16 @@ export function useProductDetail(productId: number) {
       return;
     }
 
+    const precioOriginal = toNumber(product.precio);
+    const precioFinal = toNumber(product.precio_final ?? precioOriginal);
+
     addItem({
       id: product.id,
       nombre: product.nombre,
-      precio: toNumber(product.precio),
+      precio: precioFinal,
+      precio_original: precioOriginal,
+      id_descuento: product.descuento_aplicado?.id_descuento ?? null,
+      porcentaje_descuento: product.descuento_aplicado?.porcentaje,
       stock,
       ancho: toNumber(product.ancho),
       alto: toNumber(product.alto),

@@ -145,29 +145,49 @@ export default function ProductsPageClient() {
                   {products.map((product) => {
                     const stock = toNumber(product.stock);
                     const precio = toNumber(product.precio);
+                    const hasDiscount =
+                      typeof product.descuento_aplicado?.porcentaje === "number"
+                      && Number(product.descuento_aplicado.porcentaje) > 0;
+                    const precioFinal = hasDiscount ? toNumber(product.precio_final ?? precio) : precio;
+                    const discountPercentage = hasDiscount ? Number(product.descuento_aplicado?.porcentaje ?? 0) : 0;
 
                     return (
                       <article key={product.id} className="app-panel">
                         {product.fotos?.length ? (
-                          <img
-                            key={`${product.id}-${activeImageByProduct[product.id] ?? 0}`}
-                            src={product.fotos[activeImageByProduct[product.id] ?? 0]?.url}
-                            alt={`${product.nombre} artesanal - Tribal Trend`}
-                            width={800}
-                            height={800}
-                            loading="lazy"
-                            decoding="async"
-                            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                            className="app-fade-swap mb-3 h-48 w-full rounded-md border border-earth-brown/40 bg-white object-contain p-2"
-                          />
+                          <div className="relative mb-3">
+                            {hasDiscount && (
+                              <span className="absolute left-2 top-2 z-10 rounded-full bg-earth-brown px-2 py-1 text-xs font-semibold text-cream">
+                                {discountPercentage}% OFF
+                              </span>
+                            )}
+                            <img
+                              key={`${product.id}-${activeImageByProduct[product.id] ?? 0}`}
+                              src={product.fotos[activeImageByProduct[product.id] ?? 0]?.url}
+                              alt={`${product.nombre} artesanal - Tribal Trend`}
+                              width={800}
+                              height={800}
+                              loading="lazy"
+                              decoding="async"
+                              sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                              className="app-fade-swap h-48 w-full rounded-md border border-earth-brown/40 bg-white object-contain p-2"
+                            />
+                          </div>
                         ) : (
                           <ImagePlaceholder className="mb-3 flex h-44 w-full items-center justify-center rounded-md bg-zinc-100" />
                         )}
 
                         <h2 className="text-lg font-semibold">{product.nombre}</h2>
-                        <p className="mt-1 text-sm text-zinc-600 line-clamp-2">{product.descripcion}</p>
-                        <p className="mt-2 text-sm">Stock: {stock}</p>
-                        <p className="text-lg font-bold">${precio.toFixed(2)}</p>
+                        <p className="mt-1 text-sm text-zinc-600">
+                          {product.categoria?.nombre ?? "-"} / {product.subcategoria?.nombre ?? "-"}
+                        </p>
+                        {hasDiscount ? (
+                          <div className="mt-2">
+                            <p className="text-sm text-zinc-500 line-through">${precio.toFixed(2)}</p>
+                            <p className="text-lg font-bold text-earth-brown">${precioFinal.toFixed(2)}</p>
+                          </div>
+                        ) : (
+                          <p className="mt-2 text-lg font-bold">${precio.toFixed(2)}</p>
+                        )}
 
                         <div className="mt-4 flex gap-2">
                           <Link href={`/products/${product.id}`} className="app-btn-secondary text-sm" aria-label={`Ver detalle de ${product.nombre}`}>

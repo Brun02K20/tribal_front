@@ -10,6 +10,12 @@ export class DetalleItemPedidoDto {
     @IsInt()
     id_producto!: number;
 
+    @ApiProperty({ example: 12, required: false, nullable: true })
+    id_descuento!: number | null;
+
+    @ApiProperty({ example: 10, required: false, nullable: true })
+    porcentaje_descuento!: number | null;
+
     @ApiProperty({ example: 'Mate Camionero' })
     @IsString()
     nombre_producto!: string;

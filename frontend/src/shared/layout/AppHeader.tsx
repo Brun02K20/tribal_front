@@ -221,8 +221,8 @@ export default function AppHeader() {
   };
 
   return (
-    <header className="relative z-110 border-b border-earth-brown bg-cream/95 backdrop-blur">
-      <div className="mx-auto w-full max-w-360 px-4 py-2">
+    <header className="app-header-shared relative z-110 border-b border-earth-brown/70 bg-transparent">
+      <div className="relative z-10 mx-auto w-full max-w-360 px-4 py-2">
         <div className="mb-3 flex justify-center md:hidden">
           <Link href="/products" className="flex items-center gap-2">
             <Image
@@ -291,7 +291,7 @@ export default function AppHeader() {
       </div>
 
       <nav
-        className="app-collapsible relative z-110 flex flex-col gap-3 border-t border-earth-brown px-4 py-3 md:hidden"
+        className="app-collapsible relative z-10 flex flex-col gap-3 border-t border-earth-brown/70 bg-transparent px-4 py-3 md:hidden"
         data-open={isMobileOpen}
         aria-hidden={!isMobileOpen}
       >

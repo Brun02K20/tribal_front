@@ -202,6 +202,8 @@ export function useProductsCatalog() {
 
   const addProductToCart = (product: Product) => {
     const stock = toNumber(product.stock);
+    const precioOriginal = toNumber(product.precio);
+    const precioFinal = toNumber(product.precio_final ?? precioOriginal);
     if (stock <= 0) {
       return;
     }
@@ -209,7 +211,10 @@ export function useProductsCatalog() {
     addItem({
       id: product.id,
       nombre: product.nombre,
-      precio: toNumber(product.precio),
+      precio: precioFinal,
+      precio_original: precioOriginal,
+      id_descuento: product.descuento_aplicado?.id_descuento ?? null,
+      porcentaje_descuento: product.descuento_aplicado?.porcentaje,
       stock,
       ancho: toNumber(product.ancho),
       alto: toNumber(product.alto),

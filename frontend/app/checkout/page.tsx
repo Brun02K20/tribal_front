@@ -39,6 +39,16 @@ export default function CheckoutPage() {
     removeCheckoutItem,
   } = useCheckout();
 
+  const totalSavings = items.reduce((acc, item) => {
+    const precioOriginal = Number(item.precio_original ?? item.precio);
+    const precioCompra = Number(item.precio);
+    if (precioOriginal <= precioCompra) {
+      return acc;
+    }
+
+    return acc + (precioOriginal - precioCompra) * item.quantity;
+  }, 0);
+
   if (loading || !isAuthenticated) {
     return (
       <main className="app-page">
@@ -115,45 +125,74 @@ export default function CheckoutPage() {
               <h2 className="mb-4 text-lg font-semibold">Productos ({totalItems})</h2>
 
               <div className="space-y-4">
-                {items.map((item) => (
-                  <article key={item.id} className="flex gap-3 rounded-md border p-3">
-                    {item.fotoUrl ? (
-                      <img src={item.fotoUrl} alt={item.nombre} className="h-20 w-20 rounded-md object-cover" />
-                    ) : (
-                      <ImagePlaceholder
-                        className="flex h-20 w-20 items-center justify-center rounded-md bg-zinc-100"
-                        textClassName="text-xs text-zinc-500"
-                      />
-                    )}
+                {items.map((item) => {
+                  const precioOriginal = Number(item.precio_original ?? item.precio);
+                  const precioCompra = Number(item.precio);
+                  const porcentajeDescuento = Number(item.porcentaje_descuento ?? 0);
+                  const tieneDescuento = porcentajeDescuento > 0 && precioOriginal > precioCompra;
+                  const subtotalOriginal = precioOriginal * item.quantity;
+                  const subtotalCompra = precioCompra * item.quantity;
 
-                    <div className="flex-1">
-                      <h3 className="font-medium">{item.nombre}</h3>
-                      <p className="text-sm text-zinc-600">{formatCurrencyArs(item.precio)} c/u</p>
-                      <p className="text-sm font-semibold">Subtotal: {formatCurrencyArs(item.precio * item.quantity)}</p>
+                  return (
+                    <article key={item.id} className="flex gap-3 rounded-md border p-3">
+                      {item.fotoUrl ? (
+                        <img src={item.fotoUrl} alt={item.nombre} className="h-20 w-20 rounded-md object-cover" />
+                      ) : (
+                        <ImagePlaceholder
+                          className="flex h-20 w-20 items-center justify-center rounded-md bg-zinc-100"
+                          textClassName="text-xs text-zinc-500"
+                        />
+                      )}
 
-                      <div className="mt-2 flex items-center gap-2">
-                        <div>
-                          <label className="mb-1 block text-xs text-dark-gray">Cantidad</label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={Math.max(1, item.stock)}
-                            value={item.quantity}
-                            onChange={(event) => updateItemQuantity(item.id, Number(event.target.value))}
-                            className="app-input w-20"
-                            placeholder="Ej: 1"
-                          />
+                      <div className="flex-1">
+                        <h3 className="font-medium">{item.nombre}</h3>
+
+                        {tieneDescuento ? (
+                          <>
+                            <p className="text-sm text-zinc-600 line-through">
+                              Precio original: {formatCurrencyArs(precioOriginal)} c/u
+                            </p>
+                            <p className="text-sm font-semibold text-green-800">
+                              Precio con descuento ({porcentajeDescuento}%): {formatCurrencyArs(precioCompra)} c/u
+                            </p>
+                            <p className="text-sm text-zinc-600 line-through">
+                              Subtotal original ({item.quantity}): {formatCurrencyArs(subtotalOriginal)}
+                            </p>
+                            <p className="text-sm font-semibold">
+                              Subtotal con descuento ({item.quantity}): {formatCurrencyArs(subtotalCompra)}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm text-zinc-600">Precio: {formatCurrencyArs(precioCompra)} c/u</p>
+                            <p className="text-sm font-semibold">Subtotal ({item.quantity}): {formatCurrencyArs(subtotalCompra)}</p>
+                          </>
+                        )}
+
+                        <div className="mt-2 flex items-center gap-2">
+                          <div>
+                            <label className="mb-1 block text-xs text-dark-gray">Cantidad</label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={Math.max(1, item.stock)}
+                              value={item.quantity}
+                              onChange={(event) => updateItemQuantity(item.id, Number(event.target.value))}
+                              className="app-input w-20"
+                              placeholder="Ej: 1"
+                            />
+                          </div>
+                          <button
+                            onClick={() => removeCheckoutItem(item.id)}
+                            className="app-btn-secondary px-2 py-1 text-sm"
+                          >
+                            Quitar
+                          </button>
                         </div>
-                        <button
-                          onClick={() => removeCheckoutItem(item.id)}
-                          className="app-btn-secondary px-2 py-1 text-sm"
-                        >
-                          Quitar
-                        </button>
                       </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             </div>
 
@@ -164,6 +203,12 @@ export default function CheckoutPage() {
                   <span>Productos</span>
                   <span>{formatCurrencyArs(subtotal)}</span>
                 </div>
+                {totalSavings > 0 && (
+                  <div className="flex justify-between text-green-800">
+                    <span>Descuentos aplicados</span>
+                    <span>-{formatCurrencyArs(Number(totalSavings.toFixed(2)))}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Envío</span>
                   <span>{formatCurrencyArs(shippingCost)}</span>

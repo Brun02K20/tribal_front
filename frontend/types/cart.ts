@@ -2,6 +2,9 @@ export type CartItem = {
   id: number;
   nombre: string;
   precio: number;
+  precio_original?: number;
+  id_descuento?: number | null;
+  porcentaje_descuento?: number;
   stock: number;
   ancho?: number;
   alto?: number;

@@ -3,6 +3,7 @@ import type { AdminCrudActionsProps } from "@/types/admin-ui";
 export default function AdminCrudActions({
   submitting,
   isActive,
+  showToggle = true,
   onView,
   onEdit,
   onDelete,
@@ -54,28 +55,30 @@ export default function AdminCrudActions({
           <path d="M10 10v7M14 10v7" />
         </svg>
       </button>
-      <button
-        className={actionButtonClassName}
-        onClick={onToggle}
-        disabled={submitting}
-        type="button"
-        aria-label={isActive ? "Desactivar" : "Activar"}
-        title={isActive ? "Desactivar" : "Activar"}
-      >
-        {isActive ? (
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <circle cx="12" cy="12" r="8" />
-            <path d="M9 9l6 6" />
-            <path d="M15 9l-6 6" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <circle cx="12" cy="12" r="8" />
-            <path d="M8 12h8" />
-            <path d="M12 8v8" />
-          </svg>
-        )}
-      </button>
+      {showToggle && (
+        <button
+          className={actionButtonClassName}
+          onClick={onToggle}
+          disabled={submitting}
+          type="button"
+          aria-label={isActive ? "Desactivar" : "Activar"}
+          title={isActive ? "Desactivar" : "Activar"}
+        >
+          {isActive ? (
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="12" r="8" />
+              <path d="M9 9l6 6" />
+              <path d="M15 9l-6 6" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="12" r="8" />
+              <path d="M8 12h8" />
+              <path d="M12 8v8" />
+            </svg>
+          )}
+        </button>
+      )}
     </div>
   );
 }

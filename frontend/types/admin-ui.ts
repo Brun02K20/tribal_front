@@ -13,7 +13,7 @@ export type FieldOption = {
 export type CrudFormField = {
   name: string;
   label: string;
-  type?: "text" | "number" | "select";
+  type?: "text" | "number" | "select" | "datetime-local";
   placeholder?: string;
   options?: FieldOption[];
   required?: string;
@@ -96,6 +96,7 @@ export type AdminTableProps = {
 export type AdminCrudActionsProps = {
   submitting: boolean;
   isActive: boolean;
+  showToggle?: boolean;
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;

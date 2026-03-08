@@ -31,6 +31,14 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
     goToCheckout,
   } = useProductDetail(productId);
 
+  const hasDiscount =
+    !!product
+    && typeof product.descuento_aplicado?.porcentaje === "number"
+    && Number(product.descuento_aplicado.porcentaje) > 0;
+  const precioBase = product ? toNumber(product.precio) : 0;
+  const precioFinal = product ? toNumber(product.precio_final ?? precioBase) : 0;
+  const discountPercentage = hasDiscount ? Number(product?.descuento_aplicado?.porcentaje ?? 0) : 0;
+
   return (
     <main className="app-page">
       <div className="app-container mx-auto max-w-360">
@@ -53,6 +61,11 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
               {activeFoto?.url ? (
                 <>
                   <div className="relative flex min-h-72 w-full items-center justify-center rounded-lg border border-earth-brown/40 bg-white p-2">
+                    {hasDiscount && (
+                      <span className="absolute left-2 top-2 z-10 rounded-full bg-earth-brown px-2 py-1 text-xs font-semibold text-cream">
+                        {discountPercentage}% OFF
+                      </span>
+                    )}
                     <img
                       key={`${product.id}-${activeImageIndex}`}
                       src={activeFoto.url}
@@ -114,7 +127,14 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
               <p className="mt-4 text-sm">Categoria: {product.categoria?.nombre || "-"}</p>
               <p className="text-sm">Subcategoria: {product.subcategoria?.nombre || "-"}</p>
               <p className="mt-2 text-sm">Stock disponible: {stock}</p>
-              <p className="mt-2 text-3xl font-bold">${toNumber(product.precio).toFixed(2)}</p>
+              {hasDiscount ? (
+                <div className="mt-2">
+                  <p className="text-base text-zinc-500 line-through">${precioBase.toFixed(2)}</p>
+                  <p className="text-3xl font-bold text-earth-brown">${precioFinal.toFixed(2)}</p>
+                </div>
+              ) : (
+                <p className="mt-2 text-3xl font-bold">${precioBase.toFixed(2)}</p>
+              )}
 
               <div className="mt-5 flex items-center gap-3">
                 <label htmlFor="cantidad" className="text-sm font-medium">Cantidad</label>

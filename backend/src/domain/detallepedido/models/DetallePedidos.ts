@@ -1,11 +1,13 @@
 import { sequelize } from "src/database/database";
 import { DataTypes, Model, NonAttribute, Optional } from 'sequelize';
-import { Productos } from "src/domain/productos/models/Productos";
+import type { Productos } from "src/domain/productos/models/Productos";
+import { Descuentos } from 'src/domain/descuentos/models/Descuentos';
 
 interface DetallePedidosAttributes {
     id: number;
     id_pedido: number;
     id_producto: number;
+    id_descuento: number | null;
     unidades: number;
     subtotal: number;
     es_activo: boolean;
@@ -17,11 +19,13 @@ export class DetallePedidos extends Model<DetallePedidosAttributes, DetallePedid
     declare id: number;
     declare id_pedido: number;
     declare id_producto: number;
+    declare id_descuento: number | null;
     declare unidades: number;
     declare subtotal: number;
     declare es_activo: boolean;
 
     declare producto?: NonAttribute<Productos>;
+    declare descuento?: NonAttribute<Descuentos>;
 }
 
 DetallePedidos.init(
@@ -39,6 +43,14 @@ DetallePedidos.init(
         id_producto: {
             type: DataTypes.INTEGER,
             allowNull: false,
+        },
+        id_descuento: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            references: {
+                model: 'Descuentos',
+                key: 'id',
+            },
         },
         unidades: {
             type: DataTypes.INTEGER,
@@ -61,4 +73,9 @@ DetallePedidos.init(
         timestamps: false,
     },
 );
+
+DetallePedidos.belongsTo(Descuentos, {
+    foreignKey: 'id_descuento',
+    as: 'descuento',
+});
 

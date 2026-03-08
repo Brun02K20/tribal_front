@@ -41,6 +41,11 @@ export default function PedidoDetailContent({ pedido }: PedidoDetailContentProps
 
       <div className="app-panel p-4">
         <h3 className="app-title text-lg">Productos comprados</h3>
+        {pedido.detalles?.length ? (
+          <p className="app-subtitle mt-2">
+            {pedido.detalles.filter((item) => Number(item.porcentaje_descuento ?? 0) > 0).length} de {pedido.detalles.length} productos con descuento aplicado.
+          </p>
+        ) : null}
         {!pedido.detalles?.length ? (
           <p className="app-subtitle mt-2">No hay productos asociados a este pedido.</p>
         ) : (
@@ -51,6 +56,7 @@ export default function PedidoDetailContent({ pedido }: PedidoDetailContentProps
                   <th className="px-3 py-2 text-left">Producto</th>
                   <th className="px-3 py-2 text-left">Categoría</th>
                   <th className="px-3 py-2 text-left">Subcategoría</th>
+                  <th className="px-3 py-2 text-left">Descuento</th>
                   <th className="px-3 py-2 text-left">Unidades</th>
                   <th className="px-3 py-2 text-left">Precio unitario</th>
                   <th className="px-3 py-2 text-left">Subtotal</th>
@@ -63,6 +69,18 @@ export default function PedidoDetailContent({ pedido }: PedidoDetailContentProps
                     <td className="px-3 py-2">{item.nombre_producto || "-"}</td>
                     <td className="px-3 py-2">{item.categoria?.nombre || "-"}</td>
                     <td className="px-3 py-2">{item.subcategoria?.nombre || "-"}</td>
+                    <td className="px-3 py-2">
+                      {Number(item.porcentaje_descuento ?? 0) > 0 ? (
+                        <span
+                          className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800"
+                          title={`Descuento aplicado (${item.porcentaje_descuento}%)`}
+                        >
+                          {item.porcentaje_descuento}% OFF
+                        </span>
+                      ) : (
+                        <span className="text-dark-gray">Sin descuento</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2">{item.unidades}</td>
                     <td className="px-3 py-2">{formatCurrencyArs(item.precio_unitario)}</td>
                     <td className="px-3 py-2">{formatCurrencyArs(item.subtotal)}</td>

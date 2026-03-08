@@ -4,6 +4,8 @@ import { FotosService } from 'src/domain/fotos/fotos.service';
 import { Fotos } from 'src/domain/fotos/models/Fotos';
 import { Categorias } from 'src/domain/categorias/models/Categorias';
 import { Subcategorias } from 'src/domain/subcategorias/models/Subcategorias';
+import { DescuentosService } from 'src/domain/descuentos/descuentos.service';
+import type { DescuentoAplicado } from 'src/domain/descuentos/types/descuentos.types';
 import { CreateProductFotosDto } from 'src/domain/fotos/DTOs/fotos.dto';
 import {
     GetProductDto,
@@ -37,6 +39,7 @@ const PRODUCT_INCLUDE = [
 export class ProductosService {
     constructor(
         private readonly fotosService: FotosService,
+        private readonly descuentosService: DescuentosService,
     ) {}
 
     private mapFotos(producto: Productos): GetFotoDto[] {
@@ -47,7 +50,12 @@ export class ProductosService {
         }));
     }
 
-    private mapProducto(producto: Productos, fotosOverride?: GetFotoDto[]): GetProductDto {
+    private mapProducto(producto: Productos, fotosOverride?: GetFotoDto[], descuento?: DescuentoAplicado): GetProductDto {
+        const precioBase = Number(producto.precio);
+        const precioFinal = descuento
+            ? Number((precioBase * (1 - descuento.porcentaje / 100)).toFixed(2))
+            : precioBase;
+
         return {
             id: producto.id,
             nombre: producto.nombre,
@@ -61,6 +69,7 @@ export class ProductosService {
                 nombre: producto.subcategoria?.nombre ?? '',
             },
             precio: producto.precio,
+            precio_final: precioFinal,
             stock: producto.stock,
             ancho: producto.ancho,
             alto: producto.alto,
@@ -68,7 +77,13 @@ export class ProductosService {
             peso_gramos: producto.peso_gramos,
             es_activo: producto.es_activo,
             fotos: fotosOverride ?? this.mapFotos(producto),
+            descuento_aplicado: descuento,
         };
+    }
+
+    private async mapProductosWithDiscount(productos: Productos[]): Promise<GetProductDto[]> {
+        const descuentosAplicados = await this.descuentosService.resolveEffectiveDiscountsForProducts(productos);
+        return productos.map((producto) => this.mapProducto(producto, undefined, descuentosAplicados.get(producto.id)));
     }
 
     private async findProductos(where?: Record<string, unknown>): Promise<Productos[]> {
@@ -157,19 +172,20 @@ export class ProductosService {
 
         const totalItems = Number(count);
         const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        const descuentosAplicados = await this.descuentosService.resolveEffectiveDiscountsForProducts(rows);
 
         return {
             page,
             pageSize,
             totalItems,
             totalPages,
-            data: rows.map((producto) => this.mapProducto(producto)),
+            data: rows.map((producto) => this.mapProducto(producto, undefined, descuentosAplicados.get(producto.id))),
         };
     }
 
     async findAll(): Promise<GetProductDto[]> {
         const productos = await this.findProductos({ es_activo: true });
-        return productos.map((producto) => this.mapProducto(producto));
+        return this.mapProductosWithDiscount(productos);
     }
 
     async findAllPaginated(page?: number): Promise<PaginatedProductsResponseDto<GetProductDto>> {
@@ -182,7 +198,7 @@ export class ProductosService {
 
     async findAllForAdmin(): Promise<GetProductDto[]> {
         const productos = await this.findProductos();
-        return productos.map((producto) => this.mapProducto(producto));
+        return this.mapProductosWithDiscount(productos);
     }
 
     async findAllForAdminPaginated(page?: number, pageSize?: number): Promise<PaginatedProductsResponseDto<GetProductDto>> {
@@ -194,7 +210,8 @@ export class ProductosService {
 
     async findById(id: number): Promise<GetProductDto> {
         const producto = await this.findProductoOrThrow(id);
-        return this.mapProducto(producto);
+        const descuentosAplicados = await this.descuentosService.resolveEffectiveDiscountsForProducts([producto]);
+        return this.mapProducto(producto, undefined, descuentosAplicados.get(producto.id));
     }
 
     async create(createProductDto: CreateUpdateProductDto, fotos: { url: string }[]): Promise<GetProductDto> {
@@ -282,7 +299,7 @@ export class ProductosService {
             throw new NotFoundException('No se encontraron productos con los filtros proporcionados');
         }
 
-        return productos.map((producto) => this.mapProducto(producto));
+        return this.mapProductosWithDiscount(productos);
     }
 
     async findByFiltersPaginated(filters: ProductFiltersDto, page?: number): Promise<PaginatedProductsResponseDto<GetProductDto>> {

@@ -224,6 +224,7 @@ export function useCheckout() {
 
       return {
         id_producto: item.id,
+        id_descuento: item.id_descuento ?? null,
         unidades: item.quantity,
         subtotal: Number((item.precio * item.quantity).toFixed(2)),
         ancho_producto: Math.round(ancho),

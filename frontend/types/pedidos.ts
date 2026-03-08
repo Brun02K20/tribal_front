@@ -1,6 +1,8 @@
 export type PedidoDetalleItem = {
   id: number;
   id_producto: number;
+  id_descuento: number | null;
+  porcentaje_descuento: number | null;
   nombre_producto: string;
   unidades: number;
   subtotal: number;
@@ -78,6 +80,7 @@ export type EstadoEnvioOption = {
 
 export type PedidoDetalleCreateInput = {
   id_producto: number;
+  id_descuento?: number | null;
   unidades: number;
   subtotal: number;
   ancho_producto: number;

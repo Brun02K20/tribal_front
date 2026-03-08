@@ -10,6 +10,7 @@ const menuItems = [
   { label: "Pedidos", href: "/dashboard/pedidos" },
   { label: "Categorias", href: "/dashboard/categorias" },
   { label: "Subcategorias", href: "/dashboard/subcategorias" },
+  { label: "Descuentos", href: "/dashboard/descuentos" },
   { label: "Estados Pedido", href: "/dashboard/estados-pedido" },
   { label: "Estados Envio", href: "/dashboard/estados-envio" },
   { label: "Chat", href: "/dashboard/chat" },

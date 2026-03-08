@@ -1,7 +1,6 @@
 import { DataTypes, Model, NonAttribute, Optional } from 'sequelize';
 import { sequelize } from 'src/database/database';
 import { Fotos } from 'src/domain/fotos/models/Fotos';
-import { DetallePedidos } from 'src/domain/detallepedido/models/DetallePedidos';
 
 interface ProductoAttributes {
     id: number;
@@ -116,12 +115,3 @@ Fotos.belongsTo(Productos, {
     as: 'producto',
 });
 
-Productos.hasMany(DetallePedidos, {
-    foreignKey: 'id_producto',
-    as: 'detallePedidos',
-});
-
-DetallePedidos.belongsTo(Productos, {
-    foreignKey: 'id_producto',
-    as: 'producto',
-});

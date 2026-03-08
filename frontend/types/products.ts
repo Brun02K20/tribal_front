@@ -15,6 +15,12 @@ export type Product = {
   profundo: number | string;
   peso_gramos: number | string;
   es_activo: boolean;
+  precio_final?: number;
+  descuento_aplicado?: {
+    id_descuento: number;
+    porcentaje: number;
+    tipo: "producto" | "subcategoria" | "categoria";
+  };
   categoria: {
     id: number;
     nombre: string;

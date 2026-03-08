@@ -18,6 +18,8 @@ import { Pagos } from 'src/domain/pagos/models/Pagos';
 import { EstadoPedidos } from 'src/domain/estadopedidos/models/EstadoPedidos';
 import { EstadoEnvios } from 'src/domain/estadoenvios/models/EstadoEnvios';
 import { sendEmail } from 'src/utils/mail/smtp';
+import { DescuentosService } from 'src/domain/descuentos/descuentos.service';
+import { Descuentos } from 'src/domain/descuentos/models/Descuentos';
 import { buildShippingStatusUpdateEmailContent } from 'src/utils/mail/templates/shipping-status-update.template';
 
 @Injectable()
@@ -26,7 +28,7 @@ export class PedidosService {
     private readonly frontendBaseUrl = (process.env.FRONTEND_PUBLIC_URL ?? 'https://tribaltrend.com.ar').replace(/\/$/, '');
 
     constructor(
-        
+        private readonly descuentosService: DescuentosService,
     ) {}
 
     private buildPedidoInclude(params?: { includeDetalles?: boolean; idEstadoEnvio?: number; nombreUsuario?: string; emailUsuario?: string }) {
@@ -98,7 +100,7 @@ export class PedidosService {
             include.unshift({
                 model: DetallePedidos,
                 as: 'detallePedidos',
-                attributes: ['id', 'id_producto', 'subtotal', 'unidades'],
+                attributes: ['id', 'id_producto', 'id_descuento', 'subtotal', 'unidades'],
                 include: [
                     {
                         model: Productos,
@@ -116,6 +118,12 @@ export class PedidosService {
                                 attributes: ['id', 'nombre'],
                             },
                         ],
+                    },
+                    {
+                        model: Descuentos,
+                        as: 'descuento',
+                        attributes: ['id', 'porcentaje'],
+                        required: false,
                     },
                 ],
             });
@@ -268,6 +276,8 @@ export class PedidosService {
                     return {
                         id: detalle.id,
                         id_producto: detalle.id_producto,
+                        id_descuento: detalle.id_descuento ?? null,
+                        porcentaje_descuento: detalle.descuento ? Number(detalle.descuento.porcentaje) : null,
                         nombre_producto: detalle.producto?.nombre ?? '',
                         unidades: Number(detalle.unidades),
                         subtotal: Number(detalle.subtotal),
@@ -334,7 +344,7 @@ export class PedidosService {
                             [Op.in]: productoIds,
                         },
                     },
-                    attributes: ['id', 'nombre', 'precio', 'id_categoria', 'id_subcategoria', 'ancho', 'alto', 'profundo', 'peso_gramos'],
+                    attributes: ['id', 'nombre', 'precio', 'stock', 'id_categoria', 'id_subcategoria', 'ancho', 'alto', 'profundo', 'peso_gramos'],
                     include: [
                         {
                             model: Categorias,
@@ -365,6 +375,7 @@ export class PedidosService {
             }
 
             const productosById = new Map(productos.map((producto) => [producto.id, producto]));
+            const descuentosAplicados = await this.descuentosService.resolveEffectiveDiscountsForProducts(productos);
 
             const unidadesPorProducto = createPedidoDto.detalles.reduce((acumulado, detalle) => {
                 const actual = acumulado.get(detalle.id_producto) ?? 0;
@@ -388,13 +399,20 @@ export class PedidosService {
 
             const productosMetadata = createPedidoDto.detalles.map((detalle: DetallePedidoCreateDto) => {
                 const producto = productosById.get(detalle.id_producto);
+                const descuentoAplicado = descuentosAplicados.get(detalle.id_producto);
+                const precioBase = Number(producto?.precio ?? 0);
+                const precioUnitario = descuentoAplicado
+                    ? Number((precioBase * (1 - descuentoAplicado.porcentaje / 100)).toFixed(2))
+                    : precioBase;
+                const subtotalCalculado = Number((precioUnitario * detalle.unidades).toFixed(2));
 
                 return {
                     id_producto: detalle.id_producto,
+                    id_descuento: descuentoAplicado?.id_descuento ?? null,
                     nombre: producto?.nombre ?? 'Producto Tribal Trend',
                     unidades: detalle.unidades,
-                    subtotal: Number(detalle.subtotal),
-                    precio_unitario: detalle.unidades > 0 ? Number(detalle.subtotal) / detalle.unidades : 0,
+                    subtotal: subtotalCalculado,
+                    precio_unitario: precioUnitario,
                     medidas: {
                         ancho: Number(detalle.ancho_producto),
                         alto: Number(detalle.alto_producto),
@@ -415,8 +433,12 @@ export class PedidosService {
                 };
             });
 
+            const costoTotalProductosCalculado = Number(
+                productosMetadata.reduce((acc, item) => acc + Number(item.subtotal), 0).toFixed(2),
+            );
+
             // 1. sumar el costo total del pedido
-            const costo_total = createPedidoDto.costo_total_productos + createPedidoDto.costo_envio + createPedidoDto.costo_ganancia_envio;
+            const costo_total = costoTotalProductosCalculado + createPedidoDto.costo_envio + createPedidoDto.costo_ganancia_envio;
             const costo_total_envio = Number(createPedidoDto.costo_envio) + Number(createPedidoDto.costo_ganancia_envio);
 
             const preference = await new Preference(client).create({
@@ -444,7 +466,7 @@ export class PedidosService {
                         },
                     ],
                     back_urls: {
-                        success: 'https://tribaltrend.com.ar/login',
+                        success: 'https://tribaltrend.com.ar/',
                         failure: 'https://tribaltrend.com.ar/',
                         pending: 'https://tribaltrend.com.ar/',
                     },
@@ -463,7 +485,7 @@ export class PedidosService {
                         pedido: {
                             id_usuario: createPedidoDto.id_usuario,
                             id_direccion: createPedidoDto.id_direccion,
-                            costo_total_productos: Number(createPedidoDto.costo_total_productos),
+                            costo_total_productos: costoTotalProductosCalculado,
                             costo_envio: Number(createPedidoDto.costo_envio),
                             costo_ganancia_envio: Number(createPedidoDto.costo_ganancia_envio),
                             costo_total,

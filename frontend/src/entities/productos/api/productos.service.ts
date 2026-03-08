@@ -125,6 +125,20 @@ const findByFiltersForAdmin = async (
     }
 }
 
+const getProductsByCategory = async (idCategoria: number): Promise<Product[]> => {
+    try {
+        const { data } = await apiClient.get<Product[]>("/productos/search", {
+            params: { id_categoria: idCategoria },
+        });
+        return data;
+    } catch (error) {
+        throw parseApiError(error, {
+            fallbackMessage: "No se pudieron obtener los productos de la categoría",
+            prefix: "Productos",
+        });
+    }
+}
+
 const createProduct = async (payload: ProductCreateUpdatePayload, files: File[]): Promise<Product> => {
     try {
         const formData = new FormData();
@@ -197,6 +211,7 @@ export const productosService = {
     getProductById,
     getAllProductsForAdmin,
     findByFiltersForAdmin,
+    getProductsByCategory,
     createProduct,
     updateProduct,
     toggleProduct,

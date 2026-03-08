@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsDecimal } from 'class-validator';
+import { IsInt, IsDecimal, IsOptional } from 'class-validator';
 export class DetallePedidoCreateDto {
     @ApiProperty({ example: 1 })
     @IsInt()
@@ -12,6 +12,11 @@ export class DetallePedidoCreateDto {
     @ApiProperty({ example: 19.99 })
     @IsDecimal()
     subtotal!: number;
+
+    @ApiProperty({ example: 12, required: false, nullable: true })
+    @IsOptional()
+    @IsInt()
+    id_descuento?: number;
 
     @ApiProperty({ example: 2 })
     @IsInt()

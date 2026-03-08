@@ -1,5 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsDecimal, IsString } from 'class-validator';
+import { IsBoolean, IsInt, IsDecimal, IsString, IsNumber } from 'class-validator';
+
+
+
+export class DescuentoAplicadoProductoDto {
+    @ApiProperty({ example: 1 })
+    @IsInt()
+    id_descuento!: number;
+
+    @ApiProperty({ example: 15 })
+    @IsNumber()
+    porcentaje!: number;
+
+    @ApiProperty({ example: 'producto' })
+    @IsString()
+    tipo!: 'producto' | 'subcategoria' | 'categoria';
+}
 
 export class GetProductDto {
     @ApiProperty({ example: 1 })
@@ -17,6 +33,10 @@ export class GetProductDto {
     @ApiProperty({ example: 99.99 })
     @IsDecimal()
     precio!: number;
+
+    @ApiProperty({ example: 84.99, required: false })
+    @IsDecimal()
+    precio_final?: number;
 
     @ApiProperty({ example: 10 })
     @IsInt()
@@ -59,6 +79,9 @@ export class GetProductDto {
         }
     ] })
     fotos!: GetFotoDto[];
+
+    @ApiProperty({ required: false, type: DescuentoAplicadoProductoDto })
+    descuento_aplicado?: DescuentoAplicadoProductoDto;
 }
 
 
