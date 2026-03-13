@@ -50,7 +50,7 @@ export default function DescuentosAdminPage() {
     mode,
     isFormModalOpen,
     isDeleteModalOpen,
-    filtersForm,
+    registerFilters,
     initialValues,
     openCreate,
     openEdit,
@@ -58,7 +58,6 @@ export default function DescuentosAdminPage() {
     closeForm,
     openDelete,
     closeDelete,
-    updateFilterField,
     applyFilters,
     clearFilters,
     submitForm,
@@ -86,14 +85,13 @@ export default function DescuentosAdminPage() {
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-line p-3 md:grid-cols-2">
+        <form
+          className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-line p-3 md:grid-cols-2"
+          onSubmit={applyFilters}
+        >
           <div>
             <label className="mb-1 block text-sm text-dark-gray">Estado</label>
-            <select
-              className="app-input"
-              value={filtersForm.estado}
-              onChange={(event) => updateFilterField("estado", event.target.value)}
-            >
+            <select className="app-input" {...registerFilters("estado")}>
               <option value="">Todos</option>
               <option value="no_empezado">No empezados</option>
               <option value="vigente">Vigentes</option>
@@ -103,11 +101,7 @@ export default function DescuentosAdminPage() {
 
           <div>
             <label className="mb-1 block text-sm text-dark-gray">Tipo</label>
-            <select
-              className="app-input"
-              value={filtersForm.tipo}
-              onChange={(event) => updateFilterField("tipo", event.target.value)}
-            >
+            <select className="app-input" {...registerFilters("tipo")}>
               <option value="">Todos</option>
               <option value="producto">Producto</option>
               <option value="subcategoria">Subcategoría</option>
@@ -116,10 +110,10 @@ export default function DescuentosAdminPage() {
           </div>
 
           <div className="md:col-span-2 flex gap-2">
-            <button type="button" className="app-btn-primary" onClick={applyFilters}>Filtrar</button>
+            <button type="submit" className="app-btn-primary">Filtrar</button>
             <button type="button" className="app-btn-secondary" onClick={clearFilters}>Limpiar</button>
           </div>
-        </div>
+        </form>
 
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 

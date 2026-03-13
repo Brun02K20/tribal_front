@@ -5,6 +5,7 @@ import { pedidosService } from "@/entities/pedidos/api/pedidos.service";
 import { useToast } from "@/shared/providers/ToastContext";
 import type { PedidoEstadoMode } from "@/types/admin-ui";
 import type { EstadoEnvioOption, EstadoPedidoOption, PedidoAdmin, PedidoFilters } from "@/types/pedidos";
+import { useFilterForm } from "@/shared/lib/filter-form";
 
 type PedidoFiltersForm = {
   nombre_usuario: string;
@@ -60,8 +61,23 @@ export function usePedidosAdmin() {
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [filtersForm, setFiltersForm] = useState<PedidoFiltersForm>(DEFAULT_FILTERS_FORM);
   const [appliedFilters, setAppliedFilters] = useState<PedidoFilters>({});
+  const {
+    registerFilters,
+    applyFilters,
+    clearFilters,
+  } = useFilterForm<PedidoFiltersForm, PedidoFilters>({
+    defaultValues: DEFAULT_FILTERS_FORM,
+    normalize: normalizeFilters,
+    onApply: (filters) => {
+      setPage(1);
+      setAppliedFilters(filters);
+    },
+    onClear: (filters) => {
+      setPage(1);
+      setAppliedFilters(filters);
+    },
+  });
   const [selectedPedido, setSelectedPedido] = useState<PedidoAdmin | null>(null);
   const [editEstadoMode, setEditEstadoMode] = useState<PedidoEstadoMode | null>(null);
   const [isEstadoModalOpen, setIsEstadoModalOpen] = useState(false);
@@ -95,21 +111,6 @@ export function usePedidosAdmin() {
   useEffect(() => {
     void loadAll();
   }, [page, pageSize, appliedFilters]);
-
-  const updateFilterField = (field: keyof PedidoFiltersForm, value: string) => {
-    setFiltersForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const applyFilters = () => {
-    setPage(1);
-    setAppliedFilters(normalizeFilters(filtersForm));
-  };
-
-  const clearFilters = () => {
-    setFiltersForm(DEFAULT_FILTERS_FORM);
-    setAppliedFilters({});
-    setPage(1);
-  };
 
   const goToPage = (nextPage: number) => {
     if (nextPage < 1 || nextPage > totalPages || nextPage === page) {
@@ -192,10 +193,9 @@ export function usePedidosAdmin() {
     pageSize,
     totalPages,
     totalItems,
-    filtersForm,
+    registerFilters,
     currentEstadoId,
     currentOptions,
-    updateFilterField,
     applyFilters,
     clearFilters,
     goToPage,

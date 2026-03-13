@@ -20,8 +20,7 @@ export default function MisPedidosPage() {
     totalItems,
     estadosPedido,
     estadosEnvio,
-    filtersForm,
-    updateFilterField,
+    registerFilters,
     applyFilters,
     clearFilters,
     goToPage,
@@ -44,14 +43,16 @@ export default function MisPedidosPage() {
 
           {!loading && !error && (
             <>
-              <div className="mb-4 grid grid-cols-1 gap-3 rounded-lg border border-line p-3 md:grid-cols-4">
+              <form
+                className="mb-4 grid grid-cols-1 gap-3 rounded-lg border border-line p-3 md:grid-cols-4"
+                onSubmit={applyFilters}
+              >
                 <div>
                   <label className="mb-1 block text-sm text-dark-gray">Fecha pedido desde</label>
                   <input
                     type="date"
                     className="app-input"
-                    value={filtersForm.fecha_pedido_min}
-                    onChange={(event) => updateFilterField("fecha_pedido_min", event.target.value)}
+                    {...registerFilters("fecha_pedido_min")}
                   />
                 </div>
                 <div>
@@ -59,17 +60,12 @@ export default function MisPedidosPage() {
                   <input
                     type="date"
                     className="app-input"
-                    value={filtersForm.fecha_pedido_max}
-                    onChange={(event) => updateFilterField("fecha_pedido_max", event.target.value)}
+                    {...registerFilters("fecha_pedido_max")}
                   />
                 </div>
                 <div>
                   <label className="mb-1 block text-sm text-dark-gray">Estado pedido</label>
-                  <select
-                    className="app-input"
-                    value={filtersForm.id_estado_pedido}
-                    onChange={(event) => updateFilterField("id_estado_pedido", event.target.value)}
-                  >
+                  <select className="app-input" {...registerFilters("id_estado_pedido")}>
                     <option value="">Todos</option>
                     {estadosPedido.map((estado) => (
                       <option key={estado.id} value={estado.id}>{estado.nombre}</option>
@@ -78,11 +74,7 @@ export default function MisPedidosPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-sm text-dark-gray">Estado envío</label>
-                  <select
-                    className="app-input"
-                    value={filtersForm.id_estado_envio}
-                    onChange={(event) => updateFilterField("id_estado_envio", event.target.value)}
-                  >
+                  <select className="app-input" {...registerFilters("id_estado_envio")}>
                     <option value="">Todos</option>
                     {estadosEnvio.map((estado) => (
                       <option key={estado.id} value={estado.id}>{estado.nombre}</option>
@@ -91,10 +83,10 @@ export default function MisPedidosPage() {
                 </div>
 
                 <div className="md:col-span-4 flex gap-2">
-                  <button type="button" className="app-btn-primary" onClick={applyFilters}>Filtrar</button>
+                  <button type="submit" className="app-btn-primary">Filtrar</button>
                   <button type="button" className="app-btn-secondary" onClick={clearFilters}>Limpiar</button>
                 </div>
-              </div>
+              </form>
 
               <PedidosTable
                 pedidos={pedidos}

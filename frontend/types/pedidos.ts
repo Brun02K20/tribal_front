@@ -23,6 +23,7 @@ export type PedidoDetalleItem = {
 export type PedidoAdmin = {
   id: number;
   fecha_pedido: string;
+  observaciones: string | null;
   costo_total_productos: number;
   costo_envio: number;
   costo_ganancia_envio: number;
@@ -93,6 +94,7 @@ export type CreatePedidoPayload = {
   costo_total_productos: number;
   costo_envio: number;
   costo_ganancia_envio: number;
+  observaciones?: string | null;
   detalles: PedidoDetalleCreateInput[];
   id_direccion: number;
 };

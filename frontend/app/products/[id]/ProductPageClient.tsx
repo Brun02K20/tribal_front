@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useProductDetail } from "@/features/products/hooks/useProductDetail";
 import ProductResenasSection from "@/features/products/components/ProductResenasSection";
 import { toNumber } from "@/shared/lib/formatters";
@@ -25,11 +26,11 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
     totalItems,
     setActiveImageIndex,
     updateQuantity,
-    goToPrevImage,
-    goToNextImage,
     addCurrentProductToCart,
     goToCheckout,
   } = useProductDetail(productId);
+  const [isZoomActive, setIsZoomActive] = useState(false);
+  const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
 
   const hasDiscount =
     !!product
@@ -38,6 +39,21 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
   const precioBase = product ? toNumber(product.precio) : 0;
   const precioFinal = product ? toNumber(product.precio_final ?? precioBase) : 0;
   const discountPercentage = hasDiscount ? Number(product?.descuento_aplicado?.porcentaje ?? 0) : 0;
+
+  const updateZoomOrigin = (event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      return;
+    }
+
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+    setZoomOrigin({
+      x: Math.max(0, Math.min(100, x)),
+      y: Math.max(0, Math.min(100, y)),
+    });
+  };
 
   return (
     <main className="app-page">
@@ -56,11 +72,40 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
 
       {!loading && !error && product && (
         <>
-          <section className="app-panel grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div>
+          <section className="app-panel grid grid-cols-1 gap-6 xl:grid-cols-[84px_minmax(0,1fr)_minmax(360px,460px)]">
+            <div className="order-2 flex gap-2 overflow-x-auto xl:order-1 xl:flex-col xl:overflow-visible">
+              {fotos.map((foto, index) => (
+                <button
+                  key={foto.id}
+                  type="button"
+                  onMouseEnter={() => setActiveImageIndex(index)}
+                  onFocus={() => setActiveImageIndex(index)}
+                  onClick={() => setActiveImageIndex(index)}
+                  className={`relative h-18 w-18 shrink-0 overflow-hidden rounded-md border bg-white p-1 transition ${
+                    index === activeImageIndex
+                      ? "border-earth-brown ring-2 ring-earth-brown/25"
+                      : "border-line hover:border-earth-brown/50"
+                  }`}
+                  aria-label={`Ver imagen ${index + 1}`}
+                >
+                  <img
+                    src={foto.url}
+                    alt={`${product.nombre} miniatura ${index + 1}`}
+                    className="h-full w-full object-contain"
+                  />
+                </button>
+              ))}
+            </div>
+
+            <div className="order-1 xl:order-2">
               {activeFoto?.url ? (
                 <>
-                  <div className="relative flex min-h-72 w-full items-center justify-center rounded-lg border border-earth-brown/40 bg-white p-2">
+                  <div
+                    className="relative flex min-h-72 w-full items-center justify-center overflow-hidden rounded-lg border border-earth-brown/40 bg-white p-2"
+                    onMouseMove={updateZoomOrigin}
+                    onMouseEnter={() => setIsZoomActive(true)}
+                    onMouseLeave={() => setIsZoomActive(false)}
+                  >
                     {hasDiscount && (
                       <span className="absolute left-2 top-2 z-10 rounded-full bg-earth-brown px-2 py-1 text-xs font-semibold text-cream">
                         {discountPercentage}% OFF
@@ -75,43 +120,14 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
                       loading="eager"
                       decoding="async"
                       sizes="(max-width: 768px) 100vw, 50vw"
-                      className="app-fade-swap max-h-120 w-full object-contain"
+                      className="app-fade-swap max-h-120 w-full origin-center object-contain transition-transform duration-150"
+                      style={{
+                        transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
+                        transform: isZoomActive ? "scale(2.15)" : "scale(1)",
+                        cursor: isZoomActive ? "zoom-out" : "zoom-in",
+                      }}
                     />
                   </div>
-
-                  {fotos.length > 1 && (
-                    <div className="mt-3 flex items-center justify-between gap-2">
-                      <button
-                        type="button"
-                        className="app-btn-secondary"
-                        onClick={goToPrevImage}
-                      >
-                        Anterior
-                      </button>
-
-                      <div className="flex items-center gap-2">
-                        {fotos.map((foto, index) => (
-                          <button
-                            key={foto.id}
-                            type="button"
-                            className={`h-2.5 w-2.5 rounded-full ${
-                              index === activeImageIndex ? "bg-earth-brown" : "bg-earth-brown/30"
-                            }`}
-                            onClick={() => setActiveImageIndex(index)}
-                            aria-label={`Ver imagen ${index + 1}`}
-                          />
-                        ))}
-                      </div>
-
-                      <button
-                        type="button"
-                        className="app-btn-secondary"
-                        onClick={goToNextImage}
-                      >
-                        Siguiente
-                      </button>
-                    </div>
-                  )}
                 </>
               ) : (
                 <ImagePlaceholder
@@ -121,7 +137,7 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
               )}
             </div>
 
-            <div>
+            <div className="order-3">
               <h1 className="text-2xl font-bold">{product.nombre}</h1>
               <p className="mt-2 text-zinc-700">{product.descripcion}</p>
               <p className="mt-4 text-sm">Categoria: {product.categoria?.nombre || "-"}</p>

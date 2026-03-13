@@ -12,9 +12,9 @@ import { productosService } from "@/entities/productos/api/productos.service";
 import type { Ciudad, Provincia } from "@/types/locations";
 import type { CreateUserAddressPayload, UserAddress } from "@/types/usuarios";
 import type { PedidoDetalleCreateInput } from "@/types/pedidos";
+import { useForm, useWatch } from "react-hook-form";
 
 export const SHIPPING_COST = 75;
-export const COMMISSION_COST = 35;
 
 export function useCheckout() {
   const router = useRouter();
@@ -33,12 +33,35 @@ export function useCheckout() {
   const [ciudades, setCiudades] = useState<Ciudad[]>([]);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [creatingAddress, setCreatingAddress] = useState(false);
-  const [newAddress, setNewAddress] = useState<CreateUserAddressPayload>({
-    cod_postal_destino: "",
-    calle: "",
-    altura: "",
-    id_provincia: 0,
-    id_ciudad: 0,
+  const {
+    register: registerObservaciones,
+    getValues: getObservacionesValues,
+    watch: watchObservaciones,
+  } = useForm<{ observaciones: string }>({
+    defaultValues: {
+      observaciones: "",
+    },
+  });
+  const {
+    register: registerAddress,
+    handleSubmit: handleAddressSubmit,
+    reset: resetAddressForm,
+    setValue: setAddressValue,
+    getValues: getAddressValues,
+    control: addressControl,
+    formState: { errors: addressErrors },
+  } = useForm<CreateUserAddressPayload>({
+    defaultValues: {
+      cod_postal_destino: "",
+      calle: "",
+      altura: "",
+      id_provincia: 0,
+      id_ciudad: 0,
+    },
+  });
+  const selectedProvinciaId = useWatch({
+    control: addressControl,
+    name: "id_provincia",
   });
 
   useEffect(() => {
@@ -84,31 +107,30 @@ export function useCheckout() {
       const data = await locationsService.getProvincias();
       setProvincias(data);
       if (data.length > 0) {
-        setNewAddress((prev) => ({ ...prev, id_provincia: data[0].id }));
+        setAddressValue("id_provincia", data[0].id);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudieron cargar provincias");
     }
-  }, []);
+  }, [setAddressValue]);
 
   const loadCiudadesByProvincia = useCallback(async (idProvincia: number) => {
     if (!idProvincia) {
       setCiudades([]);
-      setNewAddress((prev) => ({ ...prev, id_ciudad: 0 }));
+      setAddressValue("id_ciudad", 0);
       return;
     }
 
     try {
       const data = await locationsService.getCiudadesByProvincia(idProvincia);
       setCiudades(data);
-      setNewAddress((prev) => ({
-        ...prev,
-        id_ciudad: data.some((city) => city.id === prev.id_ciudad) ? prev.id_ciudad : (data[0]?.id ?? 0),
-      }));
+      const idCiudadActual = Number(getAddressValues("id_ciudad") ?? 0);
+      const nextCiudad = data.some((city) => city.id === idCiudadActual) ? idCiudadActual : (data[0]?.id ?? 0);
+      setAddressValue("id_ciudad", nextCiudad);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudieron cargar ciudades");
     }
-  }, []);
+  }, [getAddressValues, setAddressValue]);
 
   useEffect(() => {
     if (!isAddressModalOpen) {
@@ -125,12 +147,12 @@ export function useCheckout() {
       return;
     }
 
-    if (newAddress.id_provincia > 0) {
-      void loadCiudadesByProvincia(newAddress.id_provincia);
+    if (selectedProvinciaId > 0) {
+      void loadCiudadesByProvincia(selectedProvinciaId);
     }
-  }, [isAddressModalOpen, loadCiudadesByProvincia, newAddress.id_provincia]);
+  }, [isAddressModalOpen, loadCiudadesByProvincia, selectedProvinciaId]);
 
-  const total = useMemo(() => subtotal + SHIPPING_COST + COMMISSION_COST, [subtotal]);
+  const total = useMemo(() => subtotal + SHIPPING_COST, [subtotal]);
 
   const updateItemQuantity = (itemId: number, quantity: number) => {
     updateQuantity(itemId, quantity);
@@ -148,35 +170,32 @@ export function useCheckout() {
   const closeAddressModal = () => {
     setIsAddressModalOpen(false);
     setCreatingAddress(false);
-    setNewAddress((prev) => ({
-      ...prev,
+    resetAddressForm({
       cod_postal_destino: "",
       calle: "",
       altura: "",
-    }));
+      id_provincia: provincias[0]?.id ?? 0,
+      id_ciudad: 0,
+    });
   };
 
-  const changeNewAddressField = <K extends keyof CreateUserAddressPayload>(key: K, value: CreateUserAddressPayload[K]) => {
-    setNewAddress((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const createAddress = async () => {
+  const submitNewAddress = async (values: CreateUserAddressPayload) => {
     if (!user?.id) {
       setError("Sesión inválida para crear dirección");
       return;
     }
 
-    if (!newAddress.calle.trim() || !newAddress.altura.trim() || !newAddress.cod_postal_destino.trim()) {
+    if (!values.calle.trim() || !values.altura.trim() || !values.cod_postal_destino.trim()) {
       setError("Completá calle, altura y código postal");
       return;
     }
 
-    if (!/^\d+$/.test(newAddress.altura.trim())) {
+    if (!/^\d+$/.test(values.altura.trim())) {
       setError("La altura debe ser numérica");
       return;
     }
 
-    if (!newAddress.id_provincia || !newAddress.id_ciudad) {
+    if (!values.id_provincia || !values.id_ciudad) {
       setError("Seleccioná provincia y ciudad");
       return;
     }
@@ -185,7 +204,15 @@ export function useCheckout() {
     setError(null);
 
     try {
-      const created = await usuariosService.createUserAddress(user.id, newAddress);
+      const payload: CreateUserAddressPayload = {
+        cod_postal_destino: values.cod_postal_destino.trim(),
+        calle: values.calle.trim(),
+        altura: values.altura.trim(),
+        id_provincia: Number(values.id_provincia),
+        id_ciudad: Number(values.id_ciudad),
+      };
+
+      const created = await usuariosService.createUserAddress(user.id, payload);
       showToast("Dirección creada correctamente", "success");
       setAddresses((prev) => [created, ...prev]);
       setSelectedAddressId(created.id);
@@ -261,7 +288,8 @@ export function useCheckout() {
         id_direccion: selectedAddressId,
         costo_total_productos: Number(subtotal.toFixed(2)),
         costo_envio: Number(SHIPPING_COST.toFixed(2)),
-        costo_ganancia_envio: Number(COMMISSION_COST.toFixed(2)),
+        costo_ganancia_envio: Number(subtotal.toFixed(2)) * 0.05, // 5% de comisión sobre el subtotal
+        observaciones: getObservacionesValues("observaciones").trim() || null,
         detalles,
       });
 
@@ -288,7 +316,7 @@ export function useCheckout() {
     totalItems,
     total,
     shippingCost: SHIPPING_COST,
-    commissionCost: COMMISSION_COST,
+    commissionCost: Number(subtotal.toFixed(2)) * 0.05,
     addresses,
     loadingAddresses,
     selectedAddressId,
@@ -297,12 +325,15 @@ export function useCheckout() {
     ciudades,
     isAddressModalOpen,
     creatingAddress,
-    newAddress,
+    registerAddress,
+    handleAddressSubmit,
+    addressErrors,
+    submitNewAddress,
+    registerObservaciones,
+    observacionesValue: watchObservaciones("observaciones"),
     paying,
     openAddressModal,
     closeAddressModal,
-    changeNewAddressField,
-    createAddress,
     pay,
     updateItemQuantity,
     removeCheckoutItem,

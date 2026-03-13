@@ -9,6 +9,8 @@ import { productosService } from "@/entities/productos/api/productos.service";
 import type { Product, ProductFilters, ProductFormValues } from "@/types/products";
 import type { CategoriaWithSubcategorias } from "@/types/categorias";
 import type { Subcategoria } from "@/types/subcategorias";
+import { useWatch } from "react-hook-form";
+import { useFilterForm } from "@/shared/lib/filter-form";
 
 const emptyProductForm: ProductFormValues = {
   nombre: "",
@@ -76,15 +78,34 @@ export function useProductosAdmin() {
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [filtersForm, setFiltersForm] = useState<AdminProductFiltersForm>(DEFAULT_ADMIN_FILTERS_FORM);
   const [appliedFilters, setAppliedFilters] = useState<ProductFilters>({});
+  const {
+    registerFilters,
+    applyFilters,
+    clearFilters,
+    control,
+    getValues,
+    setValue,
+  } = useFilterForm<AdminProductFiltersForm, ProductFilters>({
+    defaultValues: DEFAULT_ADMIN_FILTERS_FORM,
+    normalize: normalizeAdminFilters,
+    onApply: (filters) => {
+      setPage(1);
+      setAppliedFilters(filters);
+    },
+    onClear: (filters) => {
+      setPage(1);
+      setAppliedFilters(filters);
+    },
+  });
 
   const [selected, setSelected] = useState<Product | null>(null);
   const [mode, setMode] = useState<CrudModalMode>("create");
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  const selectedFilterCategoriaId = Number(filtersForm.id_categoria);
+  const selectedFilterCategoria = useWatch({ control, name: "id_categoria" });
+  const selectedFilterCategoriaId = Number(selectedFilterCategoria ?? 0);
 
   const subcategoriasFiltradasPorCategoria = useMemo(
     () =>
@@ -93,6 +114,29 @@ export function useProductosAdmin() {
         : subcategorias,
     [selectedFilterCategoriaId, subcategorias],
   );
+
+  useEffect(() => {
+    const selectedSubcategoriaId = Number(getValues("id_subcategoria") || 0);
+    if (!selectedSubcategoriaId) {
+      return;
+    }
+
+    const subcategoriaValida = subcategorias.some((subcategoria) => {
+      if (subcategoria.id !== selectedSubcategoriaId) {
+        return false;
+      }
+
+      if (!Number.isFinite(selectedFilterCategoriaId) || selectedFilterCategoriaId <= 0) {
+        return true;
+      }
+
+      return subcategoria.id_categoria === selectedFilterCategoriaId;
+    });
+
+    if (!subcategoriaValida) {
+      setValue("id_subcategoria", "");
+    }
+  }, [getValues, selectedFilterCategoriaId, setValue, subcategorias]);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -123,27 +167,6 @@ export function useProductosAdmin() {
   useEffect(() => {
     void loadAll();
   }, [loadAll]);
-
-  const updateFilterField = (field: keyof AdminProductFiltersForm, value: string) => {
-    setFiltersForm((prev) => {
-      const next = { ...prev, [field]: value };
-      if (field === "id_categoria") {
-        next.id_subcategoria = "";
-      }
-      return next;
-    });
-  };
-
-  const applyFilters = () => {
-    setPage(1);
-    setAppliedFilters(normalizeAdminFilters(filtersForm));
-  };
-
-  const clearFilters = () => {
-    setFiltersForm(DEFAULT_ADMIN_FILTERS_FORM);
-    setAppliedFilters({});
-    setPage(1);
-  };
 
   const goToPage = (nextPage: number) => {
     if (nextPage < 1 || nextPage > totalPages || nextPage === page) {
@@ -299,13 +322,12 @@ export function useProductosAdmin() {
     submitProduct,
     confirmDelete,
     toggleProduct,
-    filtersForm,
+    registerFilters,
     subcategoriasFiltradasPorCategoria,
     page,
     pageSize,
     totalPages,
     totalItems,
-    updateFilterField,
     applyFilters,
     clearFilters,
     goToPage,

@@ -15,6 +15,7 @@ import type {
   DescuentoTipo,
 } from "@/types/descuentos";
 import type { Subcategoria } from "@/types/subcategorias";
+import { useFilterForm } from "@/shared/lib/filter-form";
 
 type DescuentoFiltersForm = {
   tipo: "" | DescuentoTipo;
@@ -69,8 +70,17 @@ export function useDescuentosAdmin() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [filtersForm, setFiltersForm] = useState<DescuentoFiltersForm>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<DescuentoFilters>({});
+  const {
+    registerFilters,
+    applyFilters,
+    clearFilters,
+  } = useFilterForm<DescuentoFiltersForm, DescuentoFilters>({
+    defaultValues: EMPTY_FILTERS,
+    normalize: normalizeFilters,
+    onApply: setAppliedFilters,
+    onClear: setAppliedFilters,
+  });
 
   const [selected, setSelected] = useState<Descuento | null>(null);
   const [mode, setMode] = useState<CrudModalMode>("create");
@@ -100,22 +110,6 @@ export function useDescuentosAdmin() {
   useEffect(() => {
     void fetchAll();
   }, [fetchAll]);
-
-  const updateFilterField = (field: keyof DescuentoFiltersForm, value: string) => {
-    setFiltersForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const applyFilters = () => {
-    setAppliedFilters(normalizeFilters(filtersForm));
-  };
-
-  const clearFilters = () => {
-    setFiltersForm(EMPTY_FILTERS);
-    setAppliedFilters({});
-  };
 
   const openCreate = () => {
     setSelected(null);
@@ -240,7 +234,7 @@ export function useDescuentosAdmin() {
     mode,
     isFormModalOpen,
     isDeleteModalOpen,
-    filtersForm,
+    registerFilters,
     initialValues,
     openCreate,
     openEdit,
@@ -248,7 +242,6 @@ export function useDescuentosAdmin() {
     closeForm,
     openDelete,
     closeDelete,
-    updateFilterField,
     applyFilters,
     clearFilters,
     submitForm,

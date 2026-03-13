@@ -235,6 +235,7 @@ export class PedidosService {
         return {
             id: pedido.id,
             fecha_pedido: pedido.fecha_pedido ? new Date(pedido.fecha_pedido).toISOString() : '',
+            observaciones: pedido.observaciones ?? null,
             costo_total_productos: Number(pedido.costo_total_productos),
             costo_envio: Number(pedido.costo_envio),
             costo_ganancia_envio: Number(pedido.costo_ganancia_envio),
@@ -490,6 +491,7 @@ export class PedidosService {
                         pedido: {
                             id_usuario: createPedidoDto.id_usuario,
                             id_direccion: createPedidoDto.id_direccion,
+                            observaciones: createPedidoDto.observaciones?.trim() ? createPedidoDto.observaciones.trim() : null,
                             costo_total_productos: costoTotalProductosCalculado,
                             costo_envio: Number(createPedidoDto.costo_envio),
                             costo_ganancia_envio: Number(createPedidoDto.costo_ganancia_envio),

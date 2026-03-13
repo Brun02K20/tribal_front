@@ -28,12 +28,15 @@ export default function CheckoutPage() {
     ciudades,
     isAddressModalOpen,
     creatingAddress,
-    newAddress,
+    registerAddress,
+    handleAddressSubmit,
+    addressErrors,
+    submitNewAddress,
+    registerObservaciones,
+    observacionesValue,
     paying,
     openAddressModal,
     closeAddressModal,
-    changeNewAddressField,
-    createAddress,
     pay,
     updateItemQuantity,
     removeCheckoutItem,
@@ -105,6 +108,21 @@ export default function CheckoutPage() {
               ))}
             </div>
           )}
+        </section>
+
+        <section className="app-panel mb-6">
+          <div className="mb-3">
+            <h2 className="text-lg font-semibold">Observaciones del pedido</h2>
+            <p className="app-subtitle text-sm">
+              Opcional. Podés dejar indicaciones para la entrega o bien con respecto a los productos del pedido
+            </p>
+          </div>
+          <textarea
+            className="app-input min-h-28 w-full resize-y"
+            placeholder="Ej: Entregar por la tarde. Tocar timbre del depto B. Quiero la pulsera de hilo chino en color rosa."
+            {...registerObservaciones("observaciones", { maxLength: 1000 })}
+          />
+          <p className="mt-1 text-right text-xs text-dark-gray">{observacionesValue.length}/1000</p>
         </section>
 
         {items.length === 0 ? (
@@ -211,11 +229,7 @@ export default function CheckoutPage() {
                 )}
                 <div className="flex justify-between">
                   <span>Envío</span>
-                  <span>{formatCurrencyArs(shippingCost)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Comisiones</span>
-                  <span>{formatCurrencyArs(commissionCost)}</span>
+                  <span>{formatCurrencyArs(shippingCost + commissionCost)}</span>
                 </div>
                 <hr className="my-2" />
                 <div className="flex justify-between text-base font-bold">
@@ -241,24 +255,34 @@ export default function CheckoutPage() {
               <div className="app-modal-card max-w-lg p-4 sm:p-5">
                 <h3 className="app-title text-xl">Nueva dirección</h3>
 
-                <div className="mt-4 grid gap-3">
+                <form className="mt-4 grid gap-3" onSubmit={handleAddressSubmit(submitNewAddress)}>
                   <div>
                     <label className="mb-1 block text-sm text-dark-gray">Código postal</label>
                     <input
                       className="app-input"
                       placeholder="Ej: X5000"
-                      value={newAddress.cod_postal_destino}
-                      onChange={(event) => changeNewAddressField("cod_postal_destino", event.target.value)}
+                      {...registerAddress("cod_postal_destino", {
+                        required: "Completá el código postal",
+                        maxLength: 16,
+                      })}
                     />
+                    {addressErrors.cod_postal_destino && (
+                      <p className="mt-1 text-xs text-red-600">{addressErrors.cod_postal_destino.message}</p>
+                    )}
                   </div>
                   <div>
                     <label className="mb-1 block text-sm text-dark-gray">Calle</label>
                     <input
                       className="app-input"
                       placeholder="Ej: Av. Colón"
-                      value={newAddress.calle}
-                      onChange={(event) => changeNewAddressField("calle", event.target.value)}
+                      {...registerAddress("calle", {
+                        required: "Completá la calle",
+                        maxLength: 128,
+                      })}
                     />
+                    {addressErrors.calle && (
+                      <p className="mt-1 text-xs text-red-600">{addressErrors.calle.message}</p>
+                    )}
                   </div>
                   <div>
                     <label className="mb-1 block text-sm text-dark-gray">Altura</label>
@@ -266,19 +290,29 @@ export default function CheckoutPage() {
                       className="app-input"
                       placeholder="Ej: 1234"
                       inputMode="numeric"
-                      value={newAddress.altura}
-                      onChange={(event) =>
-                        changeNewAddressField("altura", event.target.value.replace(/\D/g, ""))
-                      }
+                      {...registerAddress("altura", {
+                        required: "Completá la altura",
+                        pattern: {
+                          value: /^\d+$/,
+                          message: "La altura debe ser numérica",
+                        },
+                        maxLength: 10,
+                      })}
                     />
+                    {addressErrors.altura && (
+                      <p className="mt-1 text-xs text-red-600">{addressErrors.altura.message}</p>
+                    )}
                   </div>
 
                   <div>
                     <label className="mb-1 block text-sm text-dark-gray">Provincia</label>
                     <select
                       className="app-input"
-                      value={newAddress.id_provincia}
-                      onChange={(event) => changeNewAddressField("id_provincia", Number(event.target.value))}
+                      {...registerAddress("id_provincia", {
+                        valueAsNumber: true,
+                        required: "Seleccioná una provincia",
+                        validate: (value) => value > 0 || "Seleccioná una provincia",
+                      })}
                     >
                       <option value={0}>Seleccionar provincia...</option>
                       {provincias.map((provincia) => (
@@ -287,14 +321,20 @@ export default function CheckoutPage() {
                         </option>
                       ))}
                     </select>
+                    {addressErrors.id_provincia && (
+                      <p className="mt-1 text-xs text-red-600">{addressErrors.id_provincia.message}</p>
+                    )}
                   </div>
 
                   <div>
                     <label className="mb-1 block text-sm text-dark-gray">Ciudad</label>
                     <select
                       className="app-input"
-                      value={newAddress.id_ciudad}
-                      onChange={(event) => changeNewAddressField("id_ciudad", Number(event.target.value))}
+                      {...registerAddress("id_ciudad", {
+                        valueAsNumber: true,
+                        required: "Seleccioná una ciudad",
+                        validate: (value) => value > 0 || "Seleccioná una ciudad",
+                      })}
                     >
                       <option value={0}>Seleccionar ciudad...</option>
                       {ciudades.map((ciudad) => (
@@ -303,17 +343,20 @@ export default function CheckoutPage() {
                         </option>
                       ))}
                     </select>
+                    {addressErrors.id_ciudad && (
+                      <p className="mt-1 text-xs text-red-600">{addressErrors.id_ciudad.message}</p>
+                    )}
                   </div>
-                </div>
 
-                <div className="mt-5 flex justify-end gap-2">
-                  <button type="button" className="app-btn-secondary" onClick={closeAddressModal} disabled={creatingAddress}>
-                    Cancelar
-                  </button>
-                  <button type="button" className="app-btn-primary" onClick={createAddress} disabled={creatingAddress}>
-                    {creatingAddress ? "Guardando..." : "Guardar dirección"}
-                  </button>
-                </div>
+                  <div className="mt-5 flex justify-end gap-2">
+                    <button type="button" className="app-btn-secondary" onClick={closeAddressModal} disabled={creatingAddress}>
+                      Cancelar
+                    </button>
+                    <button type="submit" className="app-btn-primary" disabled={creatingAddress}>
+                      {creatingAddress ? "Guardando..." : "Guardar dirección"}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           </AppModal>

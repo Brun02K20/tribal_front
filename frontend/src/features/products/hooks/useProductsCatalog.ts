@@ -11,6 +11,8 @@ import type { Product, ProductFilters } from "@/types/products";
 import { toNumber } from "@/shared/lib/formatters";
 import type { CategoriaWithSubcategorias } from "@/types/categorias";
 import type { Subcategoria } from "@/types/subcategorias";
+import { useWatch } from "react-hook-form";
+import { useFilterForm } from "@/shared/lib/filter-form";
 
 type ProductFiltersForm = {
   nombre: string;
@@ -60,7 +62,6 @@ export function useProductsCatalog() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categorias, setCategorias] = useState<CategoriaWithSubcategorias[]>([]);
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
-  const [filtersForm, setFiltersForm] = useState<ProductFiltersForm>(DEFAULT_FILTERS_FORM);
   const [appliedFilters, setAppliedFilters] = useState<ProductFilters>({});
   const [page, setPage] = useState(1);
   const [pageSize] = useState(18);
@@ -69,8 +70,28 @@ export function useProductsCatalog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeImageByProduct, setActiveImageByProduct] = useState<Record<number, number>>({});
+  const {
+    registerFilters,
+    applyFilters,
+    clearFilters,
+    control,
+    getValues,
+    setValue,
+  } = useFilterForm<ProductFiltersForm, ProductFilters>({
+    defaultValues: DEFAULT_FILTERS_FORM,
+    normalize: normalizeFilters,
+    onApply: (filters) => {
+      setPage(1);
+      setAppliedFilters(filters);
+    },
+    onClear: (filters) => {
+      setPage(1);
+      setAppliedFilters(filters);
+    },
+  });
 
-  const selectedCategoriaId = Number(filtersForm.id_categoria);
+  const selectedCategoriaFilter = useWatch({ control, name: "id_categoria" });
+  const selectedCategoriaId = Number(selectedCategoriaFilter ?? 0);
 
   const filteredSubcategorias = useMemo(() => {
     if (!Number.isFinite(selectedCategoriaId) || selectedCategoriaId <= 0) {
@@ -79,6 +100,29 @@ export function useProductsCatalog() {
 
     return subcategorias.filter((subcategoria) => subcategoria.id_categoria === selectedCategoriaId);
   }, [selectedCategoriaId, subcategorias]);
+
+  useEffect(() => {
+    const selectedSubcategoriaId = Number(getValues("id_subcategoria") || 0);
+    if (!selectedSubcategoriaId) {
+      return;
+    }
+
+    const subcategoriaValida = subcategorias.some((subcategoria) => {
+      if (subcategoria.id !== selectedSubcategoriaId) {
+        return false;
+      }
+
+      if (!Number.isFinite(selectedCategoriaId) || selectedCategoriaId <= 0) {
+        return true;
+      }
+
+      return subcategoria.id_categoria === selectedCategoriaId;
+    });
+
+    if (!subcategoriaValida) {
+      setValue("id_subcategoria", "");
+    }
+  }, [getValues, selectedCategoriaId, setValue, subcategorias]);
 
   useEffect(() => {
     const loadFiltersCatalog = async () => {
@@ -160,29 +204,6 @@ export function useProductsCatalog() {
   const hasProducts = useMemo(() => products.length > 0, [products]);
   const hasActiveFilters = useMemo(() => hasFiltersApplied(appliedFilters), [appliedFilters]);
 
-  const updateFilterField = (field: keyof ProductFiltersForm, value: string) => {
-    setFiltersForm((prev) => {
-      const next: ProductFiltersForm = { ...prev, [field]: value };
-
-      if (field === "id_categoria") {
-        next.id_subcategoria = "";
-      }
-
-      return next;
-    });
-  };
-
-  const applyFilters = () => {
-    setPage(1);
-    setAppliedFilters(normalizeFilters(filtersForm));
-  };
-
-  const clearFilters = () => {
-    setFiltersForm(DEFAULT_FILTERS_FORM);
-    setAppliedFilters({});
-    setPage(1);
-  };
-
   const goToCheckout = () => {
     if (!authLoading && !isAuthenticated) {
       router.push("/login?redirect=/checkout");
@@ -232,14 +253,13 @@ export function useProductsCatalog() {
     hasActiveFilters,
     categorias,
     filteredSubcategorias,
-    filtersForm,
+    registerFilters,
     page,
     pageSize,
     totalPages,
     totalItemsCount,
     totalItems,
     activeImageByProduct,
-    updateFilterField,
     applyFilters,
     clearFilters,
     goToPage,

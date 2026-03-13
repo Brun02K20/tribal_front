@@ -19,12 +19,11 @@ export default function PedidosAdminPage() {
     pageSize,
     totalPages,
     totalItems,
-    filtersForm,
+    registerFilters,
     editEstadoMode,
     isEstadoModalOpen,
     currentEstadoId,
     currentOptions,
-    updateFilterField,
     applyFilters,
     clearFilters,
     goToPage,
@@ -44,14 +43,16 @@ export default function PedidosAdminPage() {
         <p className="app-subtitle">Total de pedidos: {totalItems}</p>
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
-        <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-line p-3 md:grid-cols-3">
+        <form
+          className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-line p-3 md:grid-cols-3"
+          onSubmit={applyFilters}
+        >
           <div>
             <label className="mb-1 block text-sm text-dark-gray">Nombre de usuario</label>
             <input
               className="app-input"
               placeholder="Ej: Juan Pérez"
-              value={filtersForm.nombre_usuario}
-              onChange={(event) => updateFilterField("nombre_usuario", event.target.value)}
+              {...registerFilters("nombre_usuario")}
             />
           </div>
           <div>
@@ -59,8 +60,7 @@ export default function PedidosAdminPage() {
             <input
               className="app-input"
               placeholder="Ej: juan@mail.com"
-              value={filtersForm.email_usuario}
-              onChange={(event) => updateFilterField("email_usuario", event.target.value)}
+              {...registerFilters("email_usuario")}
             />
           </div>
           <div>
@@ -68,8 +68,7 @@ export default function PedidosAdminPage() {
             <input
               type="date"
               className="app-input"
-              value={filtersForm.fecha_pedido_min}
-              onChange={(event) => updateFilterField("fecha_pedido_min", event.target.value)}
+              {...registerFilters("fecha_pedido_min")}
             />
           </div>
           <div>
@@ -77,17 +76,12 @@ export default function PedidosAdminPage() {
             <input
               type="date"
               className="app-input"
-              value={filtersForm.fecha_pedido_max}
-              onChange={(event) => updateFilterField("fecha_pedido_max", event.target.value)}
+              {...registerFilters("fecha_pedido_max")}
             />
           </div>
           <div>
             <label className="mb-1 block text-sm text-dark-gray">Estado de pedido</label>
-            <select
-              className="app-input"
-              value={filtersForm.id_estado_pedido}
-              onChange={(event) => updateFilterField("id_estado_pedido", event.target.value)}
-            >
+            <select className="app-input" {...registerFilters("id_estado_pedido")}>
               <option value="">Todos los estados</option>
               {estadosPedido.map((estado) => (
                 <option key={estado.id} value={estado.id}>{estado.nombre}</option>
@@ -96,11 +90,7 @@ export default function PedidosAdminPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm text-dark-gray">Estado de envío</label>
-            <select
-              className="app-input"
-              value={filtersForm.id_estado_envio}
-              onChange={(event) => updateFilterField("id_estado_envio", event.target.value)}
-            >
+            <select className="app-input" {...registerFilters("id_estado_envio")}>
               <option value="">Todos los estados</option>
               {estadosEnvio.map((estado) => (
                 <option key={estado.id} value={estado.id}>{estado.nombre}</option>
@@ -109,10 +99,10 @@ export default function PedidosAdminPage() {
           </div>
 
           <div className="md:col-span-3 flex gap-2">
-            <button type="button" className="app-btn-primary" onClick={applyFilters}>Filtrar</button>
+            <button type="submit" className="app-btn-primary">Filtrar</button>
             <button type="button" className="app-btn-secondary" onClick={clearFilters}>Limpiar</button>
           </div>
-        </div>
+        </form>
 
         <PedidosTable
           pedidos={pedidos}

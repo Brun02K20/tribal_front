@@ -34,6 +34,7 @@ export default function PedidoDetailContent({ pedido }: PedidoDetailContentProps
         </p>
         <p className="app-subtitle">CP: {pedido.envio?.direccion?.cod_postal_destino || "-"}</p>
         <p className="app-subtitle">Estado de envío: {pedido.envio?.estado_envio?.nombre || "-"}</p>
+        <p className="app-subtitle">Observaciones: {pedido.observaciones?.trim() || "-"}</p>
         <p className="app-subtitle">
           Tamaño sugerido de paquete: {pedido.envio?.ancho_paquete || 0} x {pedido.envio?.alto_paquete || 0} x {pedido.envio?.profundo_paquete || 0} cm
         </p>

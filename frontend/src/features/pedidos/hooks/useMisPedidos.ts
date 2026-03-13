@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/shared/providers/AuthContext";
 import { pedidosService } from "@/entities/pedidos/api/pedidos.service";
 import type { EstadoEnvioOption, EstadoPedidoOption, PedidoCliente, PedidoFilters } from "@/types/pedidos";
+import { useFilterForm } from "@/shared/lib/filter-form";
 
 type MisPedidosFiltersForm = {
   fecha_pedido_min: string;
@@ -47,8 +48,23 @@ export function useMisPedidos() {
   const [totalItems, setTotalItems] = useState(0);
   const [estadosPedido, setEstadosPedido] = useState<EstadoPedidoOption[]>([]);
   const [estadosEnvio, setEstadosEnvio] = useState<EstadoEnvioOption[]>([]);
-  const [filtersForm, setFiltersForm] = useState<MisPedidosFiltersForm>(DEFAULT_FILTERS_FORM);
   const [appliedFilters, setAppliedFilters] = useState<PedidoFilters>({});
+  const {
+    registerFilters,
+    applyFilters,
+    clearFilters,
+  } = useFilterForm<MisPedidosFiltersForm, PedidoFilters>({
+    defaultValues: DEFAULT_FILTERS_FORM,
+    normalize: (values) => normalizeFilters(values, user?.id),
+    onApply: (filters) => {
+      setPage(1);
+      setAppliedFilters(filters);
+    },
+    onClear: (filters) => {
+      setPage(1);
+      setAppliedFilters(filters);
+    },
+  });
 
   const loadPedidos = useCallback(async () => {
     if (!user?.id) {
@@ -92,21 +108,6 @@ export function useMisPedidos() {
     }
   }, [authLoading, isAuthenticated, loadPedidos]);
 
-  const updateFilterField = (field: keyof MisPedidosFiltersForm, value: string) => {
-    setFiltersForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const applyFilters = () => {
-    setPage(1);
-    setAppliedFilters(normalizeFilters(filtersForm, user?.id));
-  };
-
-  const clearFilters = () => {
-    setFiltersForm(DEFAULT_FILTERS_FORM);
-    setAppliedFilters(user?.id ? { id_usuario: user.id } : {});
-    setPage(1);
-  };
-
   const goToPage = (nextPage: number) => {
     if (nextPage < 1 || nextPage > totalPages || nextPage === page) {
       return;
@@ -134,8 +135,7 @@ export function useMisPedidos() {
     totalItems,
     estadosPedido,
     estadosEnvio,
-    filtersForm,
-    updateFilterField,
+    registerFilters,
     applyFilters,
     clearFilters,
     goToPage,

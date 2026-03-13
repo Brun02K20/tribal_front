@@ -10,6 +10,7 @@ interface PedidoAttributes {
     id: number;
     id_usuario: number;
     fecha_pedido: Date;
+    observaciones: string | null;
     costo_total_productos: number;
     costo_envio: number;
     costo_ganancia_envio: number;
@@ -23,6 +24,7 @@ export class Pedidos extends Model<PedidoAttributes, PedidoCreationAttributes> {
     declare id: number;
     declare id_usuario: number;
     declare fecha_pedido: Date;
+    declare observaciones: string | null;
     declare costo_total_productos: number;
     declare costo_envio: number;
     declare costo_ganancia_envio: number;
@@ -51,6 +53,10 @@ Pedidos.init(
         fecha_pedido: {
             type: DataTypes.DATE,
             allowNull: false,
+        },
+        observaciones: {
+            type: DataTypes.TEXT,
+            allowNull: true,
         },
         costo_total_productos: {
             type: DataTypes.DECIMAL(10, 2),

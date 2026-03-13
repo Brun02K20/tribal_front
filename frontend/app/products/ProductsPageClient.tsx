@@ -18,14 +18,13 @@ export default function ProductsPageClient() {
     error,
     hasProducts,
     hasActiveFilters,
-    filtersForm,
+    registerFilters,
     page,
     pageSize,
     totalPages,
     totalItemsCount,
     totalItems,
     activeImageByProduct,
-    updateFilterField,
     applyFilters,
     clearFilters,
     goToPage,
@@ -59,24 +58,19 @@ export default function ProductsPageClient() {
           <aside className="app-panel h-fit">
             <h2 className="app-title text-lg">Filtros de busqueda</h2>
 
-            <div className="mt-4 space-y-3">
+            <form className="mt-4 space-y-3" onSubmit={applyFilters}>
               <div>
                 <label className="mb-1 block text-sm text-dark-gray">Nombre</label>
                 <input
                   className="app-input"
-                  value={filtersForm.nombre}
-                  onChange={(event) => updateFilterField("nombre", event.target.value)}
+                  {...registerFilters("nombre")}
                   placeholder="Buscar por nombre"
                 />
               </div>
 
               <div>
                 <label className="mb-1 block text-sm text-dark-gray">Categoria</label>
-                <select
-                  className="app-input"
-                  value={filtersForm.id_categoria}
-                  onChange={(event) => updateFilterField("id_categoria", event.target.value)}
-                >
+                <select className="app-input" {...registerFilters("id_categoria")}>
                   <option value="">Todas</option>
                   {categorias.map((categoria) => (
                     <option key={categoria.id} value={categoria.id}>
@@ -88,11 +82,7 @@ export default function ProductsPageClient() {
 
               <div>
                 <label className="mb-1 block text-sm text-dark-gray">Subcategoria</label>
-                <select
-                  className="app-input"
-                  value={filtersForm.id_subcategoria}
-                  onChange={(event) => updateFilterField("id_subcategoria", event.target.value)}
-                >
+                <select className="app-input" {...registerFilters("id_subcategoria")}>
                   <option value="">Todas</option>
                   {filteredSubcategorias.map((subcategoria) => (
                     <option key={subcategoria.id} value={subcategoria.id}>
@@ -109,8 +99,7 @@ export default function ProductsPageClient() {
                     type="number"
                     step="0.01"
                     className="app-input"
-                    value={filtersForm.precio_min}
-                    onChange={(event) => updateFilterField("precio_min", event.target.value)}
+                    {...registerFilters("precio_min")}
                   />
                 </div>
                 <div>
@@ -119,21 +108,20 @@ export default function ProductsPageClient() {
                     type="number"
                     step="0.01"
                     className="app-input"
-                    value={filtersForm.precio_max}
-                    onChange={(event) => updateFilterField("precio_max", event.target.value)}
+                    {...registerFilters("precio_max")}
                   />
                 </div>
               </div>
 
               <div className="flex gap-2">
-                <button type="button" className="app-btn-primary" onClick={applyFilters}>
+                <button type="submit" className="app-btn-primary">
                   Filtrar
                 </button>
                 <button type="button" className="app-btn-secondary" onClick={clearFilters}>
                   Limpiar
                 </button>
               </div>
-            </div>
+            </form>
           </aside>
 
           <div>

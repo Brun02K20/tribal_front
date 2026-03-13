@@ -40,6 +40,7 @@ interface PaymentMetadata {
 	pedido?: {
 		id_usuario?: number;
 		id_direccion?: number;
+		observaciones?: string | null;
 		costo_total_productos?: number;
 		costo_envio?: number;
 		costo_ganancia_envio?: number;
@@ -123,6 +124,10 @@ export class PagosService {
 			const costoTotalProductos = Number(pedidoMetadata?.costo_total_productos ?? 0);
 			const costoEnvio = Number(pedidoMetadata?.costo_envio ?? 0);
 			const costoGananciaEnvio = Number(pedidoMetadata?.costo_ganancia_envio ?? 0);
+			const observaciones =
+				typeof pedidoMetadata?.observaciones === 'string' && pedidoMetadata.observaciones.trim().length
+					? pedidoMetadata.observaciones.trim()
+					: null;
             const montoTotalPago = Number(
                 pedidoMetadata?.costo_total ?? metadata.costo_total ?? payment.transaction_amount ?? 0,
             );
@@ -162,6 +167,7 @@ export class PagosService {
 					{
 						id_usuario: usuarioId,
 						fecha_pedido: new Date(),
+						observaciones,
 						costo_total_productos: costoTotalProductos,
 						costo_envio: costoEnvio,
 						costo_ganancia_envio: costoGananciaEnvio,

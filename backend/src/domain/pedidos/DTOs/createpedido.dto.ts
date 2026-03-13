@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsDecimal, IsOptional } from 'class-validator';
+import { IsInt, IsDecimal, IsOptional, IsString } from 'class-validator';
 export class DetallePedidoCreateDto {
     @ApiProperty({ example: 1 })
     @IsInt()
@@ -47,6 +47,15 @@ export class CreatePedidoDto {
     @ApiProperty({ example: 5 })
     @IsDecimal()
     costo_ganancia_envio!: number;
+
+    @ApiProperty({
+        example: 'Entregar por la tarde. Portero eléctrico no funciona.',
+        required: false,
+        nullable: true,
+    })
+    @IsOptional()
+    @IsString()
+    observaciones?: string | null;
 
     @ApiProperty({ type: [DetallePedidoCreateDto] })
     detalles!: DetallePedidoCreateDto[];

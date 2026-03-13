@@ -152,6 +152,13 @@ export class DetallePedidoResponseDto {
     @ApiProperty({ example: "2023-12-01 00:00:00" })
     fecha_pedido!: string;
 
+    @ApiProperty({
+        example: 'Entregar por la tarde. Portero eléctrico no funciona.',
+        required: false,
+        nullable: true,
+    })
+    observaciones!: string | null;
+
     @ApiProperty({ example: 1.99 })
     costo_total_productos!: number;
 

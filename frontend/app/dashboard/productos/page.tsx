@@ -32,13 +32,12 @@ export default function ProductosAdminPage() {
     submitProduct,
     confirmDelete,
     toggleProduct,
-    filtersForm,
+    registerFilters,
     subcategoriasFiltradasPorCategoria,
     page,
     pageSize,
     totalPages,
     totalItems,
-    updateFilterField,
     applyFilters,
     clearFilters,
     goToPage,
@@ -58,24 +57,22 @@ export default function ProductosAdminPage() {
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-line p-3 md:grid-cols-5">
+        <form
+          className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-line p-3 md:grid-cols-5"
+          onSubmit={applyFilters}
+        >
           <div>
             <label className="mb-1 block text-sm text-dark-gray">Nombre</label>
             <input
               className="app-input"
               placeholder="Ej: Mate de algarrobo"
-              value={filtersForm.nombre}
-              onChange={(event) => updateFilterField("nombre", event.target.value)}
+              {...registerFilters("nombre")}
             />
           </div>
 
           <div>
             <label className="mb-1 block text-sm text-dark-gray">Categoría</label>
-            <select
-              className="app-input"
-              value={filtersForm.id_categoria}
-              onChange={(event) => updateFilterField("id_categoria", event.target.value)}
-            >
+            <select className="app-input" {...registerFilters("id_categoria")}>
               <option value="">Todas las categorías</option>
               {categorias.map((categoria) => (
                 <option key={categoria.id} value={categoria.id}>
@@ -87,11 +84,7 @@ export default function ProductosAdminPage() {
 
           <div>
             <label className="mb-1 block text-sm text-dark-gray">Subcategoría</label>
-            <select
-              className="app-input"
-              value={filtersForm.id_subcategoria}
-              onChange={(event) => updateFilterField("id_subcategoria", event.target.value)}
-            >
+            <select className="app-input" {...registerFilters("id_subcategoria")}>
               <option value="">Todas las subcategorías</option>
               {subcategoriasFiltradasPorCategoria.map((subcategoria) => (
                 <option key={subcategoria.id} value={subcategoria.id}>
@@ -108,8 +101,7 @@ export default function ProductosAdminPage() {
               step="0.01"
               className="app-input"
               placeholder="Ej: 1000"
-              value={filtersForm.precio_min}
-              onChange={(event) => updateFilterField("precio_min", event.target.value)}
+              {...registerFilters("precio_min")}
             />
           </div>
 
@@ -120,16 +112,15 @@ export default function ProductosAdminPage() {
               step="0.01"
               className="app-input"
               placeholder="Ej: 50000"
-              value={filtersForm.precio_max}
-              onChange={(event) => updateFilterField("precio_max", event.target.value)}
+              {...registerFilters("precio_max")}
             />
           </div>
 
           <div className="md:col-span-5 flex gap-2">
-            <button type="button" className="app-btn-primary" onClick={applyFilters}>Filtrar</button>
+            <button type="submit" className="app-btn-primary">Filtrar</button>
             <button type="button" className="app-btn-secondary" onClick={clearFilters}>Limpiar</button>
           </div>
-        </div>
+        </form>
 
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
