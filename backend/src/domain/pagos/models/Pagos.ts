@@ -1,13 +1,15 @@
 import { sequelize } from "src/database/database";
 import { DataTypes, Model, NonAttribute, Optional } from "sequelize";
 import { Pedidos } from "src/domain/pedidos/models/Pedidos";
+import type { Encargos } from "src/domain/encargos/models/Encargos";
 
 interface PagosAttributes {
     id: number;
     monto_total: number;
     fecha_pago: Date;
     aprobado: boolean;
-    id_pedido: number;
+    id_pedido: number | null;
+    id_encargo: number | null;
     es_activo: boolean;
 }
 
@@ -18,10 +20,12 @@ export class Pagos extends Model<PagosAttributes, PagosCreationAttributes> imple
     declare monto_total: number;
     declare fecha_pago: Date;
     declare aprobado: boolean;
-    declare id_pedido: number;
+    declare id_pedido: number | null;
+    declare id_encargo: number | null;
     declare es_activo: boolean;
 
     declare pedido?: NonAttribute<Pedidos>;
+    declare encargo?: NonAttribute<Encargos>;
 }
 
 Pagos.init(
@@ -47,7 +51,11 @@ Pagos.init(
         },
         id_pedido: {
             type: DataTypes.INTEGER,
-            allowNull: false,
+            allowNull: true,
+        },
+        id_encargo: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
         },
         es_activo: {
             type: DataTypes.BOOLEAN,

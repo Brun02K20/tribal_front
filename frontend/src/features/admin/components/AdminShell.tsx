@@ -8,10 +8,12 @@ import type { AdminShellProps } from "@/types/admin-ui";
 const menuItems = [
   { label: "Productos", href: "/dashboard/productos" },
   { label: "Pedidos", href: "/dashboard/pedidos" },
+  { label: "Encargos", href: "/dashboard/encargos" },
   { label: "Categorias", href: "/dashboard/categorias" },
   { label: "Subcategorias", href: "/dashboard/subcategorias" },
   { label: "Descuentos", href: "/dashboard/descuentos" },
   { label: "Estados Pedido", href: "/dashboard/estados-pedido" },
+  { label: "Estados Encargo", href: "/dashboard/estados-encargo" },
   { label: "Estados Envio", href: "/dashboard/estados-envio" },
   { label: "Chat", href: "/dashboard/chat" },
   { label: "Metricas", href: "/dashboard/metricas" },

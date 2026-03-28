@@ -17,6 +17,7 @@ import { Envios } from 'src/domain/envios/models/Envios';
 import { Pagos } from 'src/domain/pagos/models/Pagos';
 import { EstadoPedidos } from 'src/domain/estadopedidos/models/EstadoPedidos';
 import { EstadoEnvios } from 'src/domain/estadoenvios/models/EstadoEnvios';
+import { HistorialPedidos } from 'src/domain/historialpedidos/models/HistorialPedidos';
 import { sendEmail } from 'src/utils/mail/smtp';
 import { DescuentosService } from 'src/domain/descuentos/descuentos.service';
 import { Descuentos } from 'src/domain/descuentos/models/Descuentos';
@@ -579,6 +580,11 @@ export class PedidosService {
             }
 
             await pedido.update({ id_estado_pedido });
+            await HistorialPedidos.create({
+                id_pedido,
+                id_estado: id_estado_pedido,
+                id_usuario: pedido.id_usuario,
+            });
             return this.getPedidoById(id_pedido);
         });
     }

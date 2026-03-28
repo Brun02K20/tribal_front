@@ -20,6 +20,8 @@ import { AiModule } from './domain/ai/ai.module';
 import { ResenasModule } from './domain/resenas/resenas.module';
 import { ChatModule } from './domain/chat/chat.module';
 import { DescuentosModule } from './domain/descuentos/descuentos.module';
+import { EncargosModule } from './domain/encargos/encargos.module';
+import { EstadosEncargosModule } from './domain/estadoencargos/estadoencargos.module';
 
 dotenv.config();
 
@@ -43,6 +45,8 @@ dotenv.config();
     ResenasModule,
     ChatModule,
     DescuentosModule,
+    EncargosModule,
+    EstadosEncargosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

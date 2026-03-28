@@ -12,12 +12,28 @@ import Layout from '../layouts/Layout.astro';
 		<header class="hero app-panel">
 			<nav class="nav">
 				<a class="brand" href="#inicio">Tribal Trend</a>
+				<button
+					id="landingMenuButton"
+					type="button"
+					class="app-btn-secondary nav-toggle"
+					aria-expanded="false"
+					aria-controls="landingMobileMenu"
+				>
+					Menú
+				</button>
 				<div class="nav-links">
 					<a href="#beneficios">Beneficios</a>
 					<a href="#testimonios">Testimonios</a>
 					<a href="/preguntas-frecuentes">FAQ</a>
-					<a class="app-btn-secondary" href="/tienda">Ir a la tienda</a>
+					<a class="app-btn-secondary" href="/tienda" target="_blank" rel="noopener noreferrer">Ir a la tienda</a>
 				</div>
+			</nav>
+
+			<nav id="landingMobileMenu" class="mobile-nav app-collapsible" data-open="false" aria-hidden="true">
+				<a href="#beneficios">Beneficios</a>
+				<a href="#testimonios">Testimonios</a>
+				<a href="/preguntas-frecuentes">FAQ</a>
+				<a class="app-btn-secondary" href="/tienda" target="_blank" rel="noopener noreferrer">Ir a la tienda</a>
 			</nav>
 
 			<section id="inicio" class="hero-content">
@@ -116,6 +132,34 @@ import Layout from '../layouts/Layout.astro';
 	</main>
 
 	<script>
+		const mobileMenu = document.getElementById('landingMobileMenu');
+		const mobileMenuButton = document.getElementById('landingMenuButton');
+
+		if (mobileMenu instanceof HTMLElement && mobileMenuButton instanceof HTMLButtonElement) {
+			const closeMobileMenu = () => {
+				mobileMenu.dataset.open = 'false';
+				mobileMenu.setAttribute('aria-hidden', 'true');
+				mobileMenuButton.setAttribute('aria-expanded', 'false');
+			};
+
+			mobileMenuButton.addEventListener('click', () => {
+				const isOpen = mobileMenu.dataset.open === 'true';
+				mobileMenu.dataset.open = isOpen ? 'false' : 'true';
+				mobileMenu.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
+				mobileMenuButton.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+			});
+
+			mobileMenu.querySelectorAll('a').forEach((anchor) => {
+				anchor.addEventListener('click', closeMobileMenu);
+			});
+
+			document.addEventListener('keydown', (event) => {
+				if (event.key === 'Escape') {
+					closeMobileMenu();
+				}
+			});
+		}
+
 		const form = document.getElementById('contactForm');
 		const status = document.getElementById('formStatus');
 
@@ -188,6 +232,40 @@ import Layout from '../layouts/Layout.astro';
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.85rem;
+	}
+
+	.nav-toggle {
+		display: none;
+	}
+
+	.mobile-nav {
+		display: none;
+		gap: 0.7rem;
+		margin-top: 0.7rem;
+		padding: 0.7rem;
+		border: 1px solid var(--color-line);
+		border-radius: 10px;
+		background: rgba(255, 255, 255, 0.86);
+	}
+
+	.mobile-nav a {
+		align-items: center;
+		display: inline-flex;
+		width: fit-content;
+	}
+
+	.app-collapsible {
+		max-height: 0;
+		opacity: 0;
+		overflow: hidden;
+		pointer-events: none;
+		transition: max-height 220ms ease, opacity 220ms ease;
+	}
+
+	.app-collapsible[data-open='true'] {
+		max-height: 420px;
+		opacity: 1;
+		pointer-events: auto;
 	}
 
 	.hero-content {
@@ -293,6 +371,22 @@ import Layout from '../layouts/Layout.astro';
 	}
 
 	@media (max-width: 980px) {
+		.nav {
+			flex-wrap: wrap;
+		}
+
+		.nav-links {
+			display: none;
+		}
+
+		.nav-toggle {
+			display: inline-flex;
+		}
+
+		.mobile-nav {
+			display: grid;
+		}
+
 		.hero-content,
 		.contact-section {
 			grid-template-columns: 1fr;

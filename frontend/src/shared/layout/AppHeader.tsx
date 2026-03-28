@@ -8,6 +8,8 @@ import { createPortal } from "react-dom";
 import { useAuth } from "@/shared/providers/AuthContext";
 import InstagramButton from "@/shared/ui/InstagramButton";
 
+const LANDING_URL = "https://landing.tribaltrend.com.ar";
+
 export default function AppHeader() {
   const { isAuthenticated, user, loading, logout } = useAuth();
   const router = useRouter();
@@ -261,10 +263,17 @@ export default function AppHeader() {
           </button>
 
           <nav className="hidden items-center gap-6 md:flex">
-            <InstagramButton />
             <Link href="/products" className="app-nav-link cursor-pointer">
               Productos
             </Link>
+            <Link href="/tips" className="app-nav-link cursor-pointer">
+              Tips
+            </Link>
+            {isAuthenticated && user?.id_rol === 2 && (
+              <Link href="/encargos" className="app-nav-link cursor-pointer">
+                Encargos
+              </Link>
+            )}
             {isAuthenticated && user?.id_rol === 2 && (
               <Link href="/mis-pedidos" className="app-nav-link cursor-pointer">
                 Mis pedidos
@@ -285,7 +294,16 @@ export default function AppHeader() {
                 Chat
               </Link>
             )}
+            <Link
+              href={LANDING_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="app-nav-link cursor-pointer"
+            >
+              Conocenos
+            </Link>
             {renderUserDropdown({ mobile: false })}
+            <InstagramButton />
           </nav>
         </div>
       </div>
@@ -295,10 +313,17 @@ export default function AppHeader() {
         data-open={isMobileOpen}
         aria-hidden={!isMobileOpen}
       >
-          <InstagramButton onClick={closeMenus} />
           <Link href="/products" className="app-nav-link cursor-pointer" onClick={closeMenus}>
             Productos
           </Link>
+          <Link href="/tips" className="app-nav-link cursor-pointer" onClick={closeMenus}>
+            Tips
+          </Link>
+          {isAuthenticated && user?.id_rol === 2 && (
+            <Link href="/encargos" className="app-nav-link cursor-pointer" onClick={closeMenus}>
+              Encargos
+            </Link>
+          )}
           {isAuthenticated && user?.id_rol === 2 && (
             <Link href="/mis-pedidos" className="app-nav-link cursor-pointer" onClick={closeMenus}>
               Mis pedidos
@@ -319,7 +344,17 @@ export default function AppHeader() {
               Chat
             </Link>
           )}
+          <Link
+            href={LANDING_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="app-nav-link cursor-pointer"
+            onClick={closeMenus}
+          >
+            Conocenos
+          </Link>
           {renderUserDropdown({ mobile: true })}
+          <InstagramButton onClick={closeMenus} />
       </nav>
     </header>
   );

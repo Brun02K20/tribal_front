@@ -1,21 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import ProtectedRoute from "@/shared/providers/ProtectedRoute";
-import { useAuth } from "@/shared/providers/AuthContext";
 import PedidoDetailContent from "@/features/pedidos/components/PedidoDetailContent";
-import { usePedidoDetail } from "@/features/pedidos/hooks/usePedidoDetail";
+import { useMiPedidoDetallePage } from "@/features/pedidos/hooks/useMiPedidoDetallePage";
 
 export default function MiPedidoDetallePage() {
-  const { user } = useAuth();
-  const params = useParams<{ id: string }>();
-  const id = Number(params?.id);
-
-  const { pedido, loading, error } = usePedidoDetail({
-    id,
-    expectedUserId: user?.id,
-  });
+  const { pedido, loading, error } = useMiPedidoDetallePage();
 
   return (
     <ProtectedRoute>

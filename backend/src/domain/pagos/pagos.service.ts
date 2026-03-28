@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, HttpException, Logger } from '@nestjs/common';
 import { client } from '../mercadopago/mercadopago';
 import { Payment as MPayment } from 'mercadopago';
+import { MerchantOrder as MPMerchantOrder } from 'mercadopago';
 import { sequelize } from 'src/database/database';
 import { Transaction } from 'sequelize';
 import { Pedidos } from 'src/domain/pedidos/models/Pedidos';
@@ -9,8 +10,13 @@ import { DetallePedidos } from 'src/domain/detallepedido/models/DetallePedidos';
 import { Envios } from 'src/domain/envios/models/Envios';
 import { EstadoPedidos } from 'src/domain/estadopedidos/models/EstadoPedidos';
 import { EstadoEnvios } from 'src/domain/estadoenvios/models/EstadoEnvios';
+import { HistorialPedidos } from 'src/domain/historialpedidos/models/HistorialPedidos';
+import { EstadoEncargos } from 'src/domain/estadoencargos/models/EstadoEncargos';
+import { Encargos } from 'src/domain/encargos/models/Encargos';
+import { HistorialEncargos } from 'src/domain/historialencargos/models/HistorialEncargos';
 import { Productos } from 'src/domain/productos/models/Productos';
 import { Usuarios } from 'src/auth/models/Usuarios';
+import { Direcciones } from 'src/auth/usuarios/direcciones/models/Direcciones';
 import { sendEmail } from 'src/utils/mail/smtp';
 import {
 	NotificacionProducto,
@@ -32,6 +38,7 @@ interface MetadataProducto {
 }
 
 interface PaymentMetadata {
+	workflow_type?: 'pedido' | 'encargo';
 	usuario?: {
 		id?: number;
 		nombre?: string;
@@ -45,6 +52,21 @@ interface PaymentMetadata {
 		costo_envio?: number;
 		costo_ganancia_envio?: number;
 		costo_total?: number;
+	};
+	encargo?: {
+		id_encargo?: number;
+		id_usuario?: number;
+		id_direccion?: number;
+		costo_envio?: number;
+		costo_ganancia_envio?: number;
+		costo_total?: number;
+		ancho?: number;
+		alto?: number;
+		profundo?: number;
+		peso_en_gramos?: number;
+		ancho_paquete?: number;
+		alto_paquete?: number;
+		profundo_paquete?: number;
 	};
 	productos?: MetadataProducto[];
 	costo_total?: number;
@@ -83,6 +105,26 @@ export class PagosService {
 			}
 
 			const metadata = (payment.metadata ?? {}) as PaymentMetadata;
+			this.logger.debug(
+				`[WebhookDebug] paymentId=${paymentId} metadataKeys=${Object.keys(metadata ?? {}).join(',') || 'none'} ` +
+				`hasPedido=${Boolean(metadata?.pedido)} hasEncargo=${Boolean(metadata?.encargo)} workflow_type=${metadata?.workflow_type ?? 'N/A'}`,
+			);
+			const workflowType = this.resolvePaymentWorkflowType(metadata);
+			this.logger.log(
+				`[WebhookDebug] paymentId=${paymentId} workflowTypeResuelto=${workflowType} ` +
+				`encargo.id_encargo=${metadata?.encargo?.id_encargo ?? 'N/A'} pedido.id_usuario=${metadata?.pedido?.id_usuario ?? 'N/A'}`,
+			);
+			if (workflowType === 'encargo') {
+				this.logger.log(`[WebhookDebug] paymentId=${paymentId} iniciando processEncargoPayment`);
+				await this.processEncargoPayment({
+					paymentId,
+					payment,
+					metadata,
+				});
+				this.logger.log(`[WebhookDebug] paymentId=${paymentId} processEncargoPayment finalizado OK`);
+				return;
+			}
+
 			const pedidoMetadata = metadata.pedido;
 			const usuarioId = Number(pedidoMetadata?.id_usuario ?? metadata.usuario?.id);
 			const direccionId = Number(pedidoMetadata?.id_direccion);
@@ -179,6 +221,21 @@ export class PagosService {
 
 				this.logger.debug(`Pedido creado. pedidoId=${pedido.id}`);
 				pedidoCreadoId = pedido.id;
+				this.logger.debug(
+					`[PedidoWebhook] Creando HistorialPedidos. pedidoId=${pedido.id} id_estado=${pedido.id_estado_pedido} id_usuario=${pedido.id_usuario}`,
+				);
+				const historialPedido = await HistorialPedidos.create(
+					{
+						id_pedido: pedido.id,
+						id_estado: pedido.id_estado_pedido,
+						id_usuario: pedido.id_usuario,
+					},
+					{ transaction },
+				);
+				const historialPersistido = await HistorialPedidos.findByPk(historialPedido.id, { transaction });
+				this.logger.log(
+					`[PedidoWebhook] HistorialPedido creado. historialId=${historialPedido.id} pedidoId=${pedido.id} estado=${pedido.id_estado_pedido} verificado=${Boolean(historialPersistido)}`,
+				);
 				this.logger.debug(`Paso 2/4 creando Pago`);
 
 				await Pagos.create(
@@ -308,6 +365,63 @@ export class PagosService {
 		}
 	}
 
+	async receiveMerchantOrderNotification(merchantOrderId: string) {
+		try {
+			this.logger.log(`Webhook merchant_order recibido. merchantOrderId=${merchantOrderId}`);
+
+			const merchantOrderResponse = await new MPMerchantOrder(client).get({ merchantOrderId });
+			const merchantOrder = JSON.parse(JSON.stringify(merchantOrderResponse)) as {
+				id?: string | number;
+				payments?: Array<{ id?: string | number; status?: string }>;
+			};
+
+			const paymentIds = (merchantOrder.payments ?? [])
+				.map((payment) => {
+					const id = payment?.id;
+					if (id === undefined || id === null) {
+						return null;
+					}
+
+					return String(id);
+				})
+				.filter((id): id is string => Boolean(id));
+
+			if (!paymentIds.length) {
+				this.logger.warn(
+					`merchant_order sin pagos asociados. merchantOrderId=${merchantOrderId} payload=${JSON.stringify(merchantOrder)}`,
+				);
+				return;
+			}
+
+			this.logger.log(
+				`[WebhookDebug] merchantOrderId=${merchantOrderId} pagosDetectados=${paymentIds.length} ` +
+				`detallePagos=${JSON.stringify((merchantOrder.payments ?? []).map((payment) => ({ id: payment?.id, status: payment?.status })) )}`,
+			);
+
+			for (const paymentId of paymentIds) {
+				this.logger.log(`[WebhookDebug] merchantOrderId=${merchantOrderId} procesando paymentId=${paymentId}`);
+				await this.receivePaymentNotification(paymentId);
+			}
+		} catch (error) {
+			this.logger.error(
+				`Fallo al procesar webhook merchant_order=${merchantOrderId}. error=${
+					error instanceof Error ? error.message : String(error)
+				}`,
+				error instanceof Error ? error.stack : undefined,
+			);
+
+			if (error instanceof HttpException) {
+				throw error;
+			}
+
+			throw new BadRequestException(
+				error instanceof Error
+					? `Error processing merchant order notification: ${error.message}`
+					: 'Error processing merchant order notification',
+			);
+		}
+	}
+
 	private ensurePaymentLockTableReady(): Promise<void> {
 		if (!this.paymentLockTableReadyPromise) {
 			this.paymentLockTableReadyPromise = sequelize
@@ -425,6 +539,218 @@ export class PagosService {
 		}
 
 		return EstadoEnvios.findOne({ order: [['id', 'ASC']] });
+	}
+
+	private resolvePaymentWorkflowType(metadata: PaymentMetadata): 'pedido' | 'encargo' {
+		if (metadata.workflow_type === 'encargo' || metadata.encargo?.id_encargo) {
+			return 'encargo';
+		}
+
+		return 'pedido';
+	}
+
+	private async processEncargoPayment(params: {
+		paymentId: string;
+		payment: {
+			date_approved?: string;
+			transaction_amount?: number;
+		};
+		metadata: PaymentMetadata;
+	}): Promise<void> {
+		const { paymentId, payment, metadata } = params;
+		const encargoMetadata = metadata.encargo;
+
+		try {
+			this.logger.debug(
+				`[EncargoWebhook] paymentId=${paymentId} metadata.encargo=${JSON.stringify(encargoMetadata ?? {})} metadata.usuario=${JSON.stringify(metadata.usuario ?? {})}`,
+			);
+
+			const idEncargo = Number(encargoMetadata?.id_encargo);
+			const idDireccion = Number(encargoMetadata?.id_direccion);
+			const rawUsuarioIdMetadata = encargoMetadata?.id_usuario ?? metadata.usuario?.id;
+			const usuarioIdMetadata = rawUsuarioIdMetadata !== undefined && rawUsuarioIdMetadata !== null
+				? Number(rawUsuarioIdMetadata)
+				: null;
+
+			this.logger.log(
+				`[EncargoWebhook] paymentId=${paymentId} parseIds idEncargo=${idEncargo || 'N/A'} idDireccion=${idDireccion || 'N/A'} usuarioIdMetadata=${usuarioIdMetadata ?? 'N/A'}`,
+			);
+
+			if (!idEncargo || !idDireccion) {
+				this.logger.error(
+					`[EncargoWebhook] paymentId=${paymentId} metadata incompleta. encargoMetadata=${JSON.stringify(encargoMetadata ?? {})}`,
+				);
+				throw new BadRequestException('Metadata de encargo incompleta para registrar pago/envío');
+			}
+
+			const estadoEncargoPagado = await this.findEstadoEncargoByPriority([
+				'Pagado',
+			]);
+
+			const estadoEnvioPendiente = await this.findEnvioStateByPriority([
+				'Pendiente',
+				'En preparación',
+				'En preparacion',
+			]);
+
+			this.logger.log(
+				`[EncargoWebhook] paymentId=${paymentId} estados resueltos estadoEncargoPagado=${estadoEncargoPagado?.id ?? 'N/A'} estadoEnvioPendiente=${estadoEnvioPendiente?.id ?? 'N/A'}`,
+			);
+
+			if (!estadoEncargoPagado || !estadoEnvioPendiente) {
+				throw new BadRequestException('No se encontraron estados de encargo/envío configurados en BD');
+			}
+
+			const costoEnvio = Number(encargoMetadata?.costo_envio ?? 0);
+			const costoGananciaEnvio = Number(encargoMetadata?.costo_ganancia_envio ?? 0);
+			const montoTotalPago = Number(
+				encargoMetadata?.costo_total ?? metadata.costo_total ?? payment.transaction_amount ?? 0,
+			);
+			const anchoPaquete = Number(encargoMetadata?.ancho ?? encargoMetadata?.ancho_paquete ?? 0);
+			const altoPaquete = Number(encargoMetadata?.alto ?? encargoMetadata?.alto_paquete ?? 0);
+			const profundoPaquete = Number(encargoMetadata?.profundo ?? encargoMetadata?.profundo_paquete ?? 0);
+
+			this.logger.debug(
+				`[EncargoWebhook] paymentId=${paymentId} montos/medidas montoTotalPago=${montoTotalPago} costoEnvio=${costoEnvio} costoGananciaEnvio=${costoGananciaEnvio} ancho=${anchoPaquete} alto=${altoPaquete} profundo=${profundoPaquete}`,
+			);
+
+			await sequelize.transaction(async (transaction) => {
+				this.logger.log(`[EncargoWebhook] paymentId=${paymentId} transaction start`);
+				const lockAcquired = await this.acquirePaymentProcessingLock(paymentId, transaction);
+				if (!lockAcquired) {
+					this.logger.warn(
+						`[EncargoWebhook] paymentId=${paymentId} lock duplicado (ya procesado o en curso)`,
+					);
+					return;
+				}
+
+				this.logger.debug(`[EncargoWebhook] paymentId=${paymentId} lock adquirido`);
+
+				const encargo = await Encargos.findByPk(idEncargo, {
+					transaction,
+					lock: transaction.LOCK.UPDATE,
+				});
+
+				if (!encargo) {
+					throw new BadRequestException(`Encargo no encontrado para paymentId=${paymentId}`);
+				}
+
+				this.logger.debug(
+					`[EncargoWebhook] paymentId=${paymentId} encargo encontrado id=${encargo.id} id_usuario=${encargo.id_usuario} id_estado_actual=${encargo.id_estado} id_direccion=${encargo.id_direccion}`,
+				);
+
+				if (usuarioIdMetadata !== null && Number(encargo.id_usuario) !== usuarioIdMetadata) {
+					throw new BadRequestException('El usuario del pago no coincide con el dueño del encargo');
+				}
+
+				const direccion = await Direcciones.findOne({
+					where: {
+						id: idDireccion,
+						id_usuario: encargo.id_usuario,
+					},
+					transaction,
+					lock: transaction.LOCK.UPDATE,
+				});
+
+				if (!direccion) {
+					throw new BadRequestException('Dirección inválida para el encargo pagado');
+				}
+
+				this.logger.debug(
+					`[EncargoWebhook] paymentId=${paymentId} direccion validada id=${direccion.id} usuario=${encargo.id_usuario}`,
+				);
+
+				await encargo.update(
+					{
+						id_estado: estadoEncargoPagado.id,
+					},
+					{ transaction },
+				);
+				this.logger.log(
+					`[EncargoWebhook] paymentId=${paymentId} encargo actualizado id=${encargo.id} nuevo_estado=${estadoEncargoPagado.id}`,
+				);
+
+				const historial = await HistorialEncargos.create(
+					{
+						id_encargo: encargo.id,
+						id_estado: estadoEncargoPagado.id,
+						id_usuario: encargo.id_usuario,
+					},
+					{ transaction },
+				);
+				this.logger.log(
+					`[EncargoWebhook] paymentId=${paymentId} historial creado id=${historial.id} encargo=${encargo.id}`,
+				);
+
+				const pago = await Pagos.create(
+					{
+						monto_total: montoTotalPago,
+						fecha_pago: payment.date_approved ? new Date(payment.date_approved) : new Date(),
+						aprobado: true,
+						id_pedido: null,
+						id_encargo: encargo.id,
+						es_activo: true,
+					},
+					{ transaction },
+				);
+				this.logger.log(
+					`[EncargoWebhook] paymentId=${paymentId} pago creado id=${pago.id} id_encargo=${encargo.id} monto=${montoTotalPago}`,
+				);
+
+				const envio = await Envios.create(
+					{
+						id_pedido: null,
+						id_encargo: encargo.id,
+						id_estado_envio: estadoEnvioPendiente.id,
+						ancho_paquete: anchoPaquete,
+						alto_paquete: altoPaquete,
+						profundo_paquete: profundoPaquete,
+						costo_envio: costoEnvio + costoGananciaEnvio,
+						id_direccion: idDireccion,
+						id_envio_CA: null as unknown as number,
+						es_activo: true,
+					},
+					{ transaction },
+				);
+				this.logger.log(
+					`[EncargoWebhook] paymentId=${paymentId} envio creado id=${envio.id} id_encargo=${encargo.id} id_estado_envio=${estadoEnvioPendiente.id}`,
+				);
+
+				this.logger.log(`Transacción OK encargo. paymentId=${paymentId} encargoId=${encargo.id}`);
+			});
+
+			this.logger.log(`[EncargoWebhook] paymentId=${paymentId} transaction commit OK`);
+		} catch (error) {
+			this.logger.error(
+				`[EncargoWebhook] paymentId=${paymentId} fallo en processEncargoPayment. error=${error instanceof Error ? error.message : String(error)}`,
+				error instanceof Error ? error.stack : undefined,
+			);
+			this.logger.error(
+				`[EncargoWebhook] paymentId=${paymentId} detalleError=${this.buildErrorDetails(error)} metadata=${JSON.stringify(metadata ?? {})}`,
+			);
+			throw error;
+		}
+	}
+
+	private async findEstadoEncargoByPriority(nombres: string[]): Promise<EstadoEncargos | null> {
+		for (const nombre of nombres) {
+			const estado = await EstadoEncargos.findOne({ where: { nombre, esActivo: true } });
+			if (estado) {
+				return estado;
+			}
+		}
+
+		const activos = await EstadoEncargos.findAll({ where: { esActivo: true } });
+		const fallback = activos.find((estado) => {
+			const nombre = String(estado.nombre ?? '').toLowerCase();
+			return nombre.includes('pagad') || nombre.includes('abonad') || nombre.includes('pago');
+		});
+
+		if (fallback) {
+			return fallback;
+		}
+
+		return null;
 	}
 
 	private async sendPurchaseNotifications(context: PurchaseNotificationContext): Promise<void> {

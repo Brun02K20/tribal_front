@@ -1,16 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import AdminOnly from "@/features/admin/components/AdminOnly";
 import AdminShell from "@/features/admin/components/AdminShell";
 import PedidoDetailContent from "@/features/pedidos/components/PedidoDetailContent";
-import { usePedidoAdminDetail } from "@/features/admin/hooks/usePedidoAdminDetail";
+import { usePedidoDetalleAdminPage } from "@/features/admin/hooks/usePedidoDetalleAdminPage";
 
 export default function PedidoDetalleAdminPage() {
-  const params = useParams<{ id: string }>();
-  const id = Number(params?.id);
-  const { pedido, loading, error } = usePedidoAdminDetail(id);
+  const { id, pedido, loading, error } = usePedidoDetalleAdminPage();
 
   return (
     <AdminOnly>

@@ -153,6 +153,17 @@ export function useCheckout() {
   }, [isAddressModalOpen, loadCiudadesByProvincia, selectedProvinciaId]);
 
   const total = useMemo(() => subtotal + SHIPPING_COST, [subtotal]);
+  const totalSavings = useMemo(() => {
+    return items.reduce((acc, item) => {
+      const precioOriginal = Number(item.precio_original ?? item.precio);
+      const precioCompra = Number(item.precio);
+      if (precioOriginal <= precioCompra) {
+        return acc;
+      }
+
+      return acc + (precioOriginal - precioCompra) * item.quantity;
+    }, 0);
+  }, [items]);
 
   const updateItemQuantity = (itemId: number, quantity: number) => {
     updateQuantity(itemId, quantity);
@@ -315,6 +326,7 @@ export function useCheckout() {
     subtotal,
     totalItems,
     total,
+    totalSavings,
     shippingCost: SHIPPING_COST,
     commissionCost: Number(subtotal.toFixed(2)) * 0.05,
     addresses,

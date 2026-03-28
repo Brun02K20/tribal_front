@@ -17,6 +17,7 @@ export default function CheckoutPage() {
     subtotal,
     totalItems,
     total,
+    totalSavings,
     shippingCost,
     commissionCost,
     error,
@@ -41,16 +42,6 @@ export default function CheckoutPage() {
     updateItemQuantity,
     removeCheckoutItem,
   } = useCheckout();
-
-  const totalSavings = items.reduce((acc, item) => {
-    const precioOriginal = Number(item.precio_original ?? item.precio);
-    const precioCompra = Number(item.precio);
-    if (precioOriginal <= precioCompra) {
-      return acc;
-    }
-
-    return acc + (precioOriginal - precioCompra) * item.quantity;
-  }, 0);
 
   if (loading || !isAuthenticated) {
     return (

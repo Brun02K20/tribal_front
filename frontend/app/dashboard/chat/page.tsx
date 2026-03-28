@@ -1,14 +1,8 @@
 'use client';
 
-import { KeyboardEvent } from 'react';
 import AdminOnly from '@/features/admin/components/AdminOnly';
 import AdminShell from '@/features/admin/components/AdminShell';
-import { useAdminChat } from '@/features/chat/hooks/useAdminChat';
-
-const formatTime = (value: string) => {
-  const date = new Date(value);
-  return date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-};
+import { useAdminChatPage } from '@/features/chat/hooks/useAdminChatPage';
 
 export default function DashboardChatPage() {
   const {
@@ -28,14 +22,9 @@ export default function DashboardChatPage() {
     setDraft,
     selectConversation,
     sendMessage,
-  } = useAdminChat();
-
-  const onEnterPress = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      void sendMessage();
-    }
-  };
+    onEnterPress,
+    formatTime,
+  } = useAdminChatPage();
 
   return (
     <AdminOnly>

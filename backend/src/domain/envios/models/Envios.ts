@@ -3,10 +3,12 @@ import { DataTypes, Model, NonAttribute, Optional } from "sequelize";
 import { Pedidos } from "src/domain/pedidos/models/Pedidos";
 import { EstadoEnvios } from "src/domain/estadoenvios/models/EstadoEnvios";
 import { Direcciones } from "src/auth/usuarios/direcciones/models/Direcciones";
+import type { Encargos } from "src/domain/encargos/models/Encargos";
 
 interface EnviosAttributes {
     id: number;
-    id_pedido: number;
+    id_pedido: number | null;
+    id_encargo: number | null;
     id_estado_envio: number;
     ancho_paquete: number;
     alto_paquete: number;
@@ -21,7 +23,8 @@ interface EnviosCreationAttributes extends Optional<EnviosAttributes, "id"> {}
 
 export class Envios extends Model<EnviosAttributes, EnviosCreationAttributes> implements EnviosAttributes {
     declare id: number;
-    declare id_pedido: number;
+    declare id_pedido: number | null;
+    declare id_encargo: number | null;
     declare id_estado_envio: number;
     declare ancho_paquete: number;
     declare alto_paquete: number;
@@ -32,6 +35,7 @@ export class Envios extends Model<EnviosAttributes, EnviosCreationAttributes> im
     declare es_activo: boolean;
 
     declare pedido?: NonAttribute<Pedidos>;
+    declare encargo?: NonAttribute<Encargos>;
     declare estado_envio?: NonAttribute<EstadoEnvios>;
     declare direccion?: NonAttribute<Direcciones>;
 }
@@ -46,7 +50,11 @@ Envios.init(
         },
         id_pedido: {
             type: DataTypes.INTEGER,
-            allowNull: false,
+            allowNull: true,
+        },
+        id_encargo: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
         },
         id_estado_envio: {
             type: DataTypes.INTEGER,

@@ -1,20 +1,11 @@
 'use client';
 
-import { KeyboardEvent, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/shared/providers/ProtectedRoute';
-import { useAuth } from '@/shared/providers/AuthContext';
-import { useClientChat } from '@/features/chat/hooks/useClientChat';
-
-const formatTime = (value: string) => {
-  const date = new Date(value);
-  return date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-};
+import { useClientChatPage } from '@/features/chat/hooks/useClientChatPage';
 
 export default function ChatClientePage() {
-  const router = useRouter();
-  const { user } = useAuth();
   const {
+    user,
     messages,
     draft,
     loading,
@@ -23,24 +14,13 @@ export default function ChatClientePage() {
     error,
     setDraft,
     sendMessage,
-  } = useClientChat();
-
-  useEffect(() => {
-    if (user?.id_rol === 1) {
-      router.replace('/dashboard/chat');
-    }
-  }, [router, user?.id_rol]);
+    onEnterPress,
+    formatTime,
+  } = useClientChatPage();
 
   if (user?.id_rol === 1) {
     return null;
   }
-
-  const onEnterPress = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      void sendMessage();
-    }
-  };
 
   return (
     <ProtectedRoute>
