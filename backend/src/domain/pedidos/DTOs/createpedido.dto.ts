@@ -63,5 +63,25 @@ export class CreatePedidoDto {
     @ApiProperty({ example: 1 })
     @IsInt()
     id_direccion!: number;
+
+    // Agregar al final de CreatePedidoDto, antes del cierre de la clase:
+    @ApiProperty({ example: 'D', description: 'Tipo de entrega CA: D=domicilio, S=sucursal', required: false })
+    @IsOptional()
+    @IsString()
+    ca_delivered_type?: string;
+
+    @ApiProperty({ example: 'CP', description: 'Tipo de producto CA', required: false })
+    @IsOptional()
+    @IsString()
+    ca_product_type?: string;
+
+    @ApiProperty({ example: 'Correo Argentino Clasico', required: false })
+    @IsOptional()
+    @IsString()
+    ca_product_name?: string;
+
+    @ApiProperty({ example: 498.06, description: 'Precio cotizado por CA', required: false })
+    @IsOptional()
+    ca_price?: number;
 }
 

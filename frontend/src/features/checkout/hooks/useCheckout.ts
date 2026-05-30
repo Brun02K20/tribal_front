@@ -13,8 +13,11 @@ import type { Ciudad, Provincia } from "@/types/locations";
 import type { CreateUserAddressPayload, UserAddress } from "@/types/usuarios";
 import type { PedidoDetalleCreateInput } from "@/types/pedidos";
 import { useForm, useWatch } from "react-hook-form";
-
-export const SHIPPING_COST = 75;
+// 1. Agregar import
+import {
+  correoArgentinoService,
+  type ShippingRateItem,
+} from '@/entities/correo-argentino/api/correo-argentino.service';
 
 export function useCheckout() {
   const router = useRouter();
@@ -33,6 +36,13 @@ export function useCheckout() {
   const [ciudades, setCiudades] = useState<Ciudad[]>([]);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [creatingAddress, setCreatingAddress] = useState(false);
+
+  // 3. Agregar estados nuevos (dentro del hook):
+const [shippingRates, setShippingRates] = useState<ShippingRateItem[]>([]);
+const [loadingRates, setLoadingRates] = useState(false);
+const [selectedRate, setSelectedRate] = useState<ShippingRateItem | null>(null);
+
+
   const {
     register: registerObservaciones,
     getValues: getObservacionesValues,
@@ -63,6 +73,55 @@ export function useCheckout() {
     control: addressControl,
     name: "id_provincia",
   });
+
+  // 4. Agregar efecto para cargar rates cuando cambia la dirección:
+useEffect(() => {
+  if (!selectedAddressId || !items.length) {
+    setShippingRates([]);
+    setSelectedRate(null);
+    return;
+  }
+
+  const address = addresses.find((a) => a.id === selectedAddressId);
+  if (!address?.cod_postal_destino) return;
+
+  // Calcular dimensiones del paquete
+  const maxWidth = Math.max(...items.map((i) => Number(i.ancho ?? 10)));
+  const maxHeight = Math.max(...items.map((i) => Number(i.alto ?? 10)));
+  const totalDepth = items.reduce(
+    (sum, i) => sum + Number(i.profundo ?? 10) * i.quantity, 0,
+  );
+  // Peso: estimación 100g por item si no hay dato
+  const totalWeight = items.reduce(
+    (sum, i) => sum + 100 * i.quantity, 0,
+  );
+
+  const fetchRates = async () => {
+    setLoadingRates(true);
+    try {
+      const data = await correoArgentinoService.getRates({
+        postalCodeDestination: address.cod_postal_destino,
+        weight: totalWeight,
+        height: maxHeight,
+        width: maxWidth,
+        length: totalDepth,
+      });
+      setShippingRates(data.rates);
+      // Autoseleccionar el primero
+      if (data.rates.length > 0 && !selectedRate) {
+        setSelectedRate(data.rates[0]);
+      }
+    } catch (err) {
+      console.error('Error cargando rates:', err);
+      setShippingRates([]);
+    } finally {
+      setLoadingRates(false);
+    }
+  };
+
+  void fetchRates();
+}, [selectedAddressId, addresses, items]);
+
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -152,7 +211,13 @@ export function useCheckout() {
     }
   }, [isAddressModalOpen, loadCiudadesByProvincia, selectedProvinciaId]);
 
-  const total = useMemo(() => subtotal + SHIPPING_COST, [subtotal]);
+  const shippingCost = selectedRate?.price ?? 0;
+  const commissionCost = Number((subtotal * 0.05).toFixed(2));
+  const total = useMemo(
+    () => subtotal + shippingCost + commissionCost,
+    [subtotal, shippingCost, commissionCost],
+  );
+
   const totalSavings = useMemo(() => {
     return items.reduce((acc, item) => {
       const precioOriginal = Number(item.precio_original ?? item.precio);
@@ -298,11 +363,17 @@ export function useCheckout() {
         id_usuario: user.id,
         id_direccion: selectedAddressId,
         costo_total_productos: Number(subtotal.toFixed(2)),
-        costo_envio: Number(SHIPPING_COST.toFixed(2)),
-        costo_ganancia_envio: Number(subtotal.toFixed(2)) * 0.05, // 5% de comisión sobre el subtotal
-        observaciones: getObservacionesValues("observaciones").trim() || null,
+        costo_envio: shippingCost,
+        costo_ganancia_envio: commissionCost,
+        observaciones: getObservacionesValues('observaciones').trim() || null,
         detalles,
+        // Nuevos campos CA:
+        ca_delivered_type: selectedRate?.deliveredType,
+        ca_product_type: selectedRate?.productType,
+        ca_product_name: selectedRate?.productName,
+        ca_price: selectedRate?.price,
       });
+
 
       if (!response.init_point) {
         throw new Error("No se recibió URL de pago");
@@ -327,8 +398,6 @@ export function useCheckout() {
     totalItems,
     total,
     totalSavings,
-    shippingCost: SHIPPING_COST,
-    commissionCost: Number(subtotal.toFixed(2)) * 0.05,
     addresses,
     loadingAddresses,
     selectedAddressId,
@@ -349,6 +418,12 @@ export function useCheckout() {
     pay,
     updateItemQuantity,
     removeCheckoutItem,
+    shippingRates,
+    loadingRates,
+    selectedRate,
+    setSelectedRate,
+    shippingCost,
+    commissionCost,
   };
 }
 

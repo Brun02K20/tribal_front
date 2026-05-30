@@ -41,6 +41,10 @@ export default function CheckoutPage() {
     pay,
     updateItemQuantity,
     removeCheckoutItem,
+    shippingRates,
+    loadingRates,
+    selectedRate,
+    setSelectedRate,
   } = useCheckout();
 
   if (loading || !isAuthenticated) {
@@ -102,19 +106,92 @@ export default function CheckoutPage() {
         </section>
 
         <section className="app-panel mb-6">
-          <div className="mb-3">
-            <h2 className="text-lg font-semibold">Observaciones del pedido</h2>
-            <p className="app-subtitle text-sm">
-              Opcional. Podés dejar indicaciones para la entrega o bien con respecto a los productos del pedido
-            </p>
-          </div>
-          <textarea
-            className="app-input min-h-28 w-full resize-y"
-            placeholder="Ej: Entregar por la tarde. Tocar timbre del depto B. Quiero la pulsera de hilo chino en color rosa."
-            {...registerObservaciones("observaciones", { maxLength: 1000 })}
-          />
-          <p className="mt-1 text-right text-xs text-dark-gray">{observacionesValue.length}/1000</p>
-        </section>
+  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+    {/* Columna izquierda: Observaciones */}
+    <div>
+      <div className="mb-3">
+        <h2 className="text-lg font-semibold">Observaciones del pedido</h2>
+        <p className="app-subtitle text-sm">
+          Opcional. Podés dejar indicaciones para la entrega o sobre los productos.
+        </p>
+      </div>
+      <textarea
+        className="app-input min-h-28 w-full resize-y"
+        placeholder="Ej: Entregar por la tarde. Tocar timbre del depto B."
+        {...registerObservaciones('observaciones', { maxLength: 1000 })}
+      />
+      <p className="mt-1 text-right text-xs text-dark-gray">
+        {observacionesValue.length}/1000
+      </p>
+    </div>
+
+    {/* Columna derecha: Método de envío */}
+    <div>
+      <div className="mb-3">
+        <h2 className="text-lg font-semibold">Método de envío</h2>
+        <p className="app-subtitle text-sm">Seleccioná cómo querés recibir tu pedido.</p>
+      </div>
+
+      {loadingRates ? (
+        <div className="flex items-center justify-center py-8">
+          <p className="text-sm text-zinc-500">Calculando envío...</p>
+        </div>
+      ) : shippingRates.length === 0 ? (
+        <div className="rounded-md border border-dashed border-zinc-300 p-4 text-center">
+          <p className="text-sm text-zinc-500">
+            {selectedAddressId
+              ? 'No se encontraron opciones de envío para esta dirección.'
+              : 'Seleccioná una dirección para ver las opciones de envío.'}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {shippingRates.map((rate) => {
+            const isSelected =
+              selectedRate?.deliveredType === rate.deliveredType &&
+              selectedRate?.productType === rate.productType;
+
+            return (
+              <button
+                key={`${rate.deliveredType}-${rate.productType}`}
+                type="button"
+                onClick={() => setSelectedRate(rate)}
+                className={`w-full rounded-lg border-2 p-4 text-left transition-all ${
+                  isSelected
+                    ? 'border-amber-600 bg-amber-50 shadow-sm'
+                    : 'border-zinc-200 bg-white hover:border-amber-300 hover:bg-amber-50/30'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-sm">
+                      {rate.productName}
+                    </p>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      {rate.deliveredType === 'D' ? '📦 A domicilio' : '🏢 Retiro en sucursal'}
+                      {' · '}
+                      {rate.deliveryTimeMin}-{rate.deliveryTimeMax} días hábiles
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-amber-700">
+                      ${rate.price.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+                {isSelected && (
+                  <div className="mt-2 flex items-center gap-1 text-xs text-amber-700 font-medium">
+                    <span>✓</span> Seleccionado
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  </div>
+</section>
 
         {items.length === 0 ? (
           <section className="app-panel">
@@ -232,7 +309,7 @@ export default function CheckoutPage() {
               <button
                 className="app-btn-primary mt-4 w-full disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={pay}
-                disabled={paying || !selectedAddressId || items.length === 0}
+                disabled={paying || !selectedAddressId || !selectedRate || items.length === 0}
               >
                 {paying ? "Procesando..." : "PAGAR"}
               </button>

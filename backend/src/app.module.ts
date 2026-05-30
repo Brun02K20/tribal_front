@@ -22,6 +22,7 @@ import { ChatModule } from './domain/chat/chat.module';
 import { DescuentosModule } from './domain/descuentos/descuentos.module';
 import { EncargosModule } from './domain/encargos/encargos.module';
 import { EstadosEncargosModule } from './domain/estadoencargos/estadoencargos.module';
+import { CorreoArgentinoModule } from './domain/correoArgentino/correoArgentino.module';
 
 dotenv.config();
 
@@ -47,6 +48,7 @@ dotenv.config();
     DescuentosModule,
     EncargosModule,
     EstadosEncargosModule,
+    CorreoArgentinoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

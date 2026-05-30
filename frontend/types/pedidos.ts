@@ -89,6 +89,7 @@ export type PedidoDetalleCreateInput = {
   profundo_producto: number;
 };
 
+// En CreatePedidoPayload, agregar:
 export type CreatePedidoPayload = {
   id_usuario: number;
   costo_total_productos: number;
@@ -97,6 +98,11 @@ export type CreatePedidoPayload = {
   observaciones?: string | null;
   detalles: PedidoDetalleCreateInput[];
   id_direccion: number;
+  // Nuevos campos de Correo Argentino:
+  ca_delivered_type?: string;
+  ca_product_type?: string;
+  ca_product_name?: string;
+  ca_price?: number;
 };
 
 export type CreatePedidoResponse = {

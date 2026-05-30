@@ -23,6 +23,8 @@ import {
 	PurchaseNotificationContext,
 	buildPurchaseNotificationContent,
 } from 'src/utils/mail/templates/purchase-notification.template';
+import {CorreoArgentinoService} from '../correoArgentino/correoArgentino.service';
+import { provinceNameToCACode } from '../correoArgentino/utils/province-code-mapper';
 
 interface MetadataProducto {
 	id_producto: number;
@@ -70,6 +72,20 @@ interface PaymentMetadata {
 	};
 	productos?: MetadataProducto[];
 	costo_total?: number;
+	correo_argentino?: {
+        delivered_type?: string | null;
+        product_type?: string | null;
+        product_name?: string | null;
+        price?: number | null;
+    };
+	direccion_envio?: {
+        id?: number;
+        calle?: string;
+        altura?: string;
+        cod_postal_destino?: string;
+        ciudad?: { id?: number; nombre?: string } | null;
+        provincia?: { id?: number; nombre?: string } | null;
+    };
 }
 
 @Injectable()
@@ -78,6 +94,8 @@ export class PagosService {
 	private readonly adminUserId = 10;
 	private readonly frontendBaseUrl = (process.env.FRONTEND_PUBLIC_URL ?? 'https://tribaltrend.com.ar').replace(/\/$/, '');
 	private paymentLockTableReadyPromise: Promise<void> | null = null;
+
+	constructor(private readonly correoArgentinoService: CorreoArgentinoService) {}
 
 	// aca es donde se recibe la notificacion de pago de mercado pago, y se procesa el pago
 	// esta ruta debe ser la misma que se configura en el webhook de mercado pago
@@ -318,6 +336,57 @@ export class PagosService {
 						`Stock actualizado. productoId=${idProducto} stockAnterior=${stockActual} unidadesDescontadas=${unidadesDescontar} stockNuevo=${nuevoStock}`,
 					);
 				}
+
+				// Paso 6/6: Importar envío a Correo Argentino
+                const caMetadata = metadata.correo_argentino;
+                if (caMetadata?.delivered_type && caMetadata?.product_type) {
+                    try {
+                        const direccionEnvio = metadata.direccion_envio;
+                        // Calcular peso total sumando peso_gramos de cada producto × unidades
+                        let pesoTotal = 0;
+                        for (const [idProducto, unidades] of unidadesPorProducto.entries()) {
+                            const prod = await Productos.findByPk(idProducto, {
+                                attributes: ['peso_gramos'],
+                                transaction,
+                            });
+                            pesoTotal += (Number(prod?.peso_gramos ?? 0)) * unidades;
+                        }
+
+                        await this.correoArgentinoService.import_order_to_CA({
+                            customerId: '', // se resuelve internamente
+                            extOrderId: `PED-${pedido.id}`,
+                            orderNumber: `#${pedido.id}`,
+                            recipient: {
+                                name: String(metadata.usuario?.nombre ?? ''),
+                                email: String(metadata.usuario?.email ?? ''),
+                            },
+                            shipping: {
+                                deliveryType: caMetadata.delivered_type,
+                                productType: caMetadata.product_type,
+                                weight: pesoTotal || 500,
+                                declaredValue: costoTotalProductos,
+                                height: altoPaquete,
+                                length: profundoPaquete,
+                                width: anchoPaquete,
+                                address: {
+                                    streetName: direccionEnvio?.calle,
+                                    streetNumber: direccionEnvio?.altura,
+                                    city: direccionEnvio?.ciudad?.nombre,
+                                    provinceCode: provinceNameToCACode(direccionEnvio?.provincia?.nombre ?? ''),
+                                    postalCode: direccionEnvio?.cod_postal_destino,
+                                },
+                            },
+                        });
+                        this.logger.log(`Envío importado a CA para pedidoId=${pedido.id}`);
+                    } catch (caError) {
+                        // No romper el flujo si CA falla — el pedido ya está pago
+                        this.logger.error(
+                            `Error importando envío a CA para pedidoId=${pedido.id}: ${
+                                caError instanceof Error ? caError.message : String(caError)
+                            }`,
+                        );
+                    }
+                }
 
 				this.logger.log(`Transacción OK. paymentId=${paymentId} pedidoId=${pedido.id}`);
 			});

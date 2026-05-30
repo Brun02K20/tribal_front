@@ -520,6 +520,12 @@ export class PedidosService {
                         },
                         productos: productosMetadata,
                         costo_total,
+                        correo_argentino: {
+                            delivered_type: createPedidoDto.ca_delivered_type ?? null,
+                            product_type: createPedidoDto.ca_product_type ?? null,
+                            product_name: createPedidoDto.ca_product_name ?? null,
+                            price: createPedidoDto.ca_price ?? null,
+                        },
                     },
                 },
             });
