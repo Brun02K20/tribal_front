@@ -18,6 +18,7 @@ const menuItems = [
   { label: "Chat", href: "/dashboard/chat" },
   { label: "Metricas", href: "/dashboard/metricas" },
   { label: "AI", href: "/dashboard/ai" },
+  { label: "Blog", href: "/dashboard/blog" },
 ];
 
 export default function AdminShell({

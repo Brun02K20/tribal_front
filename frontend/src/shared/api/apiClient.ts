@@ -22,7 +22,9 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   const method = (config.method ?? "get").toLowerCase();
-  if (["post", "put", "patch"].includes(method)) {
+  const url = config.url ?? "";
+
+  if (["post", "put", "patch"].includes(method) && !url.startsWith("/blog")) {
     const suspiciousPaths = findSuspiciousInputPaths(config.data);
     if (suspiciousPaths.length) {
       throw new Error(

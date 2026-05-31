@@ -266,8 +266,8 @@ export default function AppHeader() {
             <Link href="/products" className="app-nav-link cursor-pointer">
               Productos
             </Link>
-            <Link href="/tips" className="app-nav-link cursor-pointer">
-              Tips
+            <Link href="/blog" className="app-nav-link cursor-pointer">
+                Blog
             </Link>
             {isAuthenticated && user?.id_rol === 2 && (
               <Link href="/encargos" className="app-nav-link cursor-pointer">
@@ -316,8 +316,8 @@ export default function AppHeader() {
           <Link href="/products" className="app-nav-link cursor-pointer" onClick={closeMenus}>
             Productos
           </Link>
-          <Link href="/tips" className="app-nav-link cursor-pointer" onClick={closeMenus}>
-            Tips
+          <Link href="/blog" className="app-nav-link cursor-pointer" onClick={closeMenus}>
+              Blog
           </Link>
           {isAuthenticated && user?.id_rol === 2 && (
             <Link href="/encargos" className="app-nav-link cursor-pointer" onClick={closeMenus}>

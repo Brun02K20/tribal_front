@@ -23,6 +23,7 @@ import { DescuentosModule } from './domain/descuentos/descuentos.module';
 import { EncargosModule } from './domain/encargos/encargos.module';
 import { EstadosEncargosModule } from './domain/estadoencargos/estadoencargos.module';
 import { CorreoArgentinoModule } from './domain/correoArgentino/correoArgentino.module';
+import { BlogsModule } from './domain/blogs/blogs.module';
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ dotenv.config();
     EncargosModule,
     EstadosEncargosModule,
     CorreoArgentinoModule,
+    BlogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

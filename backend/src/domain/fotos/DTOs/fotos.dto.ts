@@ -10,3 +10,13 @@ export class CreateProductFotosDto {
     @IsInt()
     id_producto!: number;
 }
+
+export class CreateBlogFotosDto {
+    @ApiProperty({ example: 'https://example.com/foto1.jpg' })
+    @IsString()
+    url!: string;
+
+    @ApiProperty({ example: 1, required: true })
+    @IsInt()
+    id_blog!: number;
+}

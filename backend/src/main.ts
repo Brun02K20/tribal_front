@@ -12,7 +12,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
   app.useGlobalFilters(new GlobalExceptionFilter());
-  app.use(xssValidationMiddleware);
+  app.use((req, res, next) => {
+    if (req.originalUrl?.startsWith('/blogs')) return next();
+    return xssValidationMiddleware(req, res, next);
+  });
   const expressApp = app.getHttpAdapter().getInstance();
 
   const swaggerConfig = new DocumentBuilder()
