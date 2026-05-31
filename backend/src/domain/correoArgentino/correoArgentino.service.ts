@@ -133,7 +133,13 @@ export class CorreoArgentinoService {
     const normalizedOrder = normalizeOrderRequest(orderRequest);
     this.logger.log(`import_order_to_CA: extOrderId=${normalizedOrder.extOrderId}`);
 
-    const token = (await this.validate_user()).token;
+    const auth = await this.validate_user();
+    const token = auth.token;
+
+    // Usar el customerId del validate_user si no viene en el request
+    if (!normalizedOrder.customerId) {
+        normalizedOrder.customerId = auth.customerId;
+    }
 
     let response;
     try {
