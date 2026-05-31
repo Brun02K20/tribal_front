@@ -19,7 +19,6 @@ export default function CheckoutPage() {
     total,
     totalSavings,
     shippingCost,
-    commissionCost,
     error,
     addresses,
     loadingAddresses,
@@ -297,7 +296,7 @@ export default function CheckoutPage() {
                 )}
                 <div className="flex justify-between">
                   <span>Envío</span>
-                  <span>{formatCurrencyArs(shippingCost + commissionCost)}</span>
+                  <span>{formatCurrencyArs(shippingCost)}</span>
                 </div>
                 <hr className="my-2" />
                 <div className="flex justify-between text-base font-bold">

@@ -12,7 +12,7 @@ export class CorreoArgentinoController {
   @Get('rates')
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Obtener cotizaciones de envío de Correo Argentino' })
-  @ApiQuery({ name: 'postalCodeDestination', required: true, example: '1704' })
+  @ApiQuery({ name: 'postalCodeDestination', required: true, example: '5016' })
   @ApiQuery({ name: 'weight', required: true, example: 500, description: 'Peso en gramos' })
   @ApiQuery({ name: 'height', required: true, example: 10 })
   @ApiQuery({ name: 'width', required: true, example: 20 })
@@ -27,6 +27,8 @@ export class CorreoArgentinoController {
     if (!postalCodeDestination) {
       throw new BadRequestException('postalCodeDestination es obligatorio');
     }
+
+    console.log("lo lee?: ", process.env.CA_POSTAL_CODE_ORIGIN )
 
     const postalCodeOrigin = process.env.CA_POSTAL_CODE_ORIGIN ?? 'X5016';
 

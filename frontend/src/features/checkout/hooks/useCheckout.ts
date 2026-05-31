@@ -212,10 +212,9 @@ useEffect(() => {
   }, [isAddressModalOpen, loadCiudadesByProvincia, selectedProvinciaId]);
 
   const shippingCost = selectedRate?.price ?? 0;
-  const commissionCost = Number((subtotal * 0.05).toFixed(2));
   const total = useMemo(
-    () => subtotal + shippingCost + commissionCost,
-    [subtotal, shippingCost, commissionCost],
+    () => subtotal + shippingCost,
+    [subtotal, shippingCost],
   );
 
   const totalSavings = useMemo(() => {
@@ -364,7 +363,7 @@ useEffect(() => {
         id_direccion: selectedAddressId,
         costo_total_productos: Number(subtotal.toFixed(2)),
         costo_envio: shippingCost,
-        costo_ganancia_envio: commissionCost,
+        costo_ganancia_envio: 0, // Por ahora no tenemos comisión, pero se puede calcular como subtotal * 0.05 o similar
         observaciones: getObservacionesValues('observaciones').trim() || null,
         detalles,
         // Nuevos campos CA:
@@ -422,8 +421,7 @@ useEffect(() => {
     loadingRates,
     selectedRate,
     setSelectedRate,
-    shippingCost,
-    commissionCost,
+    shippingCost
   };
 }
 
