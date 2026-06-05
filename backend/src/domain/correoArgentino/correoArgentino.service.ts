@@ -12,7 +12,7 @@ export class CorreoArgentinoService {
   private readonly logger = new Logger(CorreoArgentinoService.name);
 
   private readonly url = process.env.CA_API_URL
-    ?? 'https://apitest.correoargentino.com.ar/micorreo/v1';
+    ?? 'https://api.correoargentino.com.ar/micorreo/v1';
   private readonly apiUser = process.env.CA_API_USER ?? '';
   private readonly apiPassword = process.env.CA_API_PASSWORD ?? '';
   private readonly caEmail = process.env.CA_MICORREO_EMAIL ?? '';
