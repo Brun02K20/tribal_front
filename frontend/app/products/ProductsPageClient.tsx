@@ -10,6 +10,11 @@ import ImagePlaceholder from "@/shared/ui/ImagePlaceholder";
 import PaginationControls from "@/shared/ui/PaginationControls";
 import AppModal from "@/shared/ui/AppModal";
 import ProductDesignSelector from "@/features/products/components/ProductDesignSelector";
+import type { ProductDiseno } from "@/types/products";
+
+type ProductDisenoWithPhoto = ProductDiseno & { url_foto: string };
+
+const hasDesignPhoto = (diseno: ProductDiseno): diseno is ProductDisenoWithPhoto => Boolean(diseno.url_foto);
 
 export default function ProductsPageClient() {
   const {
@@ -142,9 +147,11 @@ export default function ProductsPageClient() {
                   {products.map((product) => {
                     const stock = toNumber(product.stock);
                     const precio = toNumber(product.precio);
-                    const activeDesign = !product.es_unico && product.disenos?.length
-                      ? product.disenos[activeImageByProduct[product.id] ?? 0] ?? product.disenos[0]
+                    const productDesignsWithPhoto = (product.disenos ?? []).filter(hasDesignPhoto);
+                    const activeDesign = !product.es_unico && productDesignsWithPhoto.length
+                      ? productDesignsWithPhoto[activeImageByProduct[product.id] ?? 0] ?? productDesignsWithPhoto[0]
                       : null;
+                    const activeImageUrl = activeDesign?.url_foto ?? product.fotos[activeImageByProduct[product.id] ?? 0]?.url;
                     const hasDiscount =
                       !activeDesign
                       &&
@@ -157,7 +164,7 @@ export default function ProductsPageClient() {
 
                     return (
                       <article key={product.id} className="app-panel">
-                        {(activeDesign || product.fotos?.length) ? (
+                        {activeImageUrl ? (
                           <div className="relative mb-3">
                             {hasDiscount && (
                               <span className="absolute left-2 top-2 z-10 rounded-full bg-earth-brown px-2 py-1 text-xs font-semibold text-cream">
@@ -166,7 +173,7 @@ export default function ProductsPageClient() {
                             )}
                             <img
                               key={`${product.id}-${activeImageByProduct[product.id] ?? 0}`}
-                              src={activeDesign?.url_foto ?? product.fotos[activeImageByProduct[product.id] ?? 0]?.url}
+                              src={activeImageUrl}
                               alt={`${activeDesign?.nombre ?? product.nombre} artesanal - Tribal Trend`}
                               width={800}
                               height={800}
@@ -181,7 +188,7 @@ export default function ProductsPageClient() {
                         )}
 
                         <h2 className="text-lg font-semibold">{product.nombre}</h2>
-                        {activeDesign && <p className="mt-1 text-sm font-semibold text-earth-brown">{activeDesign.nombre}</p>}
+                        {activeDesign && <p className="mt-1 text-sm font-semibold text-earth-brown">Diseño: {activeDesign.nombre}</p>}
                         <p className="mt-1 text-sm text-zinc-600">
                           {product.categoria?.nombre ?? "-"} / {product.subcategoria?.nombre ?? "-"}
                         </p>
@@ -196,7 +203,7 @@ export default function ProductsPageClient() {
                             <p className="text-lg font-bold text-earth-brown">${precioFinal.toFixed(2)}</p>
                           </div>
                         ) : (
-                          <p className="mt-2 text-lg font-bold">${precio.toFixed(2)}</p>
+                          <p className="mt-2 text-lg font-bold">${precioFinal.toFixed(2)}</p>
                         )}
 
                         <div className="mt-4 flex gap-2">
