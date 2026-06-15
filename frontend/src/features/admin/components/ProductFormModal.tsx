@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import type { ProductFormValues } from "@/types/products";
+import type { ProductDesignOrderItem, ProductFormValues } from "@/types/products";
 import type { ProductFormModalProps } from "@/types/admin-ui";
 import AppModal from "@/shared/ui/AppModal";
 
@@ -13,12 +13,31 @@ type GalleryItem =
   | { id: string; type: "existing"; url: string }
   | { id: string; type: "new"; file: File; previewUrl: string };
 
+type DesignItem = {
+  localId: string;
+  id?: number;
+  nombre: string;
+  precio: string;
+  url_foto?: string | null;
+  file: File | null;
+  previewUrl: string;
+};
+
+const createEmptyDesignItem = (): DesignItem => ({
+  localId: `design-${crypto.randomUUID()}`,
+  nombre: "",
+  precio: "",
+  file: null,
+  previewUrl: "",
+});
+
 const isAcceptedImage = (file: File) => {
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
   return ACCEPTED_EXTENSIONS.includes(ext) || ACCEPTED_MIME_TYPES.includes(file.type);
 };
 
 const getGalleryUrl = (item: GalleryItem) => (item.type === "existing" ? item.url : item.previewUrl);
+const getDesignPreviewUrl = (item: DesignItem) => item.previewUrl || item.url_foto || "";
 
 export default function ProductFormModal({
   isOpen,
@@ -45,10 +64,12 @@ export default function ProductFormModal({
   });
 
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [designItems, setDesignItems] = useState<DesignItem[]>([]);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [designError, setDesignError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -65,21 +86,26 @@ export default function ProductFormModal({
             url: foto.url,
           })),
     );
+    setDesignItems(
+      selected && !selected.es_unico && selected.disenos?.length
+        ? selected.disenos.map((diseno) => ({
+            localId: `existing-design-${diseno.id}`,
+            id: diseno.id,
+            nombre: diseno.nombre,
+            precio: String(diseno.precio),
+            url_foto: diseno.url_foto,
+            file: null,
+            previewUrl: "",
+          }))
+        : [],
+    );
     setActiveGalleryIndex(0);
     setFileError(null);
-  }, [initialValues, isOpen, mode, reset, selected?.fotos]);
-
-  useEffect(() => {
-    return () => {
-      galleryItems.forEach((item) => {
-        if (item.type === "new") {
-          URL.revokeObjectURL(item.previewUrl);
-        }
-      });
-    };
-  }, [galleryItems]);
+    setDesignError(null);
+  }, [initialValues, isOpen, mode, reset, selected]);
 
   const selectedCategoryId = watch("id_categoria");
+  const isUnique = Boolean(watch("es_unico"));
 
   const subcategoriasFiltradas = useMemo(
     () => subcategorias.filter((subcategoria) => subcategoria.id_categoria === Number(selectedCategoryId)),
@@ -98,6 +124,31 @@ export default function ProductFormModal({
     }
   }, [isOpen, isView, setValue, subcategoriasFiltradas, watch]);
 
+  useEffect(() => {
+    if (!isOpen || isUnique || isView) {
+      return;
+    }
+
+    setDesignItems((prev) => {
+      if (prev.length) {
+        return prev;
+      }
+
+      if (selected?.es_unico && selected.fotos?.length) {
+        return selected.fotos.map((foto, index) => ({
+          localId: `converted-design-${foto.id}`,
+          nombre: index === 0 ? selected.nombre : `${selected.nombre} ${index + 1}`,
+          precio: String(selected.precio),
+          url_foto: foto.url,
+          file: null,
+          previewUrl: "",
+        }));
+      }
+
+      return [createEmptyDesignItem()];
+    });
+  }, [isOpen, isUnique, isView, selected]);
+
   if (!isOpen) {
     return null;
   }
@@ -111,7 +162,7 @@ export default function ProductFormModal({
     setFileError(null);
     const rejected = files.find((file) => !isAcceptedImage(file));
     if (rejected) {
-      setFileError("Solo se permiten imágenes JPG, JPEG o PNG");
+      setFileError("Solo se permiten imagenes JPG, JPEG o PNG");
       return;
     }
 
@@ -160,33 +211,117 @@ export default function ProductFormModal({
     setOverIndex(null);
   };
 
+  const addDesignItem = () => {
+    setDesignItems((prev) => [...prev, createEmptyDesignItem()]);
+    setDesignError(null);
+  };
+
+  const removeDesignItem = (localId: string) => {
+    setDesignItems((prev) => {
+      const item = prev.find((design) => design.localId === localId);
+      if (item?.previewUrl) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
+      return prev.filter((design) => design.localId !== localId);
+    });
+  };
+
+  const updateDesignItem = (localId: string, changes: Partial<DesignItem>) => {
+    setDesignItems((prev) => prev.map((item) => (item.localId === localId ? { ...item, ...changes } : item)));
+    setDesignError(null);
+  };
+
+  const setDesignFile = (localId: string, file: File | null) => {
+    if (file && !isAcceptedImage(file)) {
+      setDesignError("Solo se permiten imagenes JPG, JPEG o PNG");
+      return;
+    }
+
+    setDesignItems((prev) =>
+      prev.map((item) => {
+        if (item.localId !== localId) {
+          return item;
+        }
+
+        if (item.previewUrl) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+
+        return {
+          ...item,
+          file,
+          previewUrl: file ? URL.createObjectURL(file) : "",
+        };
+      }),
+    );
+    setDesignError(null);
+  };
+
   const internalSubmit = async (values: ProductFormValues) => {
     if (isView) {
       onClose();
       return;
     }
 
-    if (fileError) {
+    if (fileError || designError) {
       return;
     }
 
-    if (galleryItems.length < 1) {
-      setFileError("Debe subir al menos una foto");
-      return;
-    }
-
-    const files: File[] = [];
-    const photoOrder = galleryItems.map((item) => {
-      if (item.type === "existing") {
-        return { type: "existing" as const, url: item.url };
+    if (values.es_unico) {
+      if (galleryItems.length < 1) {
+        setFileError("Debe subir al menos una foto");
+        return;
       }
 
-      const fileIndex = files.length;
-      files.push(item.file);
-      return { type: "new" as const, fileIndex };
-    });
+      const files: File[] = [];
+      const photoOrder = galleryItems.map((item) => {
+        if (item.type === "existing") {
+          return { type: "existing" as const, url: item.url };
+        }
 
-    await onSubmit(values, files, photoOrder);
+        const fileIndex = files.length;
+        files.push(item.file);
+        return { type: "new" as const, fileIndex };
+      });
+
+      await onSubmit(values, files, photoOrder);
+      return;
+    }
+
+    if (designItems.length < 1) {
+      setDesignError("Debe cargar al menos un diseno");
+      return;
+    }
+
+    const designFiles: File[] = [];
+    const designOrder: ProductDesignOrderItem[] = [];
+
+    for (const item of designItems) {
+      const nombre = item.nombre.trim();
+      const precio = Number(item.precio);
+      const hasPhoto = Boolean(item.file || item.url_foto);
+
+      if (!nombre || !Number.isFinite(precio) || precio <= 0 || !hasPhoto) {
+        setDesignError("Todos los disenos deben tener nombre, precio mayor a 0 y foto");
+        return;
+      }
+
+      const payload: ProductDesignOrderItem = {
+        id: item.id,
+        nombre,
+        precio,
+        url_foto: item.url_foto,
+      };
+
+      if (item.file) {
+        payload.fileIndex = designFiles.length;
+        designFiles.push(item.file);
+      }
+
+      designOrder.push(payload);
+    }
+
+    await onSubmit(values, [], [], designFiles, designOrder);
   };
 
   const activeGalleryItem = galleryItems[Math.min(activeGalleryIndex, Math.max(galleryItems.length - 1, 0))];
@@ -195,7 +330,7 @@ export default function ProductFormModal({
   return (
     <AppModal>
       <div className="app-modal-backdrop">
-        <div className="app-modal-card max-h-[90vh] max-w-2xl overflow-y-auto p-4 sm:p-5">
+        <div className="app-modal-card max-h-[90vh] max-w-4xl overflow-y-auto p-4 sm:p-5">
           <h3 className="app-title text-xl">
             {mode === "create" ? "Crear producto" : mode === "edit" ? "Editar producto" : "Ver producto"}
           </h3>
@@ -204,9 +339,9 @@ export default function ProductFormModal({
             <label className="flex items-start gap-3 rounded-md border border-line p-3 text-sm">
               <input type="checkbox" className="mt-1" disabled={isView} {...register("es_unico")} />
               <span>
-                <span className="block font-medium text-dark-gray">Producto único</span>
+                <span className="block font-medium text-dark-gray">Producto unico</span>
                 <span className="app-subtitle block text-xs">
-                  Si está desmarcado, cada diseño tendrá nombre, precio y foto propia.
+                  Si esta desmarcado, cada diseno tendra nombre, precio y foto propia.
                 </span>
               </span>
             </label>
@@ -223,19 +358,19 @@ export default function ProductFormModal({
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-dark-gray">Descripción</label>
+              <label className="mb-1 block text-sm font-medium text-dark-gray">Descripcion</label>
               <textarea
                 className="app-input min-h-22.5"
                 disabled={isView}
                 placeholder="Ej: Mate artesanal de calabaza forrado en cuero"
-                {...register("descripcion", { required: "La descripción es obligatoria" })}
+                {...register("descripcion", { required: "La descripcion es obligatoria" })}
               />
               {errors.descripcion && <p className="mt-1 text-sm text-red-600">{errors.descripcion.message}</p>}
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-medium text-dark-gray">Precio</label>
+                <label className="mb-1 block text-sm font-medium text-dark-gray">Precio base</label>
                 <input
                   type="number"
                   step="0.01"
@@ -270,14 +405,14 @@ export default function ProductFormModal({
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-medium text-dark-gray">Categoría</label>
+                <label className="mb-1 block text-sm font-medium text-dark-gray">Categoria</label>
                 <select
                   className="app-input"
                   disabled={isView}
                   {...register("id_categoria", {
-                    required: "La categoría es obligatoria",
+                    required: "La categoria es obligatoria",
                     valueAsNumber: true,
-                    validate: (value) => (value > 0 ? true : "La categoría es obligatoria"),
+                    validate: (value) => (value > 0 ? true : "La categoria es obligatoria"),
                   })}
                 >
                   <option value={0}>Seleccionar...</option>
@@ -291,14 +426,14 @@ export default function ProductFormModal({
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-dark-gray">Subcategoría</label>
+                <label className="mb-1 block text-sm font-medium text-dark-gray">Subcategoria</label>
                 <select
                   className="app-input"
                   disabled={isView}
                   {...register("id_subcategoria", {
-                    required: "La subcategoría es obligatoria",
+                    required: "La subcategoria es obligatoria",
                     valueAsNumber: true,
-                    validate: (value) => (value > 0 ? true : "La subcategoría es obligatoria"),
+                    validate: (value) => (value > 0 ? true : "La subcategoria es obligatoria"),
                   })}
                 >
                   <option value={0}>Seleccionar...</option>
@@ -383,93 +518,177 @@ export default function ProductFormModal({
               </div>
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-dark-gray">Fotos (JPG, JPEG, PNG)</label>
-              {!isView && (
-                <input
-                  type="file"
-                  multiple
-                  accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-                  className="app-input"
-                  onChange={(event) => {
-                    handleFileChange(event.target.files);
-                    event.currentTarget.value = "";
-                  }}
-                />
-              )}
+            {isUnique ? (
+              <div>
+                <label className="mb-1 block text-sm font-medium text-dark-gray">Fotos (JPG, JPEG, PNG)</label>
+                {!isView && (
+                  <input
+                    type="file"
+                    multiple
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    className="app-input"
+                    onChange={(event) => {
+                      handleFileChange(event.target.files);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                )}
 
-              {galleryItems.length ? (
-                <div className="mt-3 rounded-lg border border-line bg-white/70 p-3">
-                  {activeGalleryUrl && (
-                    <div className="relative flex h-60 items-center justify-center rounded-md border border-earth-brown/30 bg-white">
-                      <button
-                        type="button"
-                        className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-2 py-1 text-sm font-bold text-earth-brown shadow disabled:opacity-40"
-                        onClick={() => setActiveGalleryIndex((prev) => (prev === 0 ? galleryItems.length - 1 : prev - 1))}
-                        disabled={galleryItems.length <= 1}
-                      >
-                        {"<"}
-                      </button>
-                      <img src={activeGalleryUrl} alt="Preview de foto" className="h-full w-full object-contain p-2" />
-                      <button
-                        type="button"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-2 py-1 text-sm font-bold text-earth-brown shadow disabled:opacity-40"
-                        onClick={() => setActiveGalleryIndex((prev) => (prev === galleryItems.length - 1 ? 0 : prev + 1))}
-                        disabled={galleryItems.length <= 1}
-                      >
-                        {">"}
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
-                    {galleryItems.map((item, index) => {
-                      const url = getGalleryUrl(item);
-                      return (
-                        <div
-                          key={item.id}
-                          draggable={!isView}
-                          onDragStart={() => setDragIndex(index)}
-                          onDragOver={(event) => {
-                            event.preventDefault();
-                            setOverIndex(index);
-                          }}
-                          onDrop={() => handleDrop(index)}
-                          onDragEnd={() => {
-                            setDragIndex(null);
-                            setOverIndex(null);
-                          }}
-                          className={`relative shrink-0 rounded-lg border-2 bg-white p-1 transition ${
-                            index === activeGalleryIndex ? "border-earth-brown ring-2 ring-earth-brown/20" : "border-line"
-                          } ${overIndex === index ? "scale-105" : ""} ${isView ? "" : "cursor-grab"}`}
+                {galleryItems.length ? (
+                  <div className="mt-3 rounded-lg border border-line bg-white/70 p-3">
+                    {activeGalleryUrl && (
+                      <div className="relative flex h-60 items-center justify-center rounded-md border border-earth-brown/30 bg-white">
+                        <button
+                          type="button"
+                          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-2 py-1 text-sm font-bold text-earth-brown shadow disabled:opacity-40"
+                          onClick={() => setActiveGalleryIndex((prev) => (prev === 0 ? galleryItems.length - 1 : prev - 1))}
+                          disabled={galleryItems.length <= 1}
                         >
-                          <button type="button" onClick={() => setActiveGalleryIndex(index)}>
-                            <img src={url} alt={`Foto ${index + 1}`} className="h-20 w-20 rounded-md object-contain" />
-                          </button>
-                          {index === 0 && (
-                            <span className="absolute left-1 top-1 rounded bg-earth-brown px-1.5 py-0.5 text-[10px] font-bold text-cream">
-                              Portada
-                            </span>
-                          )}
-                          {!isView && (
-                            <button
-                              type="button"
-                              onClick={() => removeGalleryItem(index)}
-                              className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white shadow hover:bg-red-700"
-                              aria-label={`Eliminar foto ${index + 1}`}
-                            >
-                              x
+                          {"<"}
+                        </button>
+                        <img src={activeGalleryUrl} alt="Preview de foto" className="h-full w-full object-contain p-2" />
+                        <button
+                          type="button"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-2 py-1 text-sm font-bold text-earth-brown shadow disabled:opacity-40"
+                          onClick={() => setActiveGalleryIndex((prev) => (prev === galleryItems.length - 1 ? 0 : prev + 1))}
+                          disabled={galleryItems.length <= 1}
+                        >
+                          {">"}
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+                      {galleryItems.map((item, index) => {
+                        const url = getGalleryUrl(item);
+                        return (
+                          <div
+                            key={item.id}
+                            draggable={!isView}
+                            onDragStart={() => setDragIndex(index)}
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                              setOverIndex(index);
+                            }}
+                            onDrop={() => handleDrop(index)}
+                            onDragEnd={() => {
+                              setDragIndex(null);
+                              setOverIndex(null);
+                            }}
+                            className={`relative shrink-0 rounded-lg border-2 bg-white p-1 transition ${
+                              index === activeGalleryIndex ? "border-earth-brown ring-2 ring-earth-brown/20" : "border-line"
+                            } ${overIndex === index ? "scale-105" : ""} ${isView ? "" : "cursor-grab"}`}
+                          >
+                            <button type="button" onClick={() => setActiveGalleryIndex(index)}>
+                              <img src={url} alt={`Foto ${index + 1}`} className="h-20 w-20 rounded-md object-contain" />
                             </button>
+                            {index === 0 && (
+                              <span className="absolute left-1 top-1 rounded bg-earth-brown px-1.5 py-0.5 text-[10px] font-bold text-cream">
+                                Portada
+                              </span>
+                            )}
+                            {!isView && (
+                              <button
+                                type="button"
+                                onClick={() => removeGalleryItem(index)}
+                                className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white shadow hover:bg-red-700"
+                                aria-label={`Eliminar foto ${index + 1}`}
+                              >
+                                x
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {fileError && <p className="mt-1 text-sm text-red-600">{fileError}</p>}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-line p-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h4 className="font-semibold text-dark-gray">Disenos del producto</h4>
+                    <p className="app-subtitle text-sm">Cada diseno necesita nombre, precio y foto.</p>
+                  </div>
+                  {!isView && (
+                    <button type="button" className="app-btn-secondary" onClick={addDesignItem}>
+                      Agregar nuevo diseno
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-3 space-y-3">
+                  {designItems.map((item, index) => {
+                    const previewUrl = getDesignPreviewUrl(item);
+                    return (
+                      <div key={item.localId} className="grid gap-3 rounded-md border border-line bg-white/70 p-3 md:grid-cols-[minmax(0,1fr)_140px_190px_96px_auto] md:items-end">
+                        <div>
+                          <label className="mb-1 block text-sm text-dark-gray">Nombre</label>
+                          <input
+                            className="app-input"
+                            disabled={isView}
+                            value={item.nombre}
+                            onChange={(event) => updateDesignItem(item.localId, { nombre: event.target.value })}
+                            placeholder={`Diseno ${index + 1}`}
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-sm text-dark-gray">Precio</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="app-input"
+                            disabled={isView}
+                            value={item.precio}
+                            onChange={(event) => updateDesignItem(item.localId, { precio: event.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-sm text-dark-gray">Foto</label>
+                          {!isView ? (
+                            <input
+                              type="file"
+                              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                              className="app-input"
+                              onChange={(event) => {
+                                setDesignFile(item.localId, event.target.files?.[0] ?? null);
+                                event.currentTarget.value = "";
+                              }}
+                            />
+                          ) : (
+                            <span className="app-subtitle block text-sm">Foto cargada</span>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
+                        <div>
+                          {previewUrl ? (
+                            <img src={previewUrl} alt={item.nombre || "Preview diseno"} className="h-20 w-20 rounded border border-line object-contain" />
+                          ) : (
+                            <div className="flex h-20 w-20 items-center justify-center rounded border border-dashed border-line text-xs text-medium-gray">
+                              Preview
+                            </div>
+                          )}
+                        </div>
+                        {!isView && (
+                          <button
+                            type="button"
+                            className="app-btn-secondary px-2 py-2 text-sm"
+                            onClick={() => removeDesignItem(item.localId)}
+                            disabled={designItems.length <= 1}
+                          >
+                            Borrar
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : null}
 
-              {fileError && <p className="mt-1 text-sm text-red-600">{fileError}</p>}
-            </div>
+                {designError && <p className="mt-2 text-sm text-red-600">{designError}</p>}
+              </div>
+            )}
 
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" className="app-btn-secondary" onClick={onClose}>

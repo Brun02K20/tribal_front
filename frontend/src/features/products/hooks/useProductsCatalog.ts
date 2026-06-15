@@ -268,9 +268,9 @@ export function useProductsCatalog() {
         const next: Record<number, number> = { ...prev };
 
         for (const product of products) {
-          const fotos = product.es_unico ? product.fotos ?? [] : (product.disenos ?? []).map((diseno) => ({
+          const fotos = product.es_unico ? product.fotos ?? [] : (product.disenos ?? []).filter((diseno) => Boolean(diseno.url_foto)).map((diseno) => ({
             id: diseno.id,
-            url: diseno.url_foto,
+            url: diseno.url_foto as string,
             id_producto: diseno.id_producto,
           }));
           if (fotos.length <= 1) {
@@ -386,7 +386,7 @@ export function useProductsCatalog() {
     }
 
     const stock = toNumber(designProduct.stock);
-    const selectedDisenos = (designProduct.disenos ?? []).filter((diseno) => selectedDesignUrls.includes(diseno.url_foto));
+    const selectedDisenos = (designProduct.disenos ?? []).filter((diseno) => diseno.url_foto && selectedDesignUrls.includes(diseno.url_foto));
     const totalDesignPrice = selectedDisenos.reduce((acc, diseno) => acc + toNumber(diseno.precio), 0);
     const precioOriginal = totalDesignPrice > 0
       ? Number((totalDesignPrice / Math.max(designQuantity, 1)).toFixed(2))

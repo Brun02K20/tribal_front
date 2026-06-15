@@ -2,7 +2,7 @@ export type Diseno = {
   id: number;
   nombre: string;
   precio: number | string;
-  url_foto: string;
+  url_foto: string | null;
   id_producto: number;
 };
 

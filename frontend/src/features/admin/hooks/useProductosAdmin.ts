@@ -8,7 +8,7 @@ import { subcategoriasService } from "@/entities/subcategorias/api/subcategorias
 import { productosService } from "@/entities/productos/api/productos.service";
 import { disenosService } from "@/entities/disenos/api/disenos.service";
 import type { Diseno, DisenoFormValues } from "@/types/disenos";
-import type { Product, ProductFilters, ProductFormValues } from "@/types/products";
+import type { Product, ProductDesignOrderItem, ProductFilters, ProductFormValues, ProductPhotoOrderItem } from "@/types/products";
 import type { CategoriaWithSubcategorias } from "@/types/categorias";
 import type { Subcategoria } from "@/types/subcategorias";
 import { useWatch } from "react-hook-form";
@@ -269,7 +269,9 @@ export function useProductosAdmin() {
   const submitProduct = async (
     values: ProductFormValues,
     files: File[],
-    photoOrder: Array<{ type: "existing"; url: string } | { type: "new"; fileIndex: number }>,
+    photoOrder: ProductPhotoOrderItem[],
+    designFiles?: File[],
+    designOrder?: ProductDesignOrderItem[],
   ) => {
     if (mode === "view") {
       closeForm();
@@ -281,10 +283,10 @@ export function useProductosAdmin() {
 
     try {
       if (mode === "create") {
-        await productosService.createProduct(values, files, photoOrder);
+        await productosService.createProduct(values, files, photoOrder, designFiles, designOrder);
         showToast("Producto creado correctamente", "success");
       } else if (mode === "edit" && selected) {
-        await productosService.updateProduct(selected.id, values, files, photoOrder);
+        await productosService.updateProduct(selected.id, values, files, photoOrder, designFiles, designOrder);
         showToast("Producto actualizado correctamente", "success");
       }
 

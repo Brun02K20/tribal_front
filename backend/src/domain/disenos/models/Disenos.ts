@@ -5,7 +5,7 @@ interface DisenoAttributes {
     id: number;
     nombre: string;
     precio: number;
-    url_foto: string;
+    url_foto: string | null;
     id_producto: number;
 }
 
@@ -18,7 +18,7 @@ export class Disenos
     declare id: number;
     declare nombre: string;
     declare precio: number;
-    declare url_foto: string;
+    declare url_foto: string | null;
     declare id_producto: number;
 }
 
@@ -40,7 +40,7 @@ Disenos.init(
         },
         url_foto: {
             type: DataTypes.TEXT,
-            allowNull: false,
+            allowNull: true,
         },
         id_producto: {
             type: DataTypes.INTEGER,

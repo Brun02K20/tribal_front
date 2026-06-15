@@ -24,9 +24,9 @@ export default function ProductDesignSelector({
 }: ProductDesignSelectorProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const designItems = disenos?.length
-    ? disenos.map((diseno) => ({
+    ? disenos.filter((diseno) => Boolean(diseno.url_foto)).map((diseno) => ({
         id: diseno.id,
-        url: diseno.url_foto,
+        url: diseno.url_foto as string,
         nombre: diseno.nombre,
         precio: Number(diseno.precio),
       }))

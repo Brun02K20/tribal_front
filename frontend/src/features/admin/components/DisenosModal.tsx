@@ -61,6 +61,8 @@ export default function DisenosModal({
     return null;
   }
 
+  const isReadOnlyUniqueProduct = Boolean(product.es_unico);
+
   const setDraftFile = (file: File | null) => {
     if (draft.previewUrl && draft.file) {
       URL.revokeObjectURL(draft.previewUrl);
@@ -83,7 +85,7 @@ export default function DisenosModal({
       nombre: diseno.nombre,
       precio: String(diseno.precio),
       file: null,
-      previewUrl: diseno.url_foto,
+      previewUrl: diseno.url_foto ?? "",
     });
   };
 
@@ -127,7 +129,11 @@ export default function DisenosModal({
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="app-title text-xl">Diseños de {product.nombre}</h3>
-              <p className="app-subtitle mt-1 text-sm">Nombre, precio y foto específica para cada diseño.</p>
+              <p className="app-subtitle mt-1 text-sm">
+                {isReadOnlyUniqueProduct
+                  ? "Este producto unico tiene un diseno asociado automatico."
+                  : "Nombre, precio y foto especifica para cada diseno."}
+              </p>
             </div>
             <button type="button" className="app-btn-secondary" onClick={onClose}>
               Cerrar
@@ -136,6 +142,7 @@ export default function DisenosModal({
 
           {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
+          {!isReadOnlyUniqueProduct && (
           <div className="mt-4 rounded-lg border border-line p-3">
             <h4 className="font-semibold">{draft.mode === "create" ? "Nuevo diseño" : "Editar diseño"}</h4>
             <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_180px_auto] md:items-end">
@@ -184,6 +191,7 @@ export default function DisenosModal({
               </button>
             )}
           </div>
+          )}
 
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-175 border-collapse">
@@ -204,19 +212,27 @@ export default function DisenosModal({
                   disenos.map((diseno) => (
                     <tr key={diseno.id} className="border-t border-line">
                       <td className="px-3 py-2">
-                        <img src={diseno.url_foto} alt={diseno.nombre} className="h-14 w-14 rounded border border-line object-contain" />
+                        {diseno.url_foto ? (
+                          <img src={diseno.url_foto} alt={diseno.nombre} className="h-14 w-14 rounded border border-line object-contain" />
+                        ) : (
+                          <span className="app-subtitle text-sm">Usa fotos del producto</span>
+                        )}
                       </td>
                       <td className="px-3 py-2">{diseno.nombre}</td>
                       <td className="px-3 py-2">{formatCurrencyArs(diseno.precio)}</td>
                       <td className="px-3 py-2">
-                        <div className="flex gap-2">
-                          <button type="button" className="app-btn-secondary px-2 py-1 text-sm" onClick={() => startEdit(diseno)}>
-                            Editar
-                          </button>
-                          <button type="button" className="app-btn-secondary px-2 py-1 text-sm" onClick={() => onDelete(diseno)}>
-                            Borrar
-                          </button>
-                        </div>
+                        {isReadOnlyUniqueProduct ? (
+                          <span className="app-subtitle text-sm">Automatico</span>
+                        ) : (
+                          <div className="flex gap-2">
+                            <button type="button" className="app-btn-secondary px-2 py-1 text-sm" onClick={() => startEdit(diseno)}>
+                              Editar
+                            </button>
+                            <button type="button" className="app-btn-secondary px-2 py-1 text-sm" onClick={() => onDelete(diseno)}>
+                              Borrar
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))

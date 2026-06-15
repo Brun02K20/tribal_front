@@ -3,7 +3,9 @@ import type {
     Product,
     ProductCreateUpdatePayload,
     ProductDeleteResponse,
+    ProductDesignOrderItem,
     ProductFilters,
+    ProductPhotoOrderItem,
     PaginatedProductsResponse,
 } from "@/types/products";
 import { parseApiError } from "@/shared/api/apiClient";
@@ -139,14 +141,12 @@ const getProductsByCategory = async (idCategoria: number): Promise<Product[]> =>
     }
 }
 
-type ProductPhotoOrderItem =
-    | { type: "existing"; url: string }
-    | { type: "new"; fileIndex: number };
-
 const createProduct = async (
     payload: ProductCreateUpdatePayload,
     files: File[],
     photoOrder?: ProductPhotoOrderItem[],
+    designFiles?: File[],
+    designOrder?: ProductDesignOrderItem[],
 ): Promise<Product> => {
     try {
         const formData = new FormData();
@@ -154,7 +154,11 @@ const createProduct = async (
         if (photoOrder) {
             formData.append("fotos_ordenadas", JSON.stringify(photoOrder));
         }
+        if (designOrder) {
+            formData.append("disenos_ordenados", JSON.stringify(designOrder));
+        }
         files.forEach((file) => formData.append("file", file));
+        designFiles?.forEach((file) => formData.append("file", file));
 
         const { data } = await apiClient.post<Product>("/productos", formData, {
             headers: {
@@ -176,6 +180,8 @@ const updateProduct = async (
     payload: ProductCreateUpdatePayload,
     files: File[],
     photoOrder?: ProductPhotoOrderItem[],
+    designFiles?: File[],
+    designOrder?: ProductDesignOrderItem[],
 ): Promise<Product> => {
     try {
         const formData = new FormData();
@@ -183,7 +189,11 @@ const updateProduct = async (
         if (photoOrder) {
             formData.append("fotos_ordenadas", JSON.stringify(photoOrder));
         }
+        if (designOrder) {
+            formData.append("disenos_ordenados", JSON.stringify(designOrder));
+        }
         files.forEach((file) => formData.append("file", file));
+        designFiles?.forEach((file) => formData.append("file", file));
 
         const { data } = await apiClient.put<Product>(`/productos/${id}`, formData, {
             headers: {

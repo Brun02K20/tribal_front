@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDecimal, IsInt, IsString } from 'class-validator';
+import { IsDecimal, IsInt, IsOptional, IsString } from 'class-validator';
 
 export class GetDisenoDto {
     @ApiProperty({ example: 1 })
@@ -14,9 +14,10 @@ export class GetDisenoDto {
     @IsDecimal()
     precio!: number;
 
-    @ApiProperty({ example: 'https://tribaltrend.com.ar/files/products/1/diseno.jpg' })
+    @ApiProperty({ example: 'https://tribaltrend.com.ar/files/products/1/diseno.jpg', nullable: true })
+    @IsOptional()
     @IsString()
-    url_foto!: string;
+    url_foto!: string | null;
 
     @ApiProperty({ example: 1 })
     @IsInt()

@@ -1,5 +1,5 @@
 import type { CategoriaWithSubcategorias } from "./categorias";
-import type { Product, ProductFormValues } from "./products";
+import type { Product, ProductDesignOrderItem, ProductFormValues, ProductPhotoOrderItem } from "./products";
 import type { ReactNode } from "react";
 import type { Subcategoria } from "./subcategorias";
 
@@ -44,7 +44,9 @@ export type ProductFormModalProps = {
   onSubmit: (
     values: ProductFormValues,
     files: File[],
-    photoOrder: Array<{ type: "existing"; url: string } | { type: "new"; fileIndex: number }>,
+    photoOrder: ProductPhotoOrderItem[],
+    designFiles?: File[],
+    designOrder?: ProductDesignOrderItem[],
   ) => Promise<void>;
 };
 

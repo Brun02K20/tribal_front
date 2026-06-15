@@ -68,7 +68,7 @@ export function useProductDetail(productId: number) {
       return;
     }
 
-    const selectedDisenos = (product.disenos ?? []).filter((diseno) => selectedDesignUrls.includes(diseno.url_foto));
+    const selectedDisenos = (product.disenos ?? []).filter((diseno) => diseno.url_foto && selectedDesignUrls.includes(diseno.url_foto));
     const totalDesignPrice = selectedDisenos.reduce((acc, diseno) => acc + toNumber(diseno.precio), 0);
     const precioOriginal = product.es_unico || totalDesignPrice === 0
       ? toNumber(product.precio)

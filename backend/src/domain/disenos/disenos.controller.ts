@@ -121,7 +121,9 @@ export class DisenosController {
     async delete(@Param('id') id: string) {
         const sftp = await SftpSingleton.getInstance();
         const result = await this.disenosService.delete(Number(id));
-        await this.deleteRemoteFotoByPublicUrl(sftp, result.url_foto).catch(() => undefined);
+        if (result.url_foto) {
+            await this.deleteRemoteFotoByPublicUrl(sftp, result.url_foto).catch(() => undefined);
+        }
         return result;
     }
 

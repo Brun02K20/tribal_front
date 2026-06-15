@@ -34,7 +34,12 @@ export class DisenosService {
         return this.mapDiseno(diseno);
     }
 
-    async create(idProducto: number, data: CreateUpdateDisenoDto, urlFoto: string): Promise<GetDisenoDto> {
+    async create(
+        idProducto: number,
+        data: CreateUpdateDisenoDto,
+        urlFoto: string | null,
+        options: { syncFoto?: boolean } = {},
+    ): Promise<GetDisenoDto> {
         const producto = await Productos.findByPk(idProducto);
         if (!producto) {
             throw new NotFoundException('Producto no encontrado');
@@ -47,12 +52,19 @@ export class DisenosService {
             url_foto: urlFoto,
         });
 
-        await this.fotosService.bulkCreate([{ id_producto: idProducto, url: urlFoto }]);
+        if (urlFoto && options.syncFoto !== false) {
+            await this.fotosService.bulkCreate([{ id_producto: idProducto, url: urlFoto }]);
+        }
 
         return this.mapDiseno(diseno);
     }
 
-    async update(idDiseno: number, data: CreateUpdateDisenoDto, urlFoto?: string): Promise<GetDisenoDto> {
+    async update(
+        idDiseno: number,
+        data: CreateUpdateDisenoDto,
+        urlFoto?: string | null,
+        options: { syncFoto?: boolean } = {},
+    ): Promise<GetDisenoDto> {
         const diseno = await Disenos.findByPk(idDiseno);
         if (!diseno) {
             throw new NotFoundException('Diseño no encontrado');
@@ -62,18 +74,42 @@ export class DisenosService {
         await diseno.update({
             nombre: data.nombre.trim(),
             precio: Number(data.precio),
-            url_foto: urlFoto ?? diseno.url_foto,
+            url_foto: urlFoto === undefined ? diseno.url_foto : urlFoto,
         });
 
-        if (urlFoto && urlFoto !== previousUrl) {
+        if (options.syncFoto !== false && urlFoto && previousUrl && urlFoto !== previousUrl) {
             await this.fotosService.deleteProductFotoByUrl(diseno.id_producto, previousUrl);
+            await this.fotosService.bulkCreate([{ id_producto: diseno.id_producto, url: urlFoto }]);
+        } else if (options.syncFoto !== false && urlFoto && urlFoto !== previousUrl) {
             await this.fotosService.bulkCreate([{ id_producto: diseno.id_producto, url: urlFoto }]);
         }
 
         return this.mapDiseno(diseno);
     }
 
-    async delete(idDiseno: number): Promise<{ id: number; message: string; url_foto: string; id_producto: number }> {
+    async syncUniqueDesign(idProducto: number, data: CreateUpdateDisenoDto): Promise<GetDisenoDto> {
+        const disenos = await Disenos.findAll({
+            where: { id_producto: idProducto },
+            order: [['id', 'ASC']],
+        });
+
+        const [mainDiseno, ...extraDisenos] = disenos;
+        await Promise.all(extraDisenos.map((diseno) => diseno.destroy()));
+
+        if (!mainDiseno) {
+            return this.create(idProducto, data, null, { syncFoto: false });
+        }
+
+        await mainDiseno.update({
+            nombre: data.nombre.trim(),
+            precio: Number(data.precio),
+            url_foto: null,
+        });
+
+        return this.mapDiseno(mainDiseno);
+    }
+
+    async delete(idDiseno: number): Promise<{ id: number; message: string; url_foto: string | null; id_producto: number }> {
         const diseno = await Disenos.findByPk(idDiseno);
         if (!diseno) {
             throw new NotFoundException('Diseño no encontrado');
@@ -85,7 +121,9 @@ export class DisenosService {
             id_producto: diseno.id_producto,
         };
 
-        await this.fotosService.deleteProductFotoByUrl(diseno.id_producto, diseno.url_foto);
+        if (diseno.url_foto) {
+            await this.fotosService.deleteProductFotoByUrl(diseno.id_producto, diseno.url_foto);
+        }
         await diseno.destroy();
 
         return {

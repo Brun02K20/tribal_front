@@ -8,7 +8,7 @@ export type ProductDiseno = {
   id: number;
   nombre: string;
   precio: number | string;
-  url_foto: string;
+  url_foto: string | null;
   id_producto: number;
 };
 
@@ -54,6 +54,18 @@ export type ProductFormValues = {
   profundo: number;
   peso_gramos: number;
   es_unico: boolean;
+};
+
+export type ProductPhotoOrderItem =
+  | { type: "existing"; url: string }
+  | { type: "new"; fileIndex: number };
+
+export type ProductDesignOrderItem = {
+  id?: number;
+  nombre: string;
+  precio: number;
+  url_foto?: string | null;
+  fileIndex?: number;
 };
 
 export type ProductCreateUpdatePayload = ProductFormValues;

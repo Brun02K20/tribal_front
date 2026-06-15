@@ -7,6 +7,7 @@ import SftpSingleton from 'src/utils/sftp/sftp_instance';
 import { upload } from 'src/utils/sftp/upload';
 import { ProductosService } from './productos.service';
 import { FotosService } from 'src/domain/fotos/fotos.service';
+import { DisenosService } from 'src/domain/disenos/disenos.service';
 import { GetProductDto, SuccessDeleteProductDto, CreateUpdateProductDto, ProductFiltersDto, PaginatedProductsResponseDto, PaginatedProductsListResponseDto } from './DTOs/products.dto';
 import { CreateProductFotosDto } from 'src/domain/fotos/DTOs/fotos.dto';
 import { AuthGuard } from 'src/auth/utils/auth.guard';
@@ -20,12 +21,21 @@ type ProductPhotoOrderItem =
     | { type: 'existing'; url: string }
     | { type: 'new'; fileIndex: number };
 
+type ProductDesignOrderItem = {
+    id?: number;
+    nombre: string;
+    precio: number;
+    url_foto?: string | null;
+    fileIndex?: number;
+};
+
 @ApiTags('Productos')
 @Controller('productos')
 export class ProductosController {
     constructor(
         private readonly productosService: ProductosService,
         private readonly fotosService: FotosService,
+        private readonly disenosService: DisenosService,
     ) {}
        
         @Get()
@@ -174,13 +184,18 @@ export class ProductosController {
             await this.runMulter(req, res);
 
             const files = req.files as Express.Multer.File[] | undefined;
-            if (!files || files.length === 0) {
+            const createProductDto = this.parseCreateProductDto(req.body as Record<string, unknown>);
+            const photoOrder = this.parsePhotoOrder(req.body as Record<string, unknown>);
+            const designOrder = this.parseDesignOrder(req.body as Record<string, unknown>);
+
+            if (createProductDto.es_unico && (!files || files.length === 0)) {
                 throw new BadRequestException('Al menos una imagen es obligatoria');
             }
 
-            const createProductDto = this.parseCreateProductDto(req.body as Record<string, unknown>);
-            const photoOrder = this.parsePhotoOrder(req.body as Record<string, unknown>);
-            const fotosParaProducto: { url: string }[] = [];
+            if (!createProductDto.es_unico && designOrder.length === 0) {
+                throw new BadRequestException('Debe cargar al menos un diseÃ±o');
+            }
+
             const uploadedRemotePaths: string[] = [];
             const sftp = await SftpSingleton.getInstance();
             let productoCreado: GetProductDto | null = null;
@@ -191,7 +206,7 @@ export class ProductosController {
                 await this.ensureRemoteProductDirectory(sftp, idProducto);
 
                 const uploadedUrlsByFileIndex = new Map<number, string>();
-                for (const [fileIndex, file] of files.entries()) {
+                for (const [fileIndex, file] of (files ?? []).entries()) {
                     const fileName = this.buildFileName(file.originalname);
                     const remotePath = this.buildRemotePath(idProducto, fileName);
 
@@ -205,16 +220,41 @@ export class ProductosController {
                     uploadedUrlsByFileIndex.set(fileIndex, this.buildPublicUrl(idProducto, fileName));
                 }
 
-                fotosParaProducto.push(
-                    ...this.resolveOrderedPhotoUrls(photoOrder, uploadedUrlsByFileIndex, [], files.length).map((url) => ({ url })),
-                );
+                if (createProductDto.es_unico) {
+                    const fotosParaProducto = this.resolveOrderedPhotoUrls(
+                        photoOrder,
+                        uploadedUrlsByFileIndex,
+                        [],
+                        files?.length ?? 0,
+                    ).map((url) => ({ url }));
 
-                const fotosConProductoId: CreateProductFotosDto[] = fotosParaProducto.map((foto) => ({
-                    id_producto: idProducto,
-                    url: foto.url,
-                }));
+                    const fotosConProductoId: CreateProductFotosDto[] = fotosParaProducto.map((foto) => ({
+                        id_producto: idProducto,
+                        url: foto.url,
+                    }));
 
-                await this.fotosService.bulkCreate(fotosConProductoId);
+                    await this.fotosService.bulkCreate(fotosConProductoId);
+                    await this.disenosService.syncUniqueDesign(idProducto, {
+                        nombre: createProductDto.nombre,
+                        precio: createProductDto.precio,
+                    });
+                } else {
+                    for (const design of designOrder) {
+                        if (design.fileIndex === undefined) {
+                            throw new BadRequestException('Cada diseÃ±o nuevo debe tener una foto');
+                        }
+
+                        const uploadedUrl = uploadedUrlsByFileIndex.get(design.fileIndex);
+                        if (!uploadedUrl) {
+                            throw new BadRequestException('No se encontrÃ³ la foto del diseÃ±o');
+                        }
+
+                        await this.disenosService.create(idProducto, {
+                            nombre: design.nombre,
+                            precio: design.precio,
+                        }, uploadedUrl);
+                    }
+                }
 
                 const productoConFotos = await this.productosService.findById(idProducto);
                 res.status(201).json(productoConFotos);
@@ -262,6 +302,7 @@ export class ProductosController {
             const files = req.files as Express.Multer.File[] | undefined;
             const createProductDto = this.parseCreateProductDto(req.body as Record<string, unknown>);
             const photoOrder = this.parsePhotoOrder(req.body as Record<string, unknown>);
+            const designOrder = this.parseDesignOrder(req.body as Record<string, unknown>);
             const uploadedRemotePaths: string[] = [];
             const sftp = await SftpSingleton.getInstance();
 
@@ -288,19 +329,94 @@ export class ProductosController {
                 }
             }
 
-            const orderedPhotoUrls = this.resolveOrderedPhotoUrls(
-                photoOrder,
-                uploadedUrlsByFileIndex,
-                orderedExistingUrls,
-                files?.length ?? 0,
-            );
+            if (createProductDto.es_unico) {
+                const orderedPhotoUrls = this.resolveOrderedPhotoUrls(
+                    photoOrder,
+                    uploadedUrlsByFileIndex,
+                    orderedExistingUrls,
+                    files?.length ?? 0,
+                );
 
-            const removedExistingUrls = orderedExistingUrls.filter((url) => !orderedPhotoUrls.includes(url));
-            await this.deleteCurrentRemoteFotos(sftp, removedExistingUrls);
+                const removedExistingUrls = orderedExistingUrls.filter((url) => !orderedPhotoUrls.includes(url));
+                await this.deleteCurrentRemoteFotos(sftp, removedExistingUrls);
 
-            const productoActualizado = await this.productosService.update(id, createProductDto, orderedPhotoUrls.map((url) => ({ url })), {
-                replaceFotos: photoOrder.length > 0 || Boolean(files?.length),
-            });
+                await this.productosService.update(id, createProductDto, orderedPhotoUrls.map((url) => ({ url })), {
+                    replaceFotos: photoOrder.length > 0 || Boolean(files?.length),
+                });
+                await this.disenosService.syncUniqueDesign(id, {
+                    nombre: createProductDto.nombre,
+                    precio: createProductDto.precio,
+                });
+            } else {
+                if (designOrder.length === 0) {
+                    throw new BadRequestException('Debe cargar al menos un diseÃ±o');
+                }
+
+                const existingDesigns = await this.disenosService.findByProducto(id);
+                const sentDesignIds = new Set<number>();
+
+                for (const design of designOrder) {
+                    const uploadedUrl = design.fileIndex === undefined
+                        ? undefined
+                        : uploadedUrlsByFileIndex.get(design.fileIndex);
+
+                    if (design.fileIndex !== undefined && !uploadedUrl) {
+                        throw new BadRequestException('No se encontrÃ³ la foto del diseÃ±o');
+                    }
+
+                    if (design.id) {
+                        const previousDiseno = await this.disenosService.findById(design.id);
+                        if (previousDiseno.id_producto !== id) {
+                            throw new BadRequestException('El diseÃ±o no pertenece al producto');
+                        }
+
+                        await this.disenosService.update(design.id, {
+                            nombre: design.nombre,
+                            precio: design.precio,
+                        }, uploadedUrl);
+
+                        if (uploadedUrl && previousDiseno.url_foto) {
+                            await this.deleteCurrentRemoteFotos(sftp, [previousDiseno.url_foto]);
+                        }
+
+                        sentDesignIds.add(design.id);
+                        continue;
+                    }
+
+                    if (!uploadedUrl && !design.url_foto) {
+                        throw new BadRequestException('Cada diseÃ±o nuevo debe tener una foto');
+                    }
+
+                    const created = await this.disenosService.create(id, {
+                        nombre: design.nombre,
+                        precio: design.precio,
+                    }, uploadedUrl ?? design.url_foto ?? null, {
+                        syncFoto: Boolean(uploadedUrl),
+                    });
+                    sentDesignIds.add(created.id);
+                }
+
+                for (const diseno of existingDesigns) {
+                    if (!sentDesignIds.has(diseno.id)) {
+                        const deleted = await this.disenosService.delete(diseno.id);
+                        if (deleted.url_foto) {
+                            await this.deleteCurrentRemoteFotos(sftp, [deleted.url_foto]);
+                        }
+                    }
+                }
+
+                const finalDesigns = await this.disenosService.findByProducto(id);
+                const finalDesignUrls = finalDesigns
+                    .map((diseno) => diseno.url_foto)
+                    .filter((url): url is string => Boolean(url));
+                const removedExistingUrls = orderedExistingUrls.filter((url) => !finalDesignUrls.includes(url));
+                await this.deleteCurrentRemoteFotos(sftp, removedExistingUrls);
+                await this.productosService.update(id, createProductDto, finalDesignUrls.map((url) => ({ url })), {
+                    replaceFotos: true,
+                });
+            }
+
+            const productoActualizado = await this.productosService.findById(id);
             res.status(200).json(productoActualizado);
             } catch (error) {
             await Promise.all(uploadedRemotePaths.map((remotePath) => sftp.delete(remotePath).catch(() => undefined)));
@@ -386,6 +502,71 @@ export class ProductosController {
                 }
 
                 throw new BadRequestException('Item de foto inválido');
+            });
+        }
+
+        private parseDesignOrder(body: Record<string, unknown>): ProductDesignOrderItem[] {
+            const raw = body.disenos_ordenados ?? body.designOrder;
+            if (raw === undefined || raw === null || raw === '') {
+                return [];
+            }
+
+            let parsed: unknown;
+            if (typeof raw === 'string') {
+                try {
+                    parsed = JSON.parse(raw);
+                } catch {
+                    throw new BadRequestException('El orden de diseÃ±os es invÃ¡lido');
+                }
+            } else {
+                parsed = raw;
+            }
+
+            if (!Array.isArray(parsed)) {
+                throw new BadRequestException('El orden de diseÃ±os debe ser un array');
+            }
+
+            return parsed.map((item) => {
+                if (!item || typeof item !== 'object') {
+                    throw new BadRequestException('Item de diseÃ±o invÃ¡lido');
+                }
+
+                const data = item as Record<string, unknown>;
+                const nombre = typeof data.nombre === 'string' ? data.nombre.trim() : '';
+                const precio = Number(data.precio);
+                const id = data.id === undefined || data.id === null || data.id === ''
+                    ? undefined
+                    : Number(data.id);
+                const fileIndex = data.fileIndex === undefined || data.fileIndex === null || data.fileIndex === ''
+                    ? undefined
+                    : Number(data.fileIndex);
+                const urlFoto = typeof data.url_foto === 'string' && data.url_foto.trim()
+                    ? data.url_foto.trim()
+                    : null;
+
+                if (!nombre) {
+                    throw new BadRequestException('El nombre del diseÃ±o es obligatorio');
+                }
+
+                if (!Number.isFinite(precio) || precio <= 0) {
+                    throw new BadRequestException('El precio del diseÃ±o debe ser mayor a 0');
+                }
+
+                if (id !== undefined && (!Number.isInteger(id) || id <= 0)) {
+                    throw new BadRequestException('ID de diseÃ±o invÃ¡lido');
+                }
+
+                if (fileIndex !== undefined && (!Number.isInteger(fileIndex) || fileIndex < 0)) {
+                    throw new BadRequestException('Indice de archivo de diseÃ±o invÃ¡lido');
+                }
+
+                return {
+                    id,
+                    nombre,
+                    precio,
+                    url_foto: urlFoto,
+                    fileIndex,
+                };
             });
         }
 
@@ -568,7 +749,7 @@ export class ProductosController {
         private mapPublicUrlToRemotePath(fotoUrl: string): string | null {
             try {
                 const pathname = new URL(fotoUrl).pathname;
-                const expectedPrefix = `${PUBLIC_PRODUCTS_PATH}/`;
+                const expectedPrefix = `/files${PUBLIC_PRODUCTS_PATH}/`;
 
                 if (!pathname.startsWith(expectedPrefix)) {
                     return null;
