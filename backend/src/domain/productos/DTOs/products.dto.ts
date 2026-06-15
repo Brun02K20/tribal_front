@@ -30,6 +30,10 @@ export class GetDisenoProductoDto {
     @IsDecimal()
     precio!: number;
 
+    @ApiProperty({ example: 4 })
+    @IsInt()
+    stock!: number;
+
     @ApiProperty({ example: 'https://tribaltrend.com.ar/files/products/1/diseno.jpg', nullable: true })
     @IsString()
     url_foto!: string | null;

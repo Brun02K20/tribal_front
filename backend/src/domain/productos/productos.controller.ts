@@ -25,6 +25,7 @@ type ProductDesignOrderItem = {
     id?: number;
     nombre: string;
     precio: number;
+    stock: number;
     url_foto?: string | null;
     fileIndex?: number;
 };
@@ -196,6 +197,10 @@ export class ProductosController {
                 throw new BadRequestException('Debe cargar al menos un diseÃ±o');
             }
 
+            if (!createProductDto.es_unico) {
+                createProductDto.stock = this.sumDesignStock(designOrder);
+            }
+
             const uploadedRemotePaths: string[] = [];
             const sftp = await SftpSingleton.getInstance();
             let productoCreado: GetProductDto | null = null;
@@ -237,6 +242,7 @@ export class ProductosController {
                     await this.disenosService.syncUniqueDesign(idProducto, {
                         nombre: createProductDto.nombre,
                         precio: createProductDto.precio,
+                        stock: createProductDto.stock,
                     });
                 } else {
                     for (const design of designOrder) {
@@ -252,6 +258,7 @@ export class ProductosController {
                         await this.disenosService.create(idProducto, {
                             nombre: design.nombre,
                             precio: design.precio,
+                            stock: design.stock,
                         }, uploadedUrl);
                     }
                 }
@@ -308,6 +315,9 @@ export class ProductosController {
             const createProductDto = this.parseCreateProductDto(req.body as Record<string, unknown>);
             const photoOrder = this.parsePhotoOrder(req.body as Record<string, unknown>);
             const designOrder = this.parseDesignOrder(req.body as Record<string, unknown>);
+            if (!createProductDto.es_unico) {
+                createProductDto.stock = this.sumDesignStock(designOrder);
+            }
             const uploadedRemotePaths: string[] = [];
             const sftp = await SftpSingleton.getInstance();
 
@@ -351,6 +361,7 @@ export class ProductosController {
                 await this.disenosService.syncUniqueDesign(idProducto, {
                     nombre: createProductDto.nombre,
                     precio: createProductDto.precio,
+                    stock: createProductDto.stock,
                 });
             } else {
                 if (designOrder.length === 0) {
@@ -378,6 +389,7 @@ export class ProductosController {
                         await this.disenosService.update(design.id, {
                             nombre: design.nombre,
                             precio: design.precio,
+                            stock: design.stock,
                         }, uploadedUrl);
 
                         if (uploadedUrl && previousDiseno.url_foto) {
@@ -395,6 +407,7 @@ export class ProductosController {
                     const created = await this.disenosService.create(idProducto, {
                         nombre: design.nombre,
                         precio: design.precio,
+                        stock: design.stock,
                     }, uploadedUrl ?? design.url_foto ?? null, {
                         syncFoto: Boolean(uploadedUrl),
                     });
@@ -539,6 +552,7 @@ export class ProductosController {
                 const data = item as Record<string, unknown>;
                 const nombre = typeof data.nombre === 'string' ? data.nombre.trim() : '';
                 const precio = Number(data.precio);
+                const stock = Number(data.stock);
                 const id = data.id === undefined || data.id === null || data.id === ''
                     ? undefined
                     : Number(data.id);
@@ -557,6 +571,10 @@ export class ProductosController {
                     throw new BadRequestException('El precio del diseÃ±o debe ser mayor a 0');
                 }
 
+                if (!Number.isFinite(stock) || stock < 0) {
+                    throw new BadRequestException('El stock del diseÃ±o no puede ser negativo');
+                }
+
                 if (id !== undefined && (!Number.isInteger(id) || id <= 0)) {
                     throw new BadRequestException('ID de diseÃ±o invÃ¡lido');
                 }
@@ -569,10 +587,15 @@ export class ProductosController {
                     id,
                     nombre,
                     precio,
+                    stock: Math.floor(stock),
                     url_foto: urlFoto,
                     fileIndex,
                 };
             });
+        }
+
+        private sumDesignStock(designOrder: ProductDesignOrderItem[]): number {
+            return designOrder.reduce((total, design) => total + Math.max(0, Math.floor(Number(design.stock))), 0);
         }
 
         private resolveOrderedPhotoUrls(

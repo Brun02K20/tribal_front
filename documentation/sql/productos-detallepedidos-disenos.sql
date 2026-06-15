@@ -8,6 +8,7 @@ CREATE TABLE Disenos (
   id INT NOT NULL AUTO_INCREMENT,
   nombre VARCHAR(255) NOT NULL,
   precio DECIMAL(10, 2) NOT NULL,
+  stock INT NOT NULL DEFAULT 0,
   url_foto TEXT NULL,
   id_producto INT NOT NULL,
   PRIMARY KEY (id),
@@ -18,6 +19,9 @@ CREATE TABLE Disenos (
 
 ALTER TABLE Disenos
   MODIFY COLUMN url_foto TEXT NULL;
+
+ALTER TABLE Disenos
+  ADD COLUMN stock INT NOT NULL DEFAULT 0 AFTER precio;
 
 INSERT INTO Disenos (nombre, precio, url_foto, id_producto)
 SELECT
@@ -32,3 +36,17 @@ WHERE p.es_unico = TRUE
     FROM Disenos d
     WHERE d.id_producto = p.id
   );
+
+UPDATE Disenos d
+INNER JOIN Productos p ON p.id = d.id_producto
+SET d.stock = p.stock
+WHERE p.es_unico = TRUE;
+
+UPDATE Productos p
+INNER JOIN (
+  SELECT id_producto, SUM(stock) AS stock_total
+  FROM Disenos
+  GROUP BY id_producto
+) ds ON ds.id_producto = p.id
+SET p.stock = ds.stock_total
+WHERE p.es_unico = FALSE;

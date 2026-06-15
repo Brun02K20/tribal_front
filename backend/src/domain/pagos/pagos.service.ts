@@ -15,6 +15,7 @@ import { EstadoEncargos } from 'src/domain/estadoencargos/models/EstadoEncargos'
 import { Encargos } from 'src/domain/encargos/models/Encargos';
 import { HistorialEncargos } from 'src/domain/historialencargos/models/HistorialEncargos';
 import { Productos } from 'src/domain/productos/models/Productos';
+import { Disenos } from 'src/domain/disenos/models/Disenos';
 import { Usuarios } from 'src/auth/models/Usuarios';
 import { Direcciones } from 'src/auth/usuarios/direcciones/models/Direcciones';
 import { sendEmail } from 'src/utils/mail/smtp';
@@ -316,6 +317,46 @@ export class PagosService {
 					acumulado.set(idProducto, actual + unidades);
 					return acumulado;
 				}, new Map<number, number>());
+
+				const unidadesPorDiseno = detalles.reduce((acumulado, detalle) => {
+					const idProducto = Number(detalle.id_producto);
+					const disenosUrls = Array.isArray(detalle.disenos_urls) ? detalle.disenos_urls : [];
+					for (const url of disenosUrls) {
+						if (typeof url !== 'string' || !url.trim()) {
+							continue;
+						}
+						const key = `${idProducto}||${url.trim()}`;
+						const actual = acumulado.get(key) ?? { idProducto, url: url.trim(), unidades: 0 };
+						actual.unidades += 1;
+						acumulado.set(key, actual);
+					}
+					return acumulado;
+				}, new Map<string, { idProducto: number; url: string; unidades: number }>());
+
+				for (const { idProducto, url, unidades } of unidadesPorDiseno.values()) {
+					const diseno = await Disenos.findOne({
+						where: { id_producto: idProducto, url_foto: url },
+						transaction,
+						lock: transaction.LOCK.UPDATE,
+					});
+
+					if (!diseno) {
+						throw new BadRequestException(`DiseÃ±o no encontrado para descontar stock. id_producto=${idProducto}`);
+					}
+
+					const stockDisenoActual = Number(diseno.stock ?? 0);
+					if (stockDisenoActual < unidades) {
+						throw new BadRequestException(
+							`Stock insuficiente para diseÃ±o ${diseno.nombre} (id=${diseno.id}). stock=${stockDisenoActual}, requerido=${unidades}`,
+						);
+					}
+
+					const nuevoStockDiseno = stockDisenoActual - unidades;
+					await diseno.update({ stock: nuevoStockDiseno }, { transaction });
+					this.logger.debug(
+						`Stock de diseÃ±o actualizado. productoId=${idProducto} disenoId=${diseno.id} stockAnterior=${stockDisenoActual} unidadesDescontadas=${unidades} stockNuevo=${nuevoStockDiseno}`,
+					);
+				}
 
 				for (const [idProducto, unidadesDescontar] of unidadesPorProducto.entries()) {
 					const producto = await Productos.findByPk(idProducto, { transaction, lock: transaction.LOCK.UPDATE });

@@ -8,6 +8,7 @@ export type ProductDiseno = {
   id: number;
   nombre: string;
   precio: number | string;
+  stock: number | string;
   url_foto: string | null;
   id_producto: number;
 };
@@ -64,6 +65,7 @@ export type ProductDesignOrderItem = {
   id?: number;
   nombre: string;
   precio: number;
+  stock: number;
   url_foto?: string | null;
   fileIndex?: number;
 };

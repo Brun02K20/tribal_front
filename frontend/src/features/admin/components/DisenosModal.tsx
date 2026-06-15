@@ -14,8 +14,8 @@ type DisenosModalProps = {
   submitting: boolean;
   error: string | null;
   onClose: () => void;
-  onCreate: (values: { nombre: string; precio: number }, file: File) => Promise<void>;
-  onUpdate: (diseno: Diseno, values: { nombre: string; precio: number }, file?: File | null) => Promise<void>;
+  onCreate: (values: { nombre: string; precio: number; stock: number }, file: File) => Promise<void>;
+  onUpdate: (diseno: Diseno, values: { nombre: string; precio: number; stock: number }, file?: File | null) => Promise<void>;
   onDelete: (diseno: Diseno) => Promise<void>;
 };
 
@@ -24,6 +24,7 @@ type DraftState = {
   diseno: Diseno | null;
   nombre: string;
   precio: string;
+  stock: string;
   file: File | null;
   previewUrl: string;
 };
@@ -33,6 +34,7 @@ const emptyDraft: DraftState = {
   diseno: null,
   nombre: "",
   precio: "",
+  stock: "0",
   file: null,
   previewUrl: "",
 };
@@ -84,6 +86,7 @@ export default function DisenosModal({
       diseno,
       nombre: diseno.nombre,
       precio: String(diseno.precio),
+      stock: String(diseno.stock ?? 0),
       file: null,
       previewUrl: diseno.url_foto ?? "",
     });
@@ -99,7 +102,8 @@ export default function DisenosModal({
   const submitDraft = async () => {
     const nombre = draft.nombre.trim();
     const precio = Number(draft.precio);
-    if (!nombre || !Number.isFinite(precio) || precio <= 0) {
+    const stock = Number(draft.stock);
+    if (!nombre || !Number.isFinite(precio) || precio <= 0 || !Number.isFinite(stock) || stock < 0) {
       return;
     }
 
@@ -107,19 +111,20 @@ export default function DisenosModal({
       if (!draft.file) {
         return;
       }
-      await onCreate({ nombre, precio }, draft.file);
+      await onCreate({ nombre, precio, stock: Math.floor(stock) }, draft.file);
       resetDraft();
       return;
     }
 
     if (draft.diseno) {
-      await onUpdate(draft.diseno, { nombre, precio }, draft.file);
+      await onUpdate(draft.diseno, { nombre, precio, stock: Math.floor(stock) }, draft.file);
       resetDraft();
     }
   };
 
   const canSubmit = Boolean(draft.nombre.trim())
     && Number(draft.precio) > 0
+    && Number(draft.stock) >= 0
     && (draft.mode === "edit" || Boolean(draft.file));
 
   return (
@@ -145,7 +150,7 @@ export default function DisenosModal({
           {!isReadOnlyUniqueProduct && (
           <div className="mt-4 rounded-lg border border-line p-3">
             <h4 className="font-semibold">{draft.mode === "create" ? "Nuevo diseño" : "Editar diseño"}</h4>
-            <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_180px_auto] md:items-end">
+            <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_140px_120px_180px_auto] md:items-end">
               <div>
                 <label className="mb-1 block text-sm text-dark-gray">Nombre</label>
                 <input
@@ -162,6 +167,15 @@ export default function DisenosModal({
                   className="app-input"
                   value={draft.precio}
                   onChange={(event) => setDraft((prev) => ({ ...prev, precio: event.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm text-dark-gray">Stock</label>
+                <input
+                  type="number"
+                  className="app-input"
+                  value={draft.stock}
+                  onChange={(event) => setDraft((prev) => ({ ...prev, stock: event.target.value }))}
                 />
               </div>
               <div>
@@ -200,14 +214,15 @@ export default function DisenosModal({
                   <th className="px-3 py-2 text-left">Foto</th>
                   <th className="px-3 py-2 text-left">Nombre</th>
                   <th className="px-3 py-2 text-left">Precio</th>
+                  <th className="px-3 py-2 text-left">Stock</th>
                   <th className="px-3 py-2 text-left">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td className="px-3 py-4" colSpan={4}>Cargando diseños...</td></tr>
+                  <tr><td className="px-3 py-4" colSpan={5}>Cargando diseños...</td></tr>
                 ) : disenos.length === 0 ? (
-                  <tr><td className="px-3 py-4" colSpan={4}>No hay diseños cargados.</td></tr>
+                  <tr><td className="px-3 py-4" colSpan={5}>No hay diseños cargados.</td></tr>
                 ) : (
                   disenos.map((diseno) => (
                     <tr key={diseno.id} className="border-t border-line">
@@ -220,6 +235,7 @@ export default function DisenosModal({
                       </td>
                       <td className="px-3 py-2">{diseno.nombre}</td>
                       <td className="px-3 py-2">{formatCurrencyArs(diseno.precio)}</td>
+                      <td className="px-3 py-2">{diseno.stock}</td>
                       <td className="px-3 py-2">
                         {isReadOnlyUniqueProduct ? (
                           <span className="app-subtitle text-sm">Automatico</span>

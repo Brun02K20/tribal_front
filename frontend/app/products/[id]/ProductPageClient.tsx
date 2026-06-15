@@ -30,6 +30,7 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
     setActiveImageIndex,
     updateQuantity,
     toggleDesignUrl,
+    updateDesignUrlQuantity,
     addCurrentProductToCart,
     goToCheckout,
   } = useProductDetail(productId);
@@ -186,6 +187,7 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
                     selectedUrls={selectedDesignUrls}
                     onQuantityChange={updateQuantity}
                     onToggleUrl={toggleDesignUrl}
+                    onDesignQuantityChange={updateDesignUrlQuantity}
                   />
                 </div>
               )}

@@ -4,6 +4,7 @@ import { Op } from 'sequelize';
 import { Direcciones } from 'src/auth/usuarios/direcciones/models/Direcciones';
 import { Usuarios } from 'src/auth/models/Usuarios';
 import { Productos } from 'src/domain/productos/models/Productos';
+import { Disenos } from 'src/domain/disenos/models/Disenos';
 import { Categorias } from 'src/domain/categorias/models/Categorias';
 import { Subcategorias } from 'src/domain/subcategorias/models/Subcategorias';
 import { Ciudades } from 'src/domain/ciudades/models/Ciudades';
@@ -382,6 +383,18 @@ export class PedidosService {
             }
 
             const productosById = new Map(productos.map((producto) => [producto.id, producto]));
+            const disenos = await Disenos.findAll({
+                where: {
+                    id_producto: {
+                        [Op.in]: productoIds,
+                    },
+                },
+            });
+            const disenosByProductAndUrl = new Map(
+                disenos
+                    .filter((diseno) => diseno.url_foto)
+                    .map((diseno) => [`${diseno.id_producto}||${diseno.url_foto}`, diseno]),
+            );
             const descuentosAplicados = await this.descuentosService.resolveEffectiveDiscountsForProducts(productos);
 
             const unidadesPorProducto = createPedidoDto.detalles.reduce((acumulado, detalle) => {
@@ -404,6 +417,32 @@ export class PedidosService {
                 throw new BadRequestException(`Stock insuficiente para: ${productosSinStock.join(' | ')}`);
             }
 
+            const disenosSinStock: string[] = [];
+            const unidadesPorDiseno = createPedidoDto.detalles.reduce((acumulado, detalle) => {
+                const disenosUrls = Array.isArray(detalle.disenos_urls) ? detalle.disenos_urls : [];
+                for (const url of disenosUrls) {
+                    if (typeof url !== 'string' || !url.trim()) {
+                        continue;
+                    }
+                    const key = `${detalle.id_producto}||${url.trim()}`;
+                    acumulado.set(key, (acumulado.get(key) ?? 0) + 1);
+                }
+                return acumulado;
+            }, new Map<string, number>());
+
+            for (const [key, unidadesSolicitadas] of unidadesPorDiseno.entries()) {
+                const diseno = disenosByProductAndUrl.get(key);
+                if (!diseno || Number(diseno.stock) < unidadesSolicitadas) {
+                    const nombre = diseno?.nombre ?? 'Diseño';
+                    const stockDisponible = Number(diseno?.stock ?? 0);
+                    disenosSinStock.push(`${nombre} (solicitado: ${unidadesSolicitadas}, stock: ${stockDisponible})`);
+                }
+            }
+
+            if (disenosSinStock.length) {
+                throw new BadRequestException(`Stock insuficiente para: ${disenosSinStock.join(' | ')}`);
+            }
+
             const productosMetadata = createPedidoDto.detalles.map((detalle: DetallePedidoCreateDto) => {
                 const producto = productosById.get(detalle.id_producto);
                 const disenosUrls = Array.isArray(detalle.disenos_urls)
@@ -416,12 +455,22 @@ export class PedidosService {
                     );
                 }
 
-                const descuentoAplicado = descuentosAplicados.get(detalle.id_producto);
+                const descuentoAplicado = producto?.es_unico ? descuentosAplicados.get(detalle.id_producto) : undefined;
                 const precioBase = Number(producto?.precio ?? 0);
-                const precioUnitario = descuentoAplicado
-                    ? Number((precioBase * (1 - descuentoAplicado.porcentaje / 100)).toFixed(2))
-                    : precioBase;
-                const subtotalCalculado = Number((precioUnitario * detalle.unidades).toFixed(2));
+                const subtotalDisenos = !producto?.es_unico && disenosUrls
+                    ? disenosUrls.reduce((acc, url) => {
+                        const diseno = disenosByProductAndUrl.get(`${detalle.id_producto}||${url}`);
+                        return acc + Number(diseno?.precio ?? 0);
+                    }, 0)
+                    : null;
+                const precioUnitario = subtotalDisenos !== null
+                    ? Number((subtotalDisenos / Math.max(detalle.unidades, 1)).toFixed(2))
+                    : descuentoAplicado
+                        ? Number((precioBase * (1 - descuentoAplicado.porcentaje / 100)).toFixed(2))
+                        : precioBase;
+                const subtotalCalculado = subtotalDisenos !== null
+                    ? Number(subtotalDisenos.toFixed(2))
+                    : Number((precioUnitario * detalle.unidades).toFixed(2));
 
                 return {
                     id_producto: detalle.id_producto,

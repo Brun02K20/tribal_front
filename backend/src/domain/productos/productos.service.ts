@@ -40,7 +40,7 @@ const PRODUCT_INCLUDE: Includeable[] = [
     {
         model: Disenos,
         as: 'disenos',
-        attributes: ['id', 'nombre', 'precio', 'url_foto', 'id_producto'],
+        attributes: ['id', 'nombre', 'precio', 'stock', 'url_foto', 'id_producto'],
     },
 ];
 
@@ -91,6 +91,7 @@ export class ProductosService {
                 id: diseno.id,
                 nombre: diseno.nombre,
                 precio: Number(diseno.precio),
+                stock: Number(diseno.stock),
                 url_foto: diseno.url_foto,
                 id_producto: diseno.id_producto,
             })),

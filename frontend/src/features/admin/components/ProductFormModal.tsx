@@ -18,6 +18,7 @@ type DesignItem = {
   id?: number;
   nombre: string;
   precio: string;
+  stock: string;
   url_foto?: string | null;
   file: File | null;
   previewUrl: string;
@@ -27,6 +28,7 @@ const createEmptyDesignItem = (): DesignItem => ({
   localId: `design-${crypto.randomUUID()}`,
   nombre: "",
   precio: "",
+  stock: "0",
   file: null,
   previewUrl: "",
 });
@@ -93,6 +95,7 @@ export default function ProductFormModal({
             id: diseno.id,
             nombre: diseno.nombre,
             precio: String(diseno.precio),
+            stock: String(diseno.stock ?? 0),
             url_foto: diseno.url_foto,
             file: null,
             previewUrl: "",
@@ -139,6 +142,7 @@ export default function ProductFormModal({
           localId: `converted-design-${foto.id}`,
           nombre: index === 0 ? selected.nombre : `${selected.nombre} ${index + 1}`,
           precio: String(selected.precio),
+          stock: "1",
           url_foto: foto.url,
           file: null,
           previewUrl: "",
@@ -148,6 +152,17 @@ export default function ProductFormModal({
       return [createEmptyDesignItem()];
     });
   }, [isOpen, isUnique, isView, selected]);
+
+  const totalDesignStock = designItems.reduce((total, item) => {
+    const stock = Number(item.stock);
+    return total + (Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : 0);
+  }, 0);
+
+  useEffect(() => {
+    if (isOpen && !isUnique) {
+      setValue("stock", totalDesignStock);
+    }
+  }, [isOpen, isUnique, setValue, totalDesignStock]);
 
   if (!isOpen) {
     return null;
@@ -299,10 +314,11 @@ export default function ProductFormModal({
     for (const item of designItems) {
       const nombre = item.nombre.trim();
       const precio = Number(item.precio);
+      const stock = Number(item.stock);
       const hasPhoto = Boolean(item.file || item.url_foto);
 
-      if (!nombre || !Number.isFinite(precio) || precio <= 0 || !hasPhoto) {
-        setDesignError("Todos los disenos deben tener nombre, precio mayor a 0 y foto");
+      if (!nombre || !Number.isFinite(precio) || precio <= 0 || !Number.isFinite(stock) || stock < 0 || !hasPhoto) {
+        setDesignError("Todos los disenos deben tener nombre, precio mayor a 0, stock no negativo y foto");
         return;
       }
 
@@ -310,6 +326,7 @@ export default function ProductFormModal({
         id: item.id,
         nombre,
         precio,
+        stock: Math.floor(stock),
         url_foto: item.url_foto,
       };
 
@@ -321,7 +338,7 @@ export default function ProductFormModal({
       designOrder.push(payload);
     }
 
-    await onSubmit(values, [], [], designFiles, designOrder);
+    await onSubmit({ ...values, stock: totalDesignStock }, [], [], designFiles, designOrder);
   };
 
   const activeGalleryItem = galleryItems[Math.min(activeGalleryIndex, Math.max(galleryItems.length - 1, 0))];
@@ -391,7 +408,7 @@ export default function ProductFormModal({
                 <input
                   type="number"
                   className="app-input"
-                  disabled={isView}
+                  disabled={isView || !isUnique}
                   placeholder="Ej: 25"
                   {...register("stock", {
                     required: "El stock es obligatorio",
@@ -399,6 +416,9 @@ export default function ProductFormModal({
                     min: { value: 0, message: "El stock no puede ser negativo" },
                   })}
                 />
+                {!isUnique && (
+                  <p className="app-subtitle mt-1 text-xs">Se calcula desde el stock de los diseños: {totalDesignStock}</p>
+                )}
                 {errors.stock && <p className="mt-1 text-sm text-red-600">{errors.stock.message}</p>}
               </div>
             </div>
@@ -624,7 +644,7 @@ export default function ProductFormModal({
                   {designItems.map((item, index) => {
                     const previewUrl = getDesignPreviewUrl(item);
                     return (
-                      <div key={item.localId} className="grid gap-3 rounded-md border border-line bg-white/70 p-3 md:grid-cols-[minmax(0,1fr)_140px_190px_96px_auto] md:items-end">
+                      <div key={item.localId} className="grid gap-3 rounded-md border border-line bg-white/70 p-3 md:grid-cols-[minmax(0,1fr)_140px_120px_190px_96px_auto] md:items-end">
                         <div>
                           <label className="mb-1 block text-sm text-dark-gray">Nombre</label>
                           <input
@@ -644,6 +664,16 @@ export default function ProductFormModal({
                             disabled={isView}
                             value={item.precio}
                             onChange={(event) => updateDesignItem(item.localId, { precio: event.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-sm text-dark-gray">Stock</label>
+                          <input
+                            type="number"
+                            className="app-input"
+                            disabled={isView}
+                            value={item.stock}
+                            onChange={(event) => updateDesignItem(item.localId, { stock: event.target.value })}
                           />
                         </div>
                         <div>

@@ -68,8 +68,12 @@ export function useProductDetail(productId: number) {
       return;
     }
 
-    const selectedDisenos = (product.disenos ?? []).filter((diseno) => diseno.url_foto && selectedDesignUrls.includes(diseno.url_foto));
-    const totalDesignPrice = selectedDisenos.reduce((acc, diseno) => acc + toNumber(diseno.precio), 0);
+    const priceByUrl = new Map(
+      (product.disenos ?? [])
+        .filter((diseno) => diseno.url_foto)
+        .map((diseno) => [diseno.url_foto as string, toNumber(diseno.precio)]),
+    );
+    const totalDesignPrice = selectedDesignUrls.reduce((acc, url) => acc + (priceByUrl.get(url) ?? 0), 0);
     const precioOriginal = product.es_unico || totalDesignPrice === 0
       ? toNumber(product.precio)
       : Number((totalDesignPrice / Math.max(quantity, 1)).toFixed(2));
@@ -102,6 +106,25 @@ export function useProductDetail(productId: number) {
     const nextQuantity = Math.min(Math.max(1, Math.floor(value)), max);
     setQuantity(nextQuantity);
     setSelectedDesignUrls((prev) => prev.slice(0, nextQuantity));
+  };
+
+  const updateDesignUrlQuantity = (url: string, nextValue: number) => {
+    if (!product || !url) {
+      return;
+    }
+
+    const design = (product.disenos ?? []).find((item) => item.url_foto === url);
+    const max = Math.max(0, Number(design?.stock ?? 0));
+    const safeQuantity = Math.min(Math.max(0, Math.floor(nextValue)), max);
+
+    setSelectedDesignUrls((prev) => {
+      const next = [
+        ...prev.filter((item) => item !== url),
+        ...Array.from({ length: safeQuantity }, () => url),
+      ];
+      setQuantity(Math.max(1, next.length));
+      return next;
+    });
   };
 
   const toggleDesignUrl = (url: string) => {
@@ -142,6 +165,7 @@ export function useProductDetail(productId: number) {
     totalItems,
     setActiveImageIndex,
     updateQuantity,
+    updateDesignUrlQuantity,
     toggleDesignUrl,
     goToPrevImage,
     goToNextImage,

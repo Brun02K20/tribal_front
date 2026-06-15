@@ -42,6 +42,7 @@ export default function ProductsPageClient() {
     closeDesignModal,
     updateDesignQuantity,
     toggleDesignUrl,
+    updateDesignUrlQuantity,
     confirmDesignProduct,
     goToCheckout,
   } = useProductsCatalog();
@@ -249,6 +250,7 @@ export default function ProductsPageClient() {
                   selectedUrls={selectedDesignUrls}
                   onQuantityChange={updateDesignQuantity}
                   onToggleUrl={toggleDesignUrl}
+                  onDesignQuantityChange={updateDesignUrlQuantity}
                 />
               </div>
               <div className="mt-5 flex justify-end gap-2">
@@ -259,7 +261,7 @@ export default function ProductsPageClient() {
                   type="button"
                   className="app-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
                   onClick={confirmDesignProduct}
-                  disabled={selectedDesignUrls.length !== designQuantity}
+                  disabled={selectedDesignUrls.length === 0 || selectedDesignUrls.length !== designQuantity}
                 >
                   Agregar al carrito
                 </button>

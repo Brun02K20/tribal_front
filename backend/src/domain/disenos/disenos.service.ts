@@ -8,11 +8,23 @@ import { Disenos } from './models/Disenos';
 export class DisenosService {
     constructor(private readonly fotosService: FotosService) {}
 
+    private async syncProductStockFromDesigns(idProducto: number): Promise<void> {
+        const producto = await Productos.findByPk(idProducto);
+        if (!producto || producto.es_unico) {
+            return;
+        }
+
+        const disenos = await Disenos.findAll({ where: { id_producto: idProducto } });
+        const stockTotal = disenos.reduce((total, diseno) => total + Math.max(0, Number(diseno.stock ?? 0)), 0);
+        await producto.update({ stock: stockTotal });
+    }
+
     private mapDiseno(diseno: Disenos): GetDisenoDto {
         return {
             id: diseno.id,
             nombre: diseno.nombre,
             precio: Number(diseno.precio),
+            stock: Number(diseno.stock),
             url_foto: diseno.url_foto,
             id_producto: diseno.id_producto,
         };
@@ -49,6 +61,7 @@ export class DisenosService {
             id_producto: idProducto,
             nombre: data.nombre.trim(),
             precio: Number(data.precio),
+            stock: Math.max(0, Math.floor(Number(data.stock))),
             url_foto: urlFoto,
         });
 
@@ -56,6 +69,7 @@ export class DisenosService {
             await this.fotosService.bulkCreate([{ id_producto: idProducto, url: urlFoto }]);
         }
 
+        await this.syncProductStockFromDesigns(idProducto);
         return this.mapDiseno(diseno);
     }
 
@@ -74,6 +88,7 @@ export class DisenosService {
         await diseno.update({
             nombre: data.nombre.trim(),
             precio: Number(data.precio),
+            stock: Math.max(0, Math.floor(Number(data.stock))),
             url_foto: urlFoto === undefined ? diseno.url_foto : urlFoto,
         });
 
@@ -84,6 +99,7 @@ export class DisenosService {
             await this.fotosService.bulkCreate([{ id_producto: diseno.id_producto, url: urlFoto }]);
         }
 
+        await this.syncProductStockFromDesigns(diseno.id_producto);
         return this.mapDiseno(diseno);
     }
 
@@ -103,6 +119,7 @@ export class DisenosService {
         await mainDiseno.update({
             nombre: data.nombre.trim(),
             precio: Number(data.precio),
+            stock: Math.max(0, Math.floor(Number(data.stock))),
             url_foto: null,
         });
 
@@ -124,7 +141,9 @@ export class DisenosService {
         if (diseno.url_foto) {
             await this.fotosService.deleteProductFotoByUrl(diseno.id_producto, diseno.url_foto);
         }
+        const idProducto = diseno.id_producto;
         await diseno.destroy();
+        await this.syncProductStockFromDesigns(idProducto);
 
         return {
             ...payload,
@@ -154,6 +173,7 @@ export class DisenosService {
 
         const nombre = typeof data.nombre === 'string' ? data.nombre.trim() : '';
         const precio = Number(data.precio);
+        const stock = Number(data.stock);
 
         if (!nombre) {
             throw new BadRequestException('El nombre del diseño es obligatorio');
@@ -163,6 +183,10 @@ export class DisenosService {
             throw new BadRequestException('El precio del diseño debe ser mayor a 0');
         }
 
-        return { nombre, precio };
+        if (!Number.isFinite(stock) || stock < 0) {
+            throw new BadRequestException('El stock del diseÃ±o no puede ser negativo');
+        }
+
+        return { nombre, precio, stock: Math.floor(stock) };
     }
 }
