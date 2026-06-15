@@ -41,7 +41,8 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
     && typeof product.descuento_aplicado?.porcentaje === "number"
     && Number(product.descuento_aplicado.porcentaje) > 0;
   const precioBase = product ? toNumber(product.precio) : 0;
-  const precioFinal = product ? toNumber(product.precio_final ?? precioBase) : 0;
+  const firstDesignPrice = !product?.es_unico && product?.disenos?.length ? toNumber(product.disenos[0].precio) : 0;
+  const precioFinal = product ? product.es_unico ? toNumber(product.precio_final ?? precioBase) : firstDesignPrice : 0;
   const discountPercentage = hasDiscount ? Number(product?.descuento_aplicado?.porcentaje ?? 0) : 0;
 
   const updateZoomOrigin = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -179,6 +180,7 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
                 <div className="mt-5">
                   <ProductDesignSelector
                     fotos={fotos}
+                    disenos={product.disenos ?? []}
                     quantity={quantity}
                     maxQuantity={stock}
                     selectedUrls={selectedDesignUrls}

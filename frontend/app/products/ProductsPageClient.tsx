@@ -142,15 +142,22 @@ export default function ProductsPageClient() {
                   {products.map((product) => {
                     const stock = toNumber(product.stock);
                     const precio = toNumber(product.precio);
+                    const activeDesign = !product.es_unico && product.disenos?.length
+                      ? product.disenos[activeImageByProduct[product.id] ?? 0] ?? product.disenos[0]
+                      : null;
                     const hasDiscount =
+                      !activeDesign
+                      &&
                       typeof product.descuento_aplicado?.porcentaje === "number"
                       && Number(product.descuento_aplicado.porcentaje) > 0;
-                    const precioFinal = hasDiscount ? toNumber(product.precio_final ?? precio) : precio;
+                    const precioFinal = activeDesign
+                      ? toNumber(activeDesign.precio)
+                      : hasDiscount ? toNumber(product.precio_final ?? precio) : precio;
                     const discountPercentage = hasDiscount ? Number(product.descuento_aplicado?.porcentaje ?? 0) : 0;
 
                     return (
                       <article key={product.id} className="app-panel">
-                        {product.fotos?.length ? (
+                        {(activeDesign || product.fotos?.length) ? (
                           <div className="relative mb-3">
                             {hasDiscount && (
                               <span className="absolute left-2 top-2 z-10 rounded-full bg-earth-brown px-2 py-1 text-xs font-semibold text-cream">
@@ -159,8 +166,8 @@ export default function ProductsPageClient() {
                             )}
                             <img
                               key={`${product.id}-${activeImageByProduct[product.id] ?? 0}`}
-                              src={product.fotos[activeImageByProduct[product.id] ?? 0]?.url}
-                              alt={`${product.nombre} artesanal - Tribal Trend`}
+                              src={activeDesign?.url_foto ?? product.fotos[activeImageByProduct[product.id] ?? 0]?.url}
+                              alt={`${activeDesign?.nombre ?? product.nombre} artesanal - Tribal Trend`}
                               width={800}
                               height={800}
                               loading="lazy"
@@ -174,6 +181,7 @@ export default function ProductsPageClient() {
                         )}
 
                         <h2 className="text-lg font-semibold">{product.nombre}</h2>
+                        {activeDesign && <p className="mt-1 text-sm font-semibold text-earth-brown">{activeDesign.nombre}</p>}
                         <p className="mt-1 text-sm text-zinc-600">
                           {product.categoria?.nombre ?? "-"} / {product.subcategoria?.nombre ?? "-"}
                         </p>
@@ -228,6 +236,7 @@ export default function ProductsPageClient() {
               <div className="mt-4">
                 <ProductDesignSelector
                   fotos={designProduct.fotos ?? []}
+                  disenos={designProduct.disenos ?? []}
                   quantity={designQuantity}
                   maxQuantity={toNumber(designProduct.stock)}
                   selectedUrls={selectedDesignUrls}

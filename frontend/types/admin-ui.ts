@@ -105,4 +105,5 @@ export type AdminCrudActionsProps = {
   onEdit: () => void;
   onDelete: () => void;
   onToggle: () => void;
+  onDesigns?: () => void;
 };

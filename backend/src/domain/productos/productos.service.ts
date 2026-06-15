@@ -5,6 +5,7 @@ import { FotosService } from 'src/domain/fotos/fotos.service';
 import { Fotos } from 'src/domain/fotos/models/Fotos';
 import { Categorias } from 'src/domain/categorias/models/Categorias';
 import { Subcategorias } from 'src/domain/subcategorias/models/Subcategorias';
+import { Disenos } from 'src/domain/disenos/models/Disenos';
 import { DescuentosService } from 'src/domain/descuentos/descuentos.service';
 import type { DescuentoAplicado } from 'src/domain/descuentos/types/descuentos.types';
 import { CreateProductFotosDto } from 'src/domain/fotos/DTOs/fotos.dto';
@@ -35,6 +36,11 @@ const PRODUCT_INCLUDE: Includeable[] = [
         model: Subcategorias,
         as: 'subcategoria',
         attributes: ['id', 'nombre'],
+    },
+    {
+        model: Disenos,
+        as: 'disenos',
+        attributes: ['id', 'nombre', 'precio', 'url_foto', 'id_producto'],
     },
 ];
 
@@ -81,6 +87,13 @@ export class ProductosService {
             es_activo: producto.es_activo,
             es_unico: producto.es_unico,
             fotos: fotosOverride ?? this.mapFotos(producto),
+            disenos: (producto.disenos ?? []).map((diseno) => ({
+                id: diseno.id,
+                nombre: diseno.nombre,
+                precio: Number(diseno.precio),
+                url_foto: diseno.url_foto,
+                id_producto: diseno.id_producto,
+            })),
             descuento_aplicado: descuento,
         };
     }
@@ -196,7 +209,7 @@ export class ProductosService {
         return this.findProductosPaginated({
             where: { es_activo: true },
             page,
-            pageSize: 18,
+            pageSize: 12,
         });
     }
 
@@ -314,7 +327,7 @@ export class ProductosService {
                 es_activo: true,
             },
             page,
-            pageSize: 18,
+            pageSize: 12,
         });
     }
 

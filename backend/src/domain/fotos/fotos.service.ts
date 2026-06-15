@@ -34,4 +34,8 @@ export class FotosService {
             await Fotos.bulkCreate(fotos);
         }
     }
+
+    async deleteProductFotoByUrl(idProducto: number, url: string): Promise<void> {
+        await Fotos.destroy({ where: { id_producto: idProducto, url } });
+    }
 }

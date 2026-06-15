@@ -68,16 +68,20 @@ export function useProductDetail(productId: number) {
       return;
     }
 
-    const precioOriginal = toNumber(product.precio);
-    const precioFinal = toNumber(product.precio_final ?? precioOriginal);
+    const selectedDisenos = (product.disenos ?? []).filter((diseno) => selectedDesignUrls.includes(diseno.url_foto));
+    const totalDesignPrice = selectedDisenos.reduce((acc, diseno) => acc + toNumber(diseno.precio), 0);
+    const precioOriginal = product.es_unico || totalDesignPrice === 0
+      ? toNumber(product.precio)
+      : Number((totalDesignPrice / Math.max(quantity, 1)).toFixed(2));
+    const precioFinal = product.es_unico ? toNumber(product.precio_final ?? precioOriginal) : precioOriginal;
 
     addItem({
       id: product.id,
       nombre: product.nombre,
       precio: precioFinal,
       precio_original: precioOriginal,
-      id_descuento: product.descuento_aplicado?.id_descuento ?? null,
-      porcentaje_descuento: product.descuento_aplicado?.porcentaje,
+      id_descuento: product.es_unico ? product.descuento_aplicado?.id_descuento ?? null : null,
+      porcentaje_descuento: product.es_unico ? product.descuento_aplicado?.porcentaje : undefined,
       stock,
       ancho: toNumber(product.ancho),
       alto: toNumber(product.alto),

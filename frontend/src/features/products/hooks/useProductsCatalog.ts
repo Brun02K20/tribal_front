@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { productosService } from "@/entities/productos/api/productos.service";
 import { categoriasService } from "@/entities/categorias/api/categorias.service";
 import { subcategoriasService } from "@/entities/subcategorias/api/subcategorias.service";
 import { useCart } from "@/shared/providers/CartContext";
 import { useAuth } from "@/shared/providers/AuthContext";
-import type { Product, ProductFilters } from "@/types/products";
+import type { PaginatedProductsResponse, Product, ProductFilters } from "@/types/products";
 import { toNumber } from "@/shared/lib/formatters";
 import type { CategoriaWithSubcategorias } from "@/types/categorias";
 import type { Subcategoria } from "@/types/subcategorias";
@@ -29,6 +29,9 @@ const DEFAULT_FILTERS_FORM: ProductFiltersForm = {
   precio_min: "",
   precio_max: "",
 };
+
+const PUBLIC_PRODUCTS_PAGE_SIZE = 12;
+const PREFETCH_DELAY_MS = 2000;
 
 const normalizeFilters = (form: ProductFiltersForm): ProductFilters => {
   const parsedCategoria = Number(form.id_categoria);
@@ -64,7 +67,7 @@ export function useProductsCatalog() {
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
   const [appliedFilters, setAppliedFilters] = useState<ProductFilters>({});
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(18);
+  const [pageSize] = useState(PUBLIC_PRODUCTS_PAGE_SIZE);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItemsCount, setTotalItemsCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -73,6 +76,7 @@ export function useProductsCatalog() {
   const [designProduct, setDesignProduct] = useState<Product | null>(null);
   const [designQuantity, setDesignQuantity] = useState(1);
   const [selectedDesignUrls, setSelectedDesignUrls] = useState<string[]>([]);
+  const productsCacheRef = useRef<Record<string, Record<number, PaginatedProductsResponse>>>({});
   const {
     registerFilters,
     applyFilters,
@@ -103,6 +107,7 @@ export function useProductsCatalog() {
 
     return subcategorias.filter((subcategoria) => subcategoria.id_categoria === selectedCategoriaId);
   }, [selectedCategoriaId, subcategorias]);
+  const productsCacheKey = useMemo(() => JSON.stringify(appliedFilters), [appliedFilters]);
 
   useEffect(() => {
     const selectedSubcategoriaId = Number(getValues("id_subcategoria") || 0);
@@ -146,28 +151,104 @@ export function useProductsCatalog() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+
     const loadProducts = async () => {
       try {
-        setLoading(true);
         setError(null);
 
+        const cachedResponse = productsCacheRef.current[productsCacheKey]?.[page];
+        if (cachedResponse) {
+          setProducts(cachedResponse.data);
+          setTotalPages(cachedResponse.totalPages);
+          setTotalItemsCount(cachedResponse.totalItems);
+          setLoading(false);
+          return;
+        }
+
+        setLoading(true);
         const shouldUseFilters = hasFiltersApplied(appliedFilters);
         const response = shouldUseFilters
           ? await productosService.findByFilters(appliedFilters, page)
           : await productosService.getAllProducts(page);
 
+        if (!active) {
+          return;
+        }
+
+        productsCacheRef.current[productsCacheKey] = {
+          ...(productsCacheRef.current[productsCacheKey] ?? {}),
+          [page]: response,
+        };
         setProducts(response.data);
         setTotalPages(response.totalPages);
         setTotalItemsCount(response.totalItems);
       } catch (err) {
         setError(err instanceof Error ? err.message : "No se pudieron cargar los productos");
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
     void loadProducts();
-  }, [appliedFilters, page]);
+
+    return () => {
+      active = false;
+    };
+  }, [appliedFilters, page, productsCacheKey]);
+
+  useEffect(() => {
+    if (page >= totalPages) {
+      return;
+    }
+
+    let cancelled = false;
+    let nextPage = page + 1;
+    let timeoutId: number | undefined;
+
+    const prefetchNextPage = () => {
+      if (cancelled || nextPage > totalPages) {
+        return;
+      }
+
+      if (productsCacheRef.current[productsCacheKey]?.[nextPage]) {
+        nextPage += 1;
+        timeoutId = window.setTimeout(prefetchNextPage, PREFETCH_DELAY_MS);
+        return;
+      }
+
+      const shouldUseFilters = hasFiltersApplied(appliedFilters);
+      const request = shouldUseFilters
+        ? productosService.findByFilters(appliedFilters, nextPage)
+        : productosService.getAllProducts(nextPage);
+
+      void request
+        .then((response) => {
+          if (cancelled) {
+            return;
+          }
+
+          productsCacheRef.current[productsCacheKey] = {
+            ...(productsCacheRef.current[productsCacheKey] ?? {}),
+            [nextPage]: response,
+          };
+          nextPage += 1;
+          timeoutId = window.setTimeout(prefetchNextPage, PREFETCH_DELAY_MS);
+        })
+        .catch(() => undefined);
+    };
+
+    timeoutId = window.setTimeout(prefetchNextPage, PREFETCH_DELAY_MS);
+
+    return () => {
+      cancelled = true;
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [appliedFilters, page, productsCacheKey, totalPages]);
 
   useEffect(() => {
     if (!products.length) {
@@ -187,7 +268,11 @@ export function useProductsCatalog() {
         const next: Record<number, number> = { ...prev };
 
         for (const product of products) {
-          const fotos = product.fotos ?? [];
+          const fotos = product.es_unico ? product.fotos ?? [] : (product.disenos ?? []).map((diseno) => ({
+            id: diseno.id,
+            url: diseno.url_foto,
+            id_producto: diseno.id_producto,
+          }));
           if (fotos.length <= 1) {
             next[product.id] = 0;
             continue;
@@ -301,16 +386,20 @@ export function useProductsCatalog() {
     }
 
     const stock = toNumber(designProduct.stock);
-    const precioOriginal = toNumber(designProduct.precio);
-    const precioFinal = toNumber(designProduct.precio_final ?? precioOriginal);
+    const selectedDisenos = (designProduct.disenos ?? []).filter((diseno) => selectedDesignUrls.includes(diseno.url_foto));
+    const totalDesignPrice = selectedDisenos.reduce((acc, diseno) => acc + toNumber(diseno.precio), 0);
+    const precioOriginal = totalDesignPrice > 0
+      ? Number((totalDesignPrice / Math.max(designQuantity, 1)).toFixed(2))
+      : toNumber(designProduct.precio);
+    const precioFinal = precioOriginal;
 
     addItem({
       id: designProduct.id,
       nombre: designProduct.nombre,
       precio: precioFinal,
       precio_original: precioOriginal,
-      id_descuento: designProduct.descuento_aplicado?.id_descuento ?? null,
-      porcentaje_descuento: designProduct.descuento_aplicado?.porcentaje,
+      id_descuento: null,
+      porcentaje_descuento: undefined,
       stock,
       ancho: toNumber(designProduct.ancho),
       alto: toNumber(designProduct.alto),

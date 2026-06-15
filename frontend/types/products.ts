@@ -4,6 +4,14 @@ export type ProductFoto = {
   id_producto: number;
 };
 
+export type ProductDiseno = {
+  id: number;
+  nombre: string;
+  precio: number | string;
+  url_foto: string;
+  id_producto: number;
+};
+
 export type Product = {
   id: number;
   nombre: string;
@@ -31,6 +39,7 @@ export type Product = {
     nombre: string;
   };
   fotos: ProductFoto[];
+  disenos?: ProductDiseno[];
 };
 
 export type ProductFormValues = {

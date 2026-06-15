@@ -6,6 +6,8 @@ import { useToast } from "@/shared/providers/ToastContext";
 import { categoriasService } from "@/entities/categorias/api/categorias.service";
 import { subcategoriasService } from "@/entities/subcategorias/api/subcategorias.service";
 import { productosService } from "@/entities/productos/api/productos.service";
+import { disenosService } from "@/entities/disenos/api/disenos.service";
+import type { Diseno, DisenoFormValues } from "@/types/disenos";
 import type { Product, ProductFilters, ProductFormValues } from "@/types/products";
 import type { CategoriaWithSubcategorias } from "@/types/categorias";
 import type { Subcategoria } from "@/types/subcategorias";
@@ -101,6 +103,9 @@ export function useProductosAdmin() {
   });
 
   const [selected, setSelected] = useState<Product | null>(null);
+  const [selectedForDesigns, setSelectedForDesigns] = useState<Product | null>(null);
+  const [disenos, setDisenos] = useState<Diseno[]>([]);
+  const [loadingDisenos, setLoadingDisenos] = useState(false);
   const [mode, setMode] = useState<CrudModalMode>("create");
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -217,6 +222,26 @@ export function useProductosAdmin() {
     setIsDeleteModalOpen(false);
   };
 
+  const openDesigns = async (product: Product) => {
+    setSelectedForDesigns(product);
+    setLoadingDisenos(true);
+    setError(null);
+    try {
+      const data = await disenosService.getByProducto(product.id);
+      setDisenos(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudieron cargar los diseños");
+      setDisenos([]);
+    } finally {
+      setLoadingDisenos(false);
+    }
+  };
+
+  const closeDesigns = () => {
+    setSelectedForDesigns(null);
+    setDisenos([]);
+  };
+
   const initialValues = useMemo<ProductFormValues>(() => {
     if (!selected) {
       return {
@@ -307,6 +332,54 @@ export function useProductosAdmin() {
     }
   };
 
+  const createDiseno = async (values: DisenoFormValues, file: File) => {
+    if (!selectedForDesigns) {
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const created = await disenosService.create(selectedForDesigns.id, values, file);
+      setDisenos((prev) => [...prev, created]);
+      showToast("Diseño creado correctamente", "success");
+      await loadAll();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo crear el diseño");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const updateDiseno = async (diseno: Diseno, values: DisenoFormValues, file?: File | null) => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const updated = await disenosService.update(diseno.id, diseno.id_producto, values, file);
+      setDisenos((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      showToast("Diseño actualizado correctamente", "success");
+      await loadAll();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo actualizar el diseño");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const deleteDiseno = async (diseno: Diseno) => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await disenosService.remove(diseno.id);
+      setDisenos((prev) => prev.filter((item) => item.id !== diseno.id));
+      showToast("Diseño eliminado correctamente", "success");
+      await loadAll();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo eliminar el diseño");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return {
     products,
     categorias,
@@ -315,6 +388,9 @@ export function useProductosAdmin() {
     submitting,
     error,
     selected,
+    selectedForDesigns,
+    disenos,
+    loadingDisenos,
     mode,
     isFormModalOpen,
     isDeleteModalOpen,
@@ -325,9 +401,14 @@ export function useProductosAdmin() {
     closeForm,
     openDelete,
     closeDelete,
+    openDesigns,
+    closeDesigns,
     submitProduct,
     confirmDelete,
     toggleProduct,
+    createDiseno,
+    updateDiseno,
+    deleteDiseno,
     registerFilters,
     subcategoriasFiltradasPorCategoria,
     page,

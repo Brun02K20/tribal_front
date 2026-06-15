@@ -24,6 +24,7 @@ import { EncargosModule } from './domain/encargos/encargos.module';
 import { EstadosEncargosModule } from './domain/estadoencargos/estadoencargos.module';
 import { CorreoArgentinoModule } from './domain/correoArgentino/correoArgentino.module';
 import { BlogsModule } from './domain/blogs/blogs.module';
+import { DisenosModule } from './domain/disenos/disenos.module';
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ dotenv.config();
     EstadosEncargosModule,
     CorreoArgentinoModule,
     BlogsModule,
+    DisenosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

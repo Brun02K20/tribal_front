@@ -17,6 +17,28 @@ export class DescuentoAplicadoProductoDto {
     tipo!: 'producto' | 'subcategoria' | 'categoria';
 }
 
+export class GetDisenoProductoDto {
+    @ApiProperty({ example: 1 })
+    @IsInt()
+    id!: number;
+
+    @ApiProperty({ example: 'Diseño mandala azul' })
+    @IsString()
+    nombre!: string;
+
+    @ApiProperty({ example: 12500 })
+    @IsDecimal()
+    precio!: number;
+
+    @ApiProperty({ example: 'https://tribaltrend.com.ar/files/products/1/diseno.jpg' })
+    @IsString()
+    url_foto!: string;
+
+    @ApiProperty({ example: 1 })
+    @IsInt()
+    id_producto!: number;
+}
+
 export class GetProductDto {
     @ApiProperty({ example: 1 })
     @IsInt()
@@ -83,6 +105,9 @@ export class GetProductDto {
         }
     ] })
     fotos!: GetFotoDto[];
+
+    @ApiProperty({ required: false, type: GetDisenoProductoDto, isArray: true })
+    disenos?: GetDisenoProductoDto[];
 
     @ApiProperty({ required: false, type: DescuentoAplicadoProductoDto })
     descuento_aplicado?: DescuentoAplicadoProductoDto;

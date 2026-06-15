@@ -8,6 +8,7 @@ export default function AdminCrudActions({
   onEdit,
   onDelete,
   onToggle,
+  onDesigns,
 }: AdminCrudActionsProps) {
   const actionButtonClassName =
     "inline-flex h-9 w-9 items-center justify-center rounded-md border border-earth-brown text-earth-brown transition hover:bg-earth-brown/10 disabled:cursor-not-allowed disabled:opacity-60";
@@ -77,6 +78,25 @@ export default function AdminCrudActions({
               <path d="M12 8v8" />
             </svg>
           )}
+        </button>
+      )}
+      {onDesigns && (
+        <button
+          className={actionButtonClassName}
+          onClick={onDesigns}
+          disabled={submitting}
+          type="button"
+          aria-label="Ver diseños"
+          title="Ver diseños"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M4 7h16" />
+            <path d="M4 12h16" />
+            <path d="M4 17h16" />
+            <circle cx="7" cy="7" r="1" />
+            <circle cx="7" cy="12" r="1" />
+            <circle cx="7" cy="17" r="1" />
+          </svg>
         </button>
       )}
     </div>

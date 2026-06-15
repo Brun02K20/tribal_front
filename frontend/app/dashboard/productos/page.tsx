@@ -6,6 +6,7 @@ import AdminTable from "@/features/admin/components/AdminTable";
 import AdminCrudActions from "@/features/admin/components/AdminCrudActions";
 import ConfirmDeleteModal from "@/features/admin/components/ConfirmDeleteModal";
 import ProductFormModal from "@/features/admin/components/ProductFormModal";
+import DisenosModal from "@/features/admin/components/DisenosModal";
 import { useProductosAdmin } from "@/features/admin/hooks/useProductosAdmin";
 import { formatCurrencyArs } from "@/shared/lib/formatters";
 import PaginationControls from "@/shared/ui/PaginationControls";
@@ -19,6 +20,9 @@ export default function ProductosAdminPage() {
     submitting,
     error,
     selected,
+    selectedForDesigns,
+    disenos,
+    loadingDisenos,
     mode,
     isFormModalOpen,
     isDeleteModalOpen,
@@ -29,9 +33,14 @@ export default function ProductosAdminPage() {
     closeForm,
     openDelete,
     closeDelete,
+    openDesigns,
+    closeDesigns,
     submitProduct,
     confirmDelete,
     toggleProduct,
+    createDiseno,
+    updateDiseno,
+    deleteDiseno,
     registerFilters,
     subcategoriasFiltradasPorCategoria,
     page,
@@ -150,6 +159,7 @@ export default function ProductosAdminPage() {
                   onEdit={() => openEdit(product)}
                   onDelete={() => openDelete(product)}
                   onToggle={() => toggleProduct(product)}
+                  onDesigns={() => openDesigns(product)}
                 />
               </td>
             </tr>
@@ -185,6 +195,19 @@ export default function ProductosAdminPage() {
           onCancel={closeDelete}
           onConfirm={confirmDelete}
           loading={submitting}
+        />
+
+        <DisenosModal
+          isOpen={Boolean(selectedForDesigns)}
+          product={selectedForDesigns}
+          disenos={disenos}
+          loading={loadingDisenos}
+          submitting={submitting}
+          error={error}
+          onClose={closeDesigns}
+          onCreate={createDiseno}
+          onUpdate={updateDiseno}
+          onDelete={deleteDiseno}
         />
       </AdminShell>
     </AdminOnly>

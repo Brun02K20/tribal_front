@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ProductFoto } from "@/types/products";
+import type { ProductDiseno, ProductFoto } from "@/types/products";
 
 type ProductDesignSelectorProps = {
   fotos: ProductFoto[];
+  disenos?: ProductDiseno[];
   quantity: number;
   maxQuantity: number;
   selectedUrls: string[];
@@ -14,6 +15,7 @@ type ProductDesignSelectorProps = {
 
 export default function ProductDesignSelector({
   fotos,
+  disenos,
   quantity,
   maxQuantity,
   selectedUrls,
@@ -21,21 +23,34 @@ export default function ProductDesignSelector({
   onToggleUrl,
 }: ProductDesignSelectorProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeFoto = fotos[Math.min(activeIndex, Math.max(fotos.length - 1, 0))];
+  const designItems = disenos?.length
+    ? disenos.map((diseno) => ({
+        id: diseno.id,
+        url: diseno.url_foto,
+        nombre: diseno.nombre,
+        precio: Number(diseno.precio),
+      }))
+    : fotos.map((foto, index) => ({
+        id: foto.id,
+        url: foto.url,
+        nombre: `Diseño ${index + 1}`,
+        precio: null as number | null,
+      }));
+  const activeFoto = designItems[Math.min(activeIndex, Math.max(designItems.length - 1, 0))];
   const selectedSet = useMemo(() => new Set(selectedUrls), [selectedUrls]);
 
   const goToPrev = () => {
-    if (!fotos.length) {
+    if (!designItems.length) {
       return;
     }
-    setActiveIndex((prev) => (prev === 0 ? fotos.length - 1 : prev - 1));
+    setActiveIndex((prev) => (prev === 0 ? designItems.length - 1 : prev - 1));
   };
 
   const goToNext = () => {
-    if (!fotos.length) {
+    if (!designItems.length) {
       return;
     }
-    setActiveIndex((prev) => (prev === fotos.length - 1 ? 0 : prev + 1));
+    setActiveIndex((prev) => (prev === designItems.length - 1 ? 0 : prev + 1));
   };
 
   return (
@@ -83,7 +98,7 @@ export default function ProductDesignSelector({
             >
               <img
                 src={activeFoto.url}
-                alt={`Diseño ${activeIndex + 1}`}
+                alt={activeFoto.nombre}
                 className="h-full w-full object-contain p-2"
               />
               {selectedSet.has(activeFoto.url) && (
@@ -93,24 +108,30 @@ export default function ProductDesignSelector({
               )}
             </button>
           </div>
+          <div className="mt-2">
+            <p className="text-sm font-semibold text-dark-gray">{activeFoto.nombre}</p>
+            {activeFoto.precio !== null && (
+              <p className="text-sm text-earth-brown">${activeFoto.precio.toFixed(2)}</p>
+            )}
+          </div>
 
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-            {fotos.map((foto, index) => {
-              const isSelected = selectedSet.has(foto.url);
+            {designItems.map((item, index) => {
+              const isSelected = selectedSet.has(item.url);
               return (
                 <button
-                  key={foto.id}
+                  key={item.id}
                   type="button"
                   className={`relative h-16 w-16 shrink-0 rounded-md border bg-white p-1 ${
                     index === activeIndex ? "border-earth-brown ring-2 ring-earth-brown/25" : "border-line"
                   }`}
                   onClick={() => {
                     setActiveIndex(index);
-                    onToggleUrl(foto.url);
+                    onToggleUrl(item.url);
                   }}
                   aria-label={`Seleccionar diseño ${index + 1}`}
                 >
-                  <img src={foto.url} alt={`Diseño ${index + 1}`} className="h-full w-full object-contain" />
+                  <img src={item.url} alt={item.nombre} className="h-full w-full object-contain" />
                   {isSelected && (
                     <span className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-earth-brown text-xs font-bold text-cream">
                       ✓

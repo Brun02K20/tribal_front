@@ -201,6 +201,16 @@ export default function ProductFormModal({
           </h3>
 
           <form className="mt-4 space-y-3" onSubmit={handleSubmit(internalSubmit)}>
+            <label className="flex items-start gap-3 rounded-md border border-line p-3 text-sm">
+              <input type="checkbox" className="mt-1" disabled={isView} {...register("es_unico")} />
+              <span>
+                <span className="block font-medium text-dark-gray">Producto único</span>
+                <span className="app-subtitle block text-xs">
+                  Si está desmarcado, cada diseño tendrá nombre, precio y foto propia.
+                </span>
+              </span>
+            </label>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-dark-gray">Nombre</label>
               <input
@@ -257,16 +267,6 @@ export default function ProductFormModal({
                 {errors.stock && <p className="mt-1 text-sm text-red-600">{errors.stock.message}</p>}
               </div>
             </div>
-
-            <label className="flex items-start gap-3 rounded-md border border-line p-3 text-sm">
-              <input type="checkbox" className="mt-1" disabled={isView} {...register("es_unico")} />
-              <span>
-                <span className="block font-medium text-dark-gray">Producto único</span>
-                <span className="app-subtitle block text-xs">
-                  Si está desmarcado, cada foto representa un diseño elegible por el comprador.
-                </span>
-              </span>
-            </label>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
