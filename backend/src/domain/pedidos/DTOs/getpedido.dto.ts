@@ -39,6 +39,14 @@ export class DetalleItemPedidoDto {
     @ApiProperty({ example: 14 })
     profundo_producto!: number;
 
+    @ApiProperty({
+        example: ['https://tribaltrend.com.ar/files/products/1/diseno-1.jpg'],
+        required: false,
+        nullable: true,
+        type: [String],
+    })
+    disenos_urls!: string[] | null;
+
     categoria!: {
         id: number;
         nombre: string;

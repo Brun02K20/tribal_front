@@ -8,6 +8,7 @@ import { toNumber } from "@/shared/lib/formatters";
 import LoadingState from "@/shared/ui/LoadingState";
 import ErrorState from "@/shared/ui/ErrorState";
 import ImagePlaceholder from "@/shared/ui/ImagePlaceholder";
+import ProductDesignSelector from "@/features/products/components/ProductDesignSelector";
 
 type ProductPageClientProps = {
   productId: number;
@@ -23,9 +24,12 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
     fotos,
     activeFoto,
     activeImageIndex,
+    selectedDesignUrls,
+    canAddToCart,
     totalItems,
     setActiveImageIndex,
     updateQuantity,
+    toggleDesignUrl,
     addCurrentProductToCart,
     goToCheckout,
   } = useProductDetail(productId);
@@ -143,6 +147,11 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
               <p className="mt-4 text-sm">Categoria: {product.categoria?.nombre || "-"}</p>
               <p className="text-sm">Subcategoria: {product.subcategoria?.nombre || "-"}</p>
               <p className="mt-2 text-sm">Stock disponible: {stock}</p>
+              <p className="mt-3 rounded-md border border-line bg-white/70 p-3 text-sm text-earth-brown">
+                {product.es_unico
+                  ? "Este producto es único y exclusivo, no te pierdas la oportunidad de tenerlo"
+                  : "Este producto tiene múltiples diseños, cuantos productos queres? Que diseños queres comprar?"}
+              </p>
               {hasDiscount ? (
                 <div className="mt-2">
                   <p className="text-base text-zinc-500 line-through">${precioBase.toFixed(2)}</p>
@@ -152,23 +161,36 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
                 <p className="mt-2 text-3xl font-bold">${precioBase.toFixed(2)}</p>
               )}
 
-              <div className="mt-5 flex items-center gap-3">
-                <label htmlFor="cantidad" className="text-sm font-medium">Cantidad</label>
-                <input
-                  id="cantidad"
-                  type="number"
-                  min={1}
-                  max={Math.max(stock, 1)}
-                  value={quantity}
-                  onChange={(event) => updateQuantity(Number(event.target.value))}
-                  className="app-input w-20"
-                  placeholder="Ej: 1"
-                />
-              </div>
+              {product.es_unico ? (
+                <div className="mt-5 flex items-center gap-3">
+                  <label htmlFor="cantidad" className="text-sm font-medium">Cantidad</label>
+                  <input
+                    id="cantidad"
+                    type="number"
+                    min={1}
+                    max={Math.max(stock, 1)}
+                    value={quantity}
+                    onChange={(event) => updateQuantity(Number(event.target.value))}
+                    className="app-input w-20"
+                    placeholder="Ej: 1"
+                  />
+                </div>
+              ) : (
+                <div className="mt-5">
+                  <ProductDesignSelector
+                    fotos={fotos}
+                    quantity={quantity}
+                    maxQuantity={stock}
+                    selectedUrls={selectedDesignUrls}
+                    onQuantityChange={updateQuantity}
+                    onToggleUrl={toggleDesignUrl}
+                  />
+                </div>
+              )}
 
               <button
                 onClick={addCurrentProductToCart}
-                disabled={stock <= 0}
+                disabled={!canAddToCart}
                 className="app-btn-primary mt-6 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Agregar al carrito

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsDecimal, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsInt, IsDecimal, IsOptional, IsString } from 'class-validator';
 export class DetallePedidoCreateDto {
     @ApiProperty({ example: 1 })
     @IsInt()
@@ -29,6 +29,17 @@ export class DetallePedidoCreateDto {
     @ApiProperty({ example: 4 })
     @IsInt()
     profundo_producto!: number;
+
+    @ApiProperty({
+        example: ['https://tribaltrend.com.ar/files/products/1/diseno-1.jpg'],
+        required: false,
+        nullable: true,
+        type: [String],
+    })
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    disenos_urls?: string[] | null;
 }
 
 export class CreatePedidoDto {

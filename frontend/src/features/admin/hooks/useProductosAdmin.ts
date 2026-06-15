@@ -23,6 +23,7 @@ const emptyProductForm: ProductFormValues = {
   alto: 0,
   profundo: 0,
   peso_gramos: 0,
+  es_unico: true,
 };
 
 type AdminProductFiltersForm = {
@@ -236,10 +237,15 @@ export function useProductosAdmin() {
       alto: Number(selected.alto),
       profundo: Number(selected.profundo),
       peso_gramos: Number(selected.peso_gramos),
+      es_unico: Boolean(selected.es_unico),
     };
   }, [categorias, selected, subcategorias]);
 
-  const submitProduct = async (values: ProductFormValues, files: File[]) => {
+  const submitProduct = async (
+    values: ProductFormValues,
+    files: File[],
+    photoOrder: Array<{ type: "existing"; url: string } | { type: "new"; fileIndex: number }>,
+  ) => {
     if (mode === "view") {
       closeForm();
       return;
@@ -250,10 +256,10 @@ export function useProductosAdmin() {
 
     try {
       if (mode === "create") {
-        await productosService.createProduct(values, files);
+        await productosService.createProduct(values, files, photoOrder);
         showToast("Producto creado correctamente", "success");
       } else if (mode === "edit" && selected) {
-        await productosService.updateProduct(selected.id, values, files);
+        await productosService.updateProduct(selected.id, values, files, photoOrder);
         showToast("Producto actualizado correctamente", "success");
       }
 

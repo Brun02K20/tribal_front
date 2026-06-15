@@ -231,6 +231,21 @@ export default function CheckoutPage() {
 
                       <div className="flex-1">
                         <h3 className="font-medium">{item.nombre}</h3>
+                        {item.disenos_urls?.length ? (
+                          <div className="mt-2">
+                            <p className="text-xs font-semibold text-dark-gray">Diseños elegidos</p>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {item.disenos_urls.map((url, index) => (
+                                <img
+                                  key={`${item.id}-design-${index}-${url}`}
+                                  src={url}
+                                  alt={`${item.nombre} diseño ${index + 1}`}
+                                  className="h-12 w-12 rounded-md border border-line bg-white object-contain p-1"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
 
                         {tieneDescuento ? (
                           <>
@@ -265,7 +280,11 @@ export default function CheckoutPage() {
                               onChange={(event) => updateItemQuantity(item.id, Number(event.target.value))}
                               className="app-input w-20"
                               placeholder="Ej: 1"
+                              disabled={Boolean(item.disenos_urls?.length)}
                             />
+                            {item.disenos_urls?.length ? (
+                              <p className="mt-1 text-xs text-dark-gray">Cantidad fijada por diseños</p>
+                            ) : null}
                           </div>
                           <button
                             onClick={() => removeCheckoutItem(item.id)}

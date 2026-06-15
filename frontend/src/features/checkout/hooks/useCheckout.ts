@@ -332,6 +332,7 @@ useEffect(() => {
         ancho_producto: Math.round(ancho),
         alto_producto: Math.round(alto),
         profundo_producto: Math.round(profundo),
+        disenos_urls: item.disenos_urls ?? null,
       };
     });
   };

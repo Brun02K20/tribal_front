@@ -8,6 +8,8 @@ import ErrorState from "@/shared/ui/ErrorState";
 import EmptyState from "@/shared/ui/EmptyState";
 import ImagePlaceholder from "@/shared/ui/ImagePlaceholder";
 import PaginationControls from "@/shared/ui/PaginationControls";
+import AppModal from "@/shared/ui/AppModal";
+import ProductDesignSelector from "@/features/products/components/ProductDesignSelector";
 
 export default function ProductsPageClient() {
   const {
@@ -25,10 +27,17 @@ export default function ProductsPageClient() {
     totalItemsCount,
     totalItems,
     activeImageByProduct,
+    designProduct,
+    designQuantity,
+    selectedDesignUrls,
     applyFilters,
     clearFilters,
     goToPage,
     addProductToCart,
+    closeDesignModal,
+    updateDesignQuantity,
+    toggleDesignUrl,
+    confirmDesignProduct,
     goToCheckout,
   } = useProductsCatalog();
 
@@ -168,6 +177,11 @@ export default function ProductsPageClient() {
                         <p className="mt-1 text-sm text-zinc-600">
                           {product.categoria?.nombre ?? "-"} / {product.subcategoria?.nombre ?? "-"}
                         </p>
+                        <p className="mt-2 text-sm text-earth-brown">
+                          {product.es_unico
+                            ? "Este producto es único y exclusivo, no te pierdas la oportunidad de tenerlo"
+                            : "Tiene múltiples diseños disponibles"}
+                        </p>
                         {hasDiscount ? (
                           <div className="mt-2">
                             <p className="text-sm text-zinc-500 line-through">${precio.toFixed(2)}</p>
@@ -205,6 +219,38 @@ export default function ProductsPageClient() {
             )}
           </div>
         </section>
+      )}
+      {designProduct && (
+        <AppModal>
+          <div className="app-modal-backdrop">
+            <div className="app-modal-card max-w-xl p-4 sm:p-5">
+              <h3 className="app-title text-xl">{designProduct.nombre}</h3>
+              <div className="mt-4">
+                <ProductDesignSelector
+                  fotos={designProduct.fotos ?? []}
+                  quantity={designQuantity}
+                  maxQuantity={toNumber(designProduct.stock)}
+                  selectedUrls={selectedDesignUrls}
+                  onQuantityChange={updateDesignQuantity}
+                  onToggleUrl={toggleDesignUrl}
+                />
+              </div>
+              <div className="mt-5 flex justify-end gap-2">
+                <button type="button" className="app-btn-secondary" onClick={closeDesignModal}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="app-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={confirmDesignProduct}
+                  disabled={selectedDesignUrls.length !== designQuantity}
+                >
+                  Agregar al carrito
+                </button>
+              </div>
+            </div>
+          </div>
+        </AppModal>
       )}
       </div>
     </main>

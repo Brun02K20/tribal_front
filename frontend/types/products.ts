@@ -15,6 +15,7 @@ export type Product = {
   profundo: number | string;
   peso_gramos: number | string;
   es_activo: boolean;
+  es_unico: boolean;
   precio_final?: number;
   descuento_aplicado?: {
     id_descuento: number;
@@ -43,6 +44,7 @@ export type ProductFormValues = {
   alto: number;
   profundo: number;
   peso_gramos: number;
+  es_unico: boolean;
 };
 
 export type ProductCreateUpdatePayload = ProductFormValues;

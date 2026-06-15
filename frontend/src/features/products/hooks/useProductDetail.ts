@@ -15,6 +15,7 @@ export function useProductDetail(productId: number) {
 
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [selectedDesignUrls, setSelectedDesignUrls] = useState<string[]>([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +28,8 @@ export function useProductDetail(productId: number) {
         const data = await productosService.getProductById(productId);
         setProduct(data);
         setActiveImageIndex(0);
+        setSelectedDesignUrls([]);
+        setQuantity(1);
       } catch (err) {
         setError(err instanceof Error ? err.message : "No se pudo cargar el producto");
       } finally {
@@ -61,6 +64,10 @@ export function useProductDetail(productId: number) {
       return;
     }
 
+    if (!product.es_unico && selectedDesignUrls.length !== quantity) {
+      return;
+    }
+
     const precioOriginal = toNumber(product.precio);
     const precioFinal = toNumber(product.precio_final ?? precioOriginal);
 
@@ -75,8 +82,10 @@ export function useProductDetail(productId: number) {
       ancho: toNumber(product.ancho),
       alto: toNumber(product.alto),
       profundo: toNumber(product.profundo),
-      fotoUrl: product.fotos?.[0]?.url,
+      fotoUrl: product.es_unico ? product.fotos?.[0]?.url : selectedDesignUrls[0] ?? product.fotos?.[0]?.url,
       quantity,
+      es_unico: product.es_unico,
+      disenos_urls: product.es_unico ? null : selectedDesignUrls,
     });
   };
 
@@ -86,8 +95,26 @@ export function useProductDetail(productId: number) {
     }
 
     const max = Math.max(stock, 1);
-    setQuantity(Math.min(Math.max(1, Math.floor(value)), max));
+    const nextQuantity = Math.min(Math.max(1, Math.floor(value)), max);
+    setQuantity(nextQuantity);
+    setSelectedDesignUrls((prev) => prev.slice(0, nextQuantity));
   };
+
+  const toggleDesignUrl = (url: string) => {
+    setSelectedDesignUrls((prev) => {
+      if (prev.includes(url)) {
+        return prev.filter((item) => item !== url);
+      }
+      if (prev.length >= quantity) {
+        return prev;
+      }
+      return [...prev, url];
+    });
+  };
+
+  const canAddToCart = Boolean(product)
+    && stock > 0
+    && (product?.es_unico || selectedDesignUrls.length === quantity);
 
   const goToPrevImage = () => {
     setActiveImageIndex((prev) => (prev === 0 ? fotos.length - 1 : prev - 1));
@@ -106,9 +133,12 @@ export function useProductDetail(productId: number) {
     fotos,
     activeFoto,
     activeImageIndex,
+    selectedDesignUrls,
+    canAddToCart,
     totalItems,
     setActiveImageIndex,
     updateQuantity,
+    toggleDesignUrl,
     goToPrevImage,
     goToNextImage,
     addCurrentProductToCart,

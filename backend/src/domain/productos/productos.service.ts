@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Op } from 'sequelize';
+import type { Includeable, Order } from 'sequelize';
 import { FotosService } from 'src/domain/fotos/fotos.service';
 import { Fotos } from 'src/domain/fotos/models/Fotos';
 import { Categorias } from 'src/domain/categorias/models/Categorias';
@@ -17,11 +18,13 @@ import {
 } from './DTOs/products.dto';
 import { Productos } from './models/Productos';
 
-const PRODUCT_INCLUDE = [
+const PRODUCT_INCLUDE: Includeable[] = [
     {
         model: Fotos,
         as: 'fotos',
         attributes: ['id', 'url'],
+        separate: true,
+        order: [['id', 'ASC']] as Order,
     },
     {
         model: Categorias,
@@ -76,6 +79,7 @@ export class ProductosService {
             profundo: producto.profundo,
             peso_gramos: producto.peso_gramos,
             es_activo: producto.es_activo,
+            es_unico: producto.es_unico,
             fotos: fotosOverride ?? this.mapFotos(producto),
             descuento_aplicado: descuento,
         };
@@ -226,6 +230,7 @@ export class ProductosService {
             alto: createProductDto.alto,
             profundo: createProductDto.profundo,
             peso_gramos: createProductDto.peso_gramos,
+            es_unico: createProductDto.es_unico,
             es_activo: true,
         });
 
@@ -241,23 +246,23 @@ export class ProductosService {
         return this.findById(producto.id);
     }
 
-    async update(id: number, updateProductDto: CreateUpdateProductDto, fotos: { url: string }[]): Promise<GetProductDto> {
+    async update(
+        id: number,
+        updateProductDto: CreateUpdateProductDto,
+        fotos: { url: string }[],
+        options?: { replaceFotos?: boolean },
+    ): Promise<GetProductDto> {
         const producto = await this.findProductoOrThrow(id);
 
         await producto.update(updateProductDto);
 
-        if (fotos.length > 0) {
-            const existingFotoIds = (producto.fotos ?? []).map((foto) => foto.id);
-            if (existingFotoIds.length) {
-                await Fotos.destroy({ where: { id: existingFotoIds } });
-            }
-
+        if (options?.replaceFotos) {
             const fotosConProductoId: CreateProductFotosDto[] = fotos.map((foto) => ({
                 url: foto.url,
                 id_producto: id,
             }));
 
-            await this.fotosService.bulkCreate(fotosConProductoId);
+            await this.fotosService.replaceProductFotos(id, fotosConProductoId);
         }
 
         return this.findById(id);

@@ -37,6 +37,7 @@ interface MetadataProducto {
 		alto?: number;
 		profundo?: number;
 	};
+	disenos_urls?: string[] | null;
 }
 
 interface PaymentMetadata {
@@ -280,6 +281,7 @@ export class PagosService {
 								: null,
 						unidades: Number(detalle.unidades),
 						subtotal: Number(detalle.subtotal),
+						disenos_urls: Array.isArray(detalle.disenos_urls) ? detalle.disenos_urls : null,
 						es_activo: true,
 					})),
 					{ transaction },

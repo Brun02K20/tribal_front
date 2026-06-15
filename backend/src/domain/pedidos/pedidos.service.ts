@@ -105,7 +105,7 @@ export class PedidosService {
             include.unshift({
                 model: DetallePedidos,
                 as: 'detallePedidos',
-                attributes: ['id', 'id_producto', 'id_descuento', 'subtotal', 'unidades'],
+                attributes: ['id', 'id_producto', 'id_descuento', 'subtotal', 'unidades', 'disenos_urls'],
                 include: [
                     {
                         model: Productos,
@@ -291,6 +291,7 @@ export class PedidosService {
                         ancho_producto: Number(detalle.producto?.ancho ?? 0),
                         alto_producto: Number(detalle.producto?.alto ?? 0),
                         profundo_producto: Number(detalle.producto?.profundo ?? 0),
+                        disenos_urls: Array.isArray(detalle.disenos_urls) ? detalle.disenos_urls : null,
                         categoria: detalle.producto?.categoria
                             ? {
                                 id: detalle.producto.categoria.id,
@@ -350,7 +351,7 @@ export class PedidosService {
                             [Op.in]: productoIds,
                         },
                     },
-                    attributes: ['id', 'nombre', 'precio', 'stock', 'id_categoria', 'id_subcategoria', 'ancho', 'alto', 'profundo', 'peso_gramos'],
+                    attributes: ['id', 'nombre', 'precio', 'stock', 'id_categoria', 'id_subcategoria', 'ancho', 'alto', 'profundo', 'peso_gramos', 'es_unico'],
                     include: [
                         {
                             model: Categorias,
@@ -405,6 +406,16 @@ export class PedidosService {
 
             const productosMetadata = createPedidoDto.detalles.map((detalle: DetallePedidoCreateDto) => {
                 const producto = productosById.get(detalle.id_producto);
+                const disenosUrls = Array.isArray(detalle.disenos_urls)
+                    ? detalle.disenos_urls.filter((url) => typeof url === 'string' && url.trim().length > 0)
+                    : null;
+
+                if (producto && !producto.es_unico && (!disenosUrls || disenosUrls.length !== detalle.unidades)) {
+                    throw new BadRequestException(
+                        `Seleccioná ${detalle.unidades} diseño(s) para ${producto.nombre}`,
+                    );
+                }
+
                 const descuentoAplicado = descuentosAplicados.get(detalle.id_producto);
                 const precioBase = Number(producto?.precio ?? 0);
                 const precioUnitario = descuentoAplicado
@@ -419,6 +430,7 @@ export class PedidosService {
                     unidades: detalle.unidades,
                     subtotal: subtotalCalculado,
                     precio_unitario: precioUnitario,
+                    disenos_urls: disenosUrls,
                     medidas: {
                         ancho: Number(detalle.ancho_producto),
                         alto: Number(detalle.alto_producto),

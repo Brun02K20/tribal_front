@@ -15,6 +15,7 @@ interface ProductoAttributes {
     profundo: number;
     peso_gramos: number;
     es_activo: boolean;
+    es_unico: boolean;
 }
 
 interface ProductoCreationAttributes
@@ -36,6 +37,7 @@ export class Productos
     declare profundo: number;
     declare peso_gramos: number;
     declare es_activo: boolean;
+    declare es_unico: boolean;
 
     declare fotos?: NonAttribute<Fotos[]>;
     declare categoria?: NonAttribute<{ id: number; nombre: string }>;
@@ -92,6 +94,11 @@ Productos.init(
             allowNull: false,
         },
         es_activo: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true,
+        },
+        es_unico: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: true,

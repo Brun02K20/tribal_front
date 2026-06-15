@@ -10,6 +10,7 @@ export type PedidoDetalleItem = {
   ancho_producto: number;
   alto_producto: number;
   profundo_producto: number;
+  disenos_urls?: string[] | null;
   categoria: {
     id: number;
     nombre: string;
@@ -87,6 +88,7 @@ export type PedidoDetalleCreateInput = {
   ancho_producto: number;
   alto_producto: number;
   profundo_producto: number;
+  disenos_urls?: string[] | null;
 };
 
 // En CreatePedidoPayload, agregar:

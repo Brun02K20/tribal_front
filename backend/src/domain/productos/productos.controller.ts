@@ -16,6 +16,10 @@ const REMOTE_PRODUCTS_BASE_PATH = '/var/www/tribal_trend/files/products';
 const PUBLIC_PRODUCTS_PATH = '/products';
 const PUBLIC_BASE_URL = 'https://tribaltrend.com.ar';
 
+type ProductPhotoOrderItem =
+    | { type: 'existing'; url: string }
+    | { type: 'new'; fileIndex: number };
+
 @ApiTags('Productos')
 @Controller('productos')
 export class ProductosController {
@@ -152,7 +156,7 @@ export class ProductosController {
                         type: 'string',
                         description: 'JSON en texto con los datos del producto (CreateUpdateProductDto)',
                         example:
-                            '{"nombre":"Macramé","descripcion":"Descripción del producto","precio":99.99,"stock":10,"id_categoria":1,"id_subcategoria":1,"ancho":1,"alto":1,"profundo":1,"peso_gramos":1}',
+                            '{"nombre":"Macramé","descripcion":"Descripción del producto","precio":99.99,"stock":10,"id_categoria":1,"id_subcategoria":1,"ancho":1,"alto":1,"profundo":1,"peso_gramos":1,"es_unico":true}',
                     },
                     file: {
                         type: 'array',
@@ -175,6 +179,7 @@ export class ProductosController {
             }
 
             const createProductDto = this.parseCreateProductDto(req.body as Record<string, unknown>);
+            const photoOrder = this.parsePhotoOrder(req.body as Record<string, unknown>);
             const fotosParaProducto: { url: string }[] = [];
             const uploadedRemotePaths: string[] = [];
             const sftp = await SftpSingleton.getInstance();
@@ -185,7 +190,8 @@ export class ProductosController {
                 const idProducto = productoCreado.id;
                 await this.ensureRemoteProductDirectory(sftp, idProducto);
 
-                for (const file of files) {
+                const uploadedUrlsByFileIndex = new Map<number, string>();
+                for (const [fileIndex, file] of files.entries()) {
                     const fileName = this.buildFileName(file.originalname);
                     const remotePath = this.buildRemotePath(idProducto, fileName);
 
@@ -196,10 +202,12 @@ export class ProductosController {
                         await fs.unlink(file.path).catch(() => undefined);
                     }
 
-                    fotosParaProducto.push({
-                        url: this.buildPublicUrl(idProducto, fileName),
-                    });
+                    uploadedUrlsByFileIndex.set(fileIndex, this.buildPublicUrl(idProducto, fileName));
                 }
+
+                fotosParaProducto.push(
+                    ...this.resolveOrderedPhotoUrls(photoOrder, uploadedUrlsByFileIndex, [], files.length).map((url) => ({ url })),
+                );
 
                 const fotosConProductoId: CreateProductFotosDto[] = fotosParaProducto.map((foto) => ({
                     id_producto: idProducto,
@@ -234,7 +242,7 @@ export class ProductosController {
                     type: 'string',
                     description: 'JSON en texto con los datos del producto (CreateUpdateProductDto)',
                     example:
-                        '{"nombre":"Macramé","descripcion":"Descripción del producto","precio":99.99,"stock":10,"id_categoria":1,"id_subcategoria":1,"ancho":1,"alto":1,"profundo":1,"peso_gramos":1}',
+                        '{"nombre":"Macramé","descripcion":"Descripción del producto","precio":99.99,"stock":10,"id_categoria":1,"id_subcategoria":1,"ancho":1,"alto":1,"profundo":1,"peso_gramos":1,"es_unico":true}',
                     },
                     file: {
                     type: 'array',
@@ -253,17 +261,19 @@ export class ProductosController {
 
             const files = req.files as Express.Multer.File[] | undefined;
             const createProductDto = this.parseCreateProductDto(req.body as Record<string, unknown>);
-            const fotosParaProducto: { url: string }[] = [];
+            const photoOrder = this.parsePhotoOrder(req.body as Record<string, unknown>);
             const uploadedRemotePaths: string[] = [];
             const sftp = await SftpSingleton.getInstance();
 
             try {
-            if (files && files.length > 0) {
                 const productoActual = await this.productosService.findById(id);
-                await this.deleteCurrentRemoteFotos(sftp, productoActual.fotos.map((foto) => foto.url));
-                await this.ensureRemoteProductDirectory(sftp, id);
+                const orderedExistingUrls = productoActual.fotos.map((foto) => foto.url);
+                const uploadedUrlsByFileIndex = new Map<number, string>();
 
+            if (files && files.length > 0) {
+                await this.ensureRemoteProductDirectory(sftp, id);
                 for (const file of files) {
+                const fileIndex = uploadedUrlsByFileIndex.size;
                 const fileName = this.buildFileName(file.originalname);
                 const remotePath = this.buildRemotePath(id, fileName);
 
@@ -274,13 +284,23 @@ export class ProductosController {
                     await fs.unlink(file.path).catch(() => undefined);
                 }
 
-                fotosParaProducto.push({
-                    url: this.buildPublicUrl(id, fileName),
-                });
+                uploadedUrlsByFileIndex.set(fileIndex, this.buildPublicUrl(id, fileName));
                 }
             }
 
-            const productoActualizado = await this.productosService.update(id, createProductDto, fotosParaProducto);
+            const orderedPhotoUrls = this.resolveOrderedPhotoUrls(
+                photoOrder,
+                uploadedUrlsByFileIndex,
+                orderedExistingUrls,
+                files?.length ?? 0,
+            );
+
+            const removedExistingUrls = orderedExistingUrls.filter((url) => !orderedPhotoUrls.includes(url));
+            await this.deleteCurrentRemoteFotos(sftp, removedExistingUrls);
+
+            const productoActualizado = await this.productosService.update(id, createProductDto, orderedPhotoUrls.map((url) => ({ url })), {
+                replaceFotos: photoOrder.length > 0 || Boolean(files?.length),
+            });
             res.status(200).json(productoActualizado);
             } catch (error) {
             await Promise.all(uploadedRemotePaths.map((remotePath) => sftp.delete(remotePath).catch(() => undefined)));
@@ -326,7 +346,80 @@ export class ProductosController {
                 alto: this.requireNumber(data, 'alto'),
                 profundo: this.requireNumber(data, 'profundo'),
                 peso_gramos: this.requireNumber(data, 'peso_gramos'),
+                es_unico: this.parseOptionalBoolean(data, 'es_unico', true),
             };
+        }
+
+        private parsePhotoOrder(body: Record<string, unknown>): ProductPhotoOrderItem[] {
+            const raw = body.fotos_ordenadas ?? body.photoOrder;
+            if (raw === undefined || raw === null || raw === '') {
+                return [];
+            }
+
+            let parsed: unknown;
+            if (typeof raw === 'string') {
+                try {
+                    parsed = JSON.parse(raw);
+                } catch {
+                    throw new BadRequestException('El orden de fotos es inválido');
+                }
+            } else {
+                parsed = raw;
+            }
+
+            if (!Array.isArray(parsed)) {
+                throw new BadRequestException('El orden de fotos debe ser un array');
+            }
+
+            return parsed.map((item) => {
+                if (!item || typeof item !== 'object') {
+                    throw new BadRequestException('Item de foto inválido');
+                }
+
+                const data = item as Record<string, unknown>;
+                if (data.type === 'existing' && typeof data.url === 'string' && data.url.trim()) {
+                    return { type: 'existing', url: data.url.trim() };
+                }
+
+                if (data.type === 'new' && Number.isInteger(Number(data.fileIndex))) {
+                    return { type: 'new', fileIndex: Number(data.fileIndex) };
+                }
+
+                throw new BadRequestException('Item de foto inválido');
+            });
+        }
+
+        private resolveOrderedPhotoUrls(
+            photoOrder: ProductPhotoOrderItem[],
+            uploadedUrlsByFileIndex: Map<number, string>,
+            fallbackExistingUrls: string[],
+            totalFiles: number,
+        ): string[] {
+            if (!photoOrder.length) {
+                return [
+                    ...fallbackExistingUrls,
+                    ...Array.from({ length: totalFiles }, (_, fileIndex) => uploadedUrlsByFileIndex.get(fileIndex))
+                        .filter((url): url is string => Boolean(url)),
+                ];
+            }
+
+            const result = photoOrder.map((item) => {
+                if (item.type === 'existing') {
+                    return item.url;
+                }
+
+                const uploadedUrl = uploadedUrlsByFileIndex.get(item.fileIndex);
+                if (!uploadedUrl) {
+                    throw new BadRequestException('No se encontró una foto nueva del orden enviado');
+                }
+                return uploadedUrl;
+            });
+
+            if (!result.length) {
+                throw new BadRequestException('El producto debe tener al menos una foto');
+            }
+
+            return result;
         }
 
         private extractProductPayload(body: Record<string, unknown>): unknown {
@@ -378,6 +471,30 @@ export class ProductosController {
                 throw new BadRequestException(`Campo numérico inválido: ${key}`);
             }
             return value;
+        }
+
+        private parseOptionalBoolean(data: Record<string, unknown>, key: string, fallback: boolean): boolean {
+            const value = data[key];
+            if (value === undefined || value === null || value === '') {
+                return fallback;
+            }
+            if (typeof value === 'boolean') {
+                return value;
+            }
+            if (typeof value === 'string') {
+                const normalized = value.trim().toLowerCase();
+                if (['true', '1', 'si', 'sí'].includes(normalized)) {
+                    return true;
+                }
+                if (['false', '0', 'no'].includes(normalized)) {
+                    return false;
+                }
+            }
+            if (typeof value === 'number' && [0, 1].includes(value)) {
+                return Boolean(value);
+            }
+
+            throw new BadRequestException(`Campo booleano inválido: ${key}`);
         }
 
         private parseOptionalNumber(value?: string): number | undefined {

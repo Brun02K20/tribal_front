@@ -1,0 +1,5 @@
+ALTER TABLE Productos
+  ADD COLUMN es_unico BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE DetallePedidos
+  ADD COLUMN disenos_urls JSON NULL;

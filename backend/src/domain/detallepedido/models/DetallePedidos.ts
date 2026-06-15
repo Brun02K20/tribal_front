@@ -10,10 +10,11 @@ interface DetallePedidosAttributes {
     id_descuento: number | null;
     unidades: number;
     subtotal: number;
+    disenos_urls: string[] | null;
     es_activo: boolean;
 }
 
-interface DetallePedidosCreationAttributes extends Optional<DetallePedidosAttributes, 'id'> {}
+interface DetallePedidosCreationAttributes extends Optional<DetallePedidosAttributes, 'id' | 'disenos_urls'> {}
 
 export class DetallePedidos extends Model<DetallePedidosAttributes, DetallePedidosCreationAttributes> implements DetallePedidosAttributes {
     declare id: number;
@@ -22,6 +23,7 @@ export class DetallePedidos extends Model<DetallePedidosAttributes, DetallePedid
     declare id_descuento: number | null;
     declare unidades: number;
     declare subtotal: number;
+    declare disenos_urls: string[] | null;
     declare es_activo: boolean;
 
     declare producto?: NonAttribute<Productos>;
@@ -59,6 +61,10 @@ DetallePedidos.init(
         subtotal: {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
+        },
+        disenos_urls: {
+            type: DataTypes.JSON,
+            allowNull: true,
         },
         es_activo: {
             type: DataTypes.BOOLEAN,

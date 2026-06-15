@@ -10,6 +10,8 @@ export type CartItem = {
   alto?: number;
   profundo?: number;
   fotoUrl?: string;
+  es_unico: boolean;
+  disenos_urls: string[] | null;
   quantity: number;
 };
 

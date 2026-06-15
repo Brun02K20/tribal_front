@@ -41,7 +41,11 @@ export type ProductFormModalProps = {
   categorias: CategoriaWithSubcategorias[];
   subcategorias: Subcategoria[];
   onClose: () => void;
-  onSubmit: (values: ProductFormValues, files: File[]) => Promise<void>;
+  onSubmit: (
+    values: ProductFormValues,
+    files: File[],
+    photoOrder: Array<{ type: "existing"; url: string } | { type: "new"; fileIndex: number }>,
+  ) => Promise<void>;
 };
 
 export type AdminOnlyProps = {

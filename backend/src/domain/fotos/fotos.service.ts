@@ -27,4 +27,11 @@ export class FotosService {
     async deleteByBlogId(idBlog: number): Promise<void> {
         await Fotos.destroy({ where: { id_blog: idBlog } });
     }
+
+    async replaceProductFotos(idProducto: number, fotos: CreateProductFotosDto[]): Promise<void> {
+        await Fotos.destroy({ where: { id_producto: idProducto } });
+        if (fotos.length) {
+            await Fotos.bulkCreate(fotos);
+        }
+    }
 }

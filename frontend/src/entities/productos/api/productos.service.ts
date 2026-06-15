@@ -139,10 +139,21 @@ const getProductsByCategory = async (idCategoria: number): Promise<Product[]> =>
     }
 }
 
-const createProduct = async (payload: ProductCreateUpdatePayload, files: File[]): Promise<Product> => {
+type ProductPhotoOrderItem =
+    | { type: "existing"; url: string }
+    | { type: "new"; fileIndex: number };
+
+const createProduct = async (
+    payload: ProductCreateUpdatePayload,
+    files: File[],
+    photoOrder?: ProductPhotoOrderItem[],
+): Promise<Product> => {
     try {
         const formData = new FormData();
         formData.append("producto", JSON.stringify(payload));
+        if (photoOrder) {
+            formData.append("fotos_ordenadas", JSON.stringify(photoOrder));
+        }
         files.forEach((file) => formData.append("file", file));
 
         const { data } = await apiClient.post<Product>("/productos", formData, {
@@ -160,10 +171,18 @@ const createProduct = async (payload: ProductCreateUpdatePayload, files: File[])
     }
 }
 
-const updateProduct = async (id: number, payload: ProductCreateUpdatePayload, files: File[]): Promise<Product> => {
+const updateProduct = async (
+    id: number,
+    payload: ProductCreateUpdatePayload,
+    files: File[],
+    photoOrder?: ProductPhotoOrderItem[],
+): Promise<Product> => {
     try {
         const formData = new FormData();
         formData.append("producto", JSON.stringify(payload));
+        if (photoOrder) {
+            formData.append("fotos_ordenadas", JSON.stringify(photoOrder));
+        }
         files.forEach((file) => formData.append("file", file));
 
         const { data } = await apiClient.put<Product>(`/productos/${id}`, formData, {

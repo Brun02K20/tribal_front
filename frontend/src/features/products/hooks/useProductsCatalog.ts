@@ -70,6 +70,9 @@ export function useProductsCatalog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeImageByProduct, setActiveImageByProduct] = useState<Record<number, number>>({});
+  const [designProduct, setDesignProduct] = useState<Product | null>(null);
+  const [designQuantity, setDesignQuantity] = useState(1);
+  const [selectedDesignUrls, setSelectedDesignUrls] = useState<string[]>([]);
   const {
     registerFilters,
     applyFilters,
@@ -242,7 +245,83 @@ export function useProductsCatalog() {
       profundo: toNumber(product.profundo),
       fotoUrl: product.fotos?.[0]?.url,
       quantity: 1,
+      es_unico: product.es_unico,
+      disenos_urls: null,
     });
+  };
+
+  const openDesignModal = (product: Product) => {
+    const stock = toNumber(product.stock);
+    if (stock <= 0) {
+      return;
+    }
+
+    if (product.es_unico) {
+      addProductToCart(product);
+      return;
+    }
+
+    setDesignProduct(product);
+    setDesignQuantity(1);
+    setSelectedDesignUrls([]);
+  };
+
+  const closeDesignModal = () => {
+    setDesignProduct(null);
+    setSelectedDesignUrls([]);
+    setDesignQuantity(1);
+  };
+
+  const updateDesignQuantity = (value: number) => {
+    if (!Number.isFinite(value)) {
+      return;
+    }
+
+    const max = Math.max(toNumber(designProduct?.stock ?? 1), 1);
+    const nextQuantity = Math.min(Math.max(1, Math.floor(value)), max);
+    setDesignQuantity(nextQuantity);
+    setSelectedDesignUrls((prev) => prev.slice(0, nextQuantity));
+  };
+
+  const toggleDesignUrl = (url: string) => {
+    setSelectedDesignUrls((prev) => {
+      if (prev.includes(url)) {
+        return prev.filter((item) => item !== url);
+      }
+      if (prev.length >= designQuantity) {
+        return prev;
+      }
+      return [...prev, url];
+    });
+  };
+
+  const confirmDesignProduct = () => {
+    if (!designProduct || selectedDesignUrls.length !== designQuantity) {
+      return;
+    }
+
+    const stock = toNumber(designProduct.stock);
+    const precioOriginal = toNumber(designProduct.precio);
+    const precioFinal = toNumber(designProduct.precio_final ?? precioOriginal);
+
+    addItem({
+      id: designProduct.id,
+      nombre: designProduct.nombre,
+      precio: precioFinal,
+      precio_original: precioOriginal,
+      id_descuento: designProduct.descuento_aplicado?.id_descuento ?? null,
+      porcentaje_descuento: designProduct.descuento_aplicado?.porcentaje,
+      stock,
+      ancho: toNumber(designProduct.ancho),
+      alto: toNumber(designProduct.alto),
+      profundo: toNumber(designProduct.profundo),
+      fotoUrl: selectedDesignUrls[0] ?? designProduct.fotos?.[0]?.url,
+      quantity: designQuantity,
+      es_unico: false,
+      disenos_urls: selectedDesignUrls,
+    });
+
+    closeDesignModal();
   };
 
   return {
@@ -260,10 +339,17 @@ export function useProductsCatalog() {
     totalItemsCount,
     totalItems,
     activeImageByProduct,
+    designProduct,
+    designQuantity,
+    selectedDesignUrls,
     applyFilters,
     clearFilters,
     goToPage,
-    addProductToCart,
+    addProductToCart: openDesignModal,
+    closeDesignModal,
+    updateDesignQuantity,
+    toggleDesignUrl,
+    confirmDesignProduct,
     goToCheckout,
   };
 }

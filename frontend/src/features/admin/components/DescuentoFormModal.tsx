@@ -200,6 +200,7 @@ export default function DescuentoFormModal({
         profundo: 0,
         peso_gramos: 0,
         es_activo: true,
+        es_unico: true,
         categoria: { id: selectedCategoriaId || 0, nombre: "" },
         subcategoria: { id: 0, nombre: "" },
         fotos: [],

@@ -125,7 +125,7 @@ export default function ProductosAdminPage() {
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
         <AdminTable
-          headers={["ID", "Nombre", "Categoría", "Subcategoría", "Precio", "Stock", "Estado", "Acciones"]}
+          headers={["ID", "Nombre", "Categoría", "Subcategoría", "Precio", "Stock", "Tipo", "Estado", "Acciones"]}
           loading={loading}
           isEmpty={products.length === 0}
           loadingText="Cargando productos..."
@@ -140,6 +140,7 @@ export default function ProductosAdminPage() {
               <td className="px-3 py-2">{product.subcategoria?.nombre ?? "-"}</td>
               <td className="px-3 py-2">{formatCurrencyArs(product.precio)}</td>
               <td className="px-3 py-2">{product.stock}</td>
+              <td className="px-3 py-2">{product.es_unico ? "Único" : "Múltiples diseños"}</td>
               <td className="px-3 py-2">{product.es_activo ? "Activo" : "Inactivo"}</td>
               <td className="px-3 py-2">
                 <AdminCrudActions

@@ -68,6 +68,10 @@ export class GetProductDto {
     @IsBoolean()
     es_activo!: boolean;
 
+    @ApiProperty({ example: true })
+    @IsBoolean()
+    es_unico!: boolean;
+
     @ApiProperty({ example: [
         {
             id: 1,
@@ -139,6 +143,10 @@ export class CreateUpdateProductDto {
     @ApiProperty({ example: 1 })
     @IsInt()
     peso_gramos!: number;
+
+    @ApiProperty({ example: true })
+    @IsBoolean()
+    es_unico!: boolean;
 }
 
 export class SuccessDeleteProductDto {

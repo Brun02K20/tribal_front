@@ -61,6 +61,7 @@ export default function PedidoDetailContent({ pedido }: PedidoDetailContentProps
                   <th className="px-3 py-2 text-left">Unidades</th>
                   <th className="px-3 py-2 text-left">Precio unitario</th>
                   <th className="px-3 py-2 text-left">Subtotal</th>
+                  <th className="px-3 py-2 text-left">Diseños</th>
                   <th className="px-3 py-2 text-left">Tamaño producto</th>
                 </tr>
               </thead>
@@ -85,6 +86,22 @@ export default function PedidoDetailContent({ pedido }: PedidoDetailContentProps
                     <td className="px-3 py-2">{item.unidades}</td>
                     <td className="px-3 py-2">{formatCurrencyArs(item.precio_unitario)}</td>
                     <td className="px-3 py-2">{formatCurrencyArs(item.subtotal)}</td>
+                    <td className="px-3 py-2">
+                      {item.disenos_urls?.length ? (
+                        <div className="flex min-w-32 flex-wrap gap-2">
+                          {item.disenos_urls.map((url, index) => (
+                            <img
+                              key={`${item.id}-design-${index}-${url}`}
+                              src={url}
+                              alt={`${item.nombre_producto} diseño ${index + 1}`}
+                              className="h-12 w-12 rounded border border-line bg-white object-contain p-1"
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-dark-gray">Producto único</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2">{formatProductSize(item)}</td>
                   </tr>
                 ))}
