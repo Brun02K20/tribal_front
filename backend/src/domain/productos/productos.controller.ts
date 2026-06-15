@@ -299,6 +299,11 @@ export class ProductosController {
         async update(@Param('id') id: number, @Req() req: Request, @Res() res: Response): Promise<void> {
             await this.runMulter(req, res);
 
+            const idProducto = Number(id);
+            if (!Number.isInteger(idProducto) || idProducto <= 0) {
+                throw new BadRequestException('ID de producto invÃ¡lido');
+            }
+
             const files = req.files as Express.Multer.File[] | undefined;
             const createProductDto = this.parseCreateProductDto(req.body as Record<string, unknown>);
             const photoOrder = this.parsePhotoOrder(req.body as Record<string, unknown>);
@@ -307,16 +312,16 @@ export class ProductosController {
             const sftp = await SftpSingleton.getInstance();
 
             try {
-                const productoActual = await this.productosService.findById(id);
+                const productoActual = await this.productosService.findById(idProducto);
                 const orderedExistingUrls = productoActual.fotos.map((foto) => foto.url);
                 const uploadedUrlsByFileIndex = new Map<number, string>();
 
             if (files && files.length > 0) {
-                await this.ensureRemoteProductDirectory(sftp, id);
+                await this.ensureRemoteProductDirectory(sftp, idProducto);
                 for (const file of files) {
                 const fileIndex = uploadedUrlsByFileIndex.size;
                 const fileName = this.buildFileName(file.originalname);
-                const remotePath = this.buildRemotePath(id, fileName);
+                const remotePath = this.buildRemotePath(idProducto, fileName);
 
                 try {
                     await sftp.put(file.path, remotePath);
@@ -325,7 +330,7 @@ export class ProductosController {
                     await fs.unlink(file.path).catch(() => undefined);
                 }
 
-                uploadedUrlsByFileIndex.set(fileIndex, this.buildPublicUrl(id, fileName));
+                uploadedUrlsByFileIndex.set(fileIndex, this.buildPublicUrl(idProducto, fileName));
                 }
             }
 
@@ -340,10 +345,10 @@ export class ProductosController {
                 const removedExistingUrls = orderedExistingUrls.filter((url) => !orderedPhotoUrls.includes(url));
                 await this.deleteCurrentRemoteFotos(sftp, removedExistingUrls);
 
-                await this.productosService.update(id, createProductDto, orderedPhotoUrls.map((url) => ({ url })), {
+                await this.productosService.update(idProducto, createProductDto, orderedPhotoUrls.map((url) => ({ url })), {
                     replaceFotos: photoOrder.length > 0 || Boolean(files?.length),
                 });
-                await this.disenosService.syncUniqueDesign(id, {
+                await this.disenosService.syncUniqueDesign(idProducto, {
                     nombre: createProductDto.nombre,
                     precio: createProductDto.precio,
                 });
@@ -352,7 +357,7 @@ export class ProductosController {
                     throw new BadRequestException('Debe cargar al menos un diseÃ±o');
                 }
 
-                const existingDesigns = await this.disenosService.findByProducto(id);
+                const existingDesigns = await this.disenosService.findByProducto(idProducto);
                 const sentDesignIds = new Set<number>();
 
                 for (const design of designOrder) {
@@ -366,7 +371,7 @@ export class ProductosController {
 
                     if (design.id) {
                         const previousDiseno = await this.disenosService.findById(design.id);
-                        if (previousDiseno.id_producto !== id) {
+                        if (previousDiseno.id_producto !== idProducto) {
                             throw new BadRequestException('El diseÃ±o no pertenece al producto');
                         }
 
@@ -387,7 +392,7 @@ export class ProductosController {
                         throw new BadRequestException('Cada diseÃ±o nuevo debe tener una foto');
                     }
 
-                    const created = await this.disenosService.create(id, {
+                    const created = await this.disenosService.create(idProducto, {
                         nombre: design.nombre,
                         precio: design.precio,
                     }, uploadedUrl ?? design.url_foto ?? null, {
@@ -405,18 +410,18 @@ export class ProductosController {
                     }
                 }
 
-                const finalDesigns = await this.disenosService.findByProducto(id);
+                const finalDesigns = await this.disenosService.findByProducto(idProducto);
                 const finalDesignUrls = finalDesigns
                     .map((diseno) => diseno.url_foto)
                     .filter((url): url is string => Boolean(url));
                 const removedExistingUrls = orderedExistingUrls.filter((url) => !finalDesignUrls.includes(url));
                 await this.deleteCurrentRemoteFotos(sftp, removedExistingUrls);
-                await this.productosService.update(id, createProductDto, finalDesignUrls.map((url) => ({ url })), {
+                await this.productosService.update(idProducto, createProductDto, finalDesignUrls.map((url) => ({ url })), {
                     replaceFotos: true,
                 });
             }
 
-            const productoActualizado = await this.productosService.findById(id);
+            const productoActualizado = await this.productosService.findById(idProducto);
             res.status(200).json(productoActualizado);
             } catch (error) {
             await Promise.all(uploadedRemotePaths.map((remotePath) => sftp.delete(remotePath).catch(() => undefined)));
