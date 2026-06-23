@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
 import { Op, literal } from 'sequelize';
 import type { Includeable, Order } from 'sequelize';
-import { OrdenConfig } from './models/OrdenConfig';
+import { OrdenConfigCategoria, OrdenConfigSubcategoria } from './models/OrdenConfig';
 import { FotosService } from 'src/domain/fotos/fotos.service';
 import { Fotos } from 'src/domain/fotos/models/Fotos';
 import { Categorias } from 'src/domain/categorias/models/Categorias';
@@ -19,6 +19,12 @@ import {
     PaginatedProductsResponseDto,
 } from './DTOs/products.dto';
 import { Productos } from './models/Productos';
+
+export type OrdenConfigItemDto = {
+    id_categoria: number;
+    posicion: number;
+    subcategorias: { id_subcategoria: number; posicion: number }[];
+};
 
 const PRODUCT_INCLUDE: Includeable[] = [
     {
@@ -53,18 +59,44 @@ export class ProductosService implements OnApplicationBootstrap {
     ) {}
 
     async onApplicationBootstrap(): Promise<void> {
-        await OrdenConfig.sync({ force: false });
+        await OrdenConfigCategoria.sync({ force: false });
+        await OrdenConfigSubcategoria.sync({ force: false });
     }
 
-    async getOrdenConfig(): Promise<{ id_categoria: number | null; id_subcategoria: number | null } | null> {
-        const config = await OrdenConfig.findOne({ where: { id: 1 } });
-        if (!config) return null;
-        return { id_categoria: config.id_categoria, id_subcategoria: config.id_subcategoria };
+    async getOrdenConfig(): Promise<OrdenConfigItemDto[]> {
+        const rows = await OrdenConfigCategoria.findAll({
+            include: [{ model: OrdenConfigSubcategoria, as: 'subcategorias' }],
+            order: [
+                ['posicion', 'ASC'],
+                [{ model: OrdenConfigSubcategoria, as: 'subcategorias' }, 'posicion', 'ASC'],
+            ],
+        });
+        return rows.map((c) => ({
+            id_categoria: c.id_categoria,
+            posicion: c.posicion,
+            subcategorias: (c.subcategorias ?? []).map((s) => ({
+                id_subcategoria: s.id_subcategoria,
+                posicion: s.posicion,
+            })),
+        }));
     }
 
-    async setOrdenConfig(id_categoria: number | null, id_subcategoria: number | null): Promise<{ id_categoria: number | null; id_subcategoria: number | null }> {
-        const [config] = await OrdenConfig.upsert({ id: 1, id_categoria, id_subcategoria });
-        return { id_categoria: config.id_categoria, id_subcategoria: config.id_subcategoria };
+    async setOrdenConfig(items: OrdenConfigItemDto[]): Promise<OrdenConfigItemDto[]> {
+        await OrdenConfigSubcategoria.destroy({ where: {} });
+        await OrdenConfigCategoria.destroy({ where: {} });
+
+        for (const item of items) {
+            await OrdenConfigCategoria.create({ id_categoria: item.id_categoria, posicion: item.posicion });
+            for (const sub of item.subcategorias) {
+                await OrdenConfigSubcategoria.create({
+                    id_categoria: item.id_categoria,
+                    id_subcategoria: sub.id_subcategoria,
+                    posicion: sub.posicion,
+                });
+            }
+        }
+
+        return this.getOrdenConfig();
     }
 
     private mapFotos(producto: Productos): GetFotoDto[] {
@@ -187,14 +219,35 @@ export class ProductosService implements OnApplicationBootstrap {
     }
 
     private async buildOrder(): Promise<Order> {
-        const config = await this.getOrdenConfig();
-        if (!config?.id_categoria) return [['id', 'DESC']];
+        const configs = await OrdenConfigCategoria.findAll({
+            include: [{ model: OrdenConfigSubcategoria, as: 'subcategorias' }],
+            order: [
+                ['posicion', 'ASC'],
+                [{ model: OrdenConfigSubcategoria, as: 'subcategorias' }, 'posicion', 'ASC'],
+            ],
+        });
 
-        const order: Order = [];
-        if (config.id_subcategoria) {
-            order.push([literal(`CASE WHEN id_subcategoria = ${config.id_subcategoria} THEN 0 ELSE 1 END`), 'ASC']);
+        if (!configs.length) return [['id', 'DESC']];
+
+        // CASE para prioridad de categoría: cat en pos 1 → 0, pos 2 → 1, resto → 999
+        const catCases = configs.map((c) => `WHEN id_categoria = ${c.id_categoria} THEN ${c.posicion - 1}`).join(' ');
+        const catExpr = `CASE ${catCases} ELSE 999 END`;
+
+        // CASE para prioridad de subcategoría dentro de cada categoría
+        const subcatCases: string[] = [];
+        for (const c of configs) {
+            for (const s of c.subcategorias ?? []) {
+                subcatCases.push(
+                    `WHEN id_categoria = ${c.id_categoria} AND id_subcategoria = ${s.id_subcategoria} THEN ${s.posicion - 1}`,
+                );
+            }
         }
-        order.push([literal(`CASE WHEN id_categoria = ${config.id_categoria} THEN 0 ELSE 1 END`), 'ASC']);
+        const subcatExpr = subcatCases.length
+            ? `CASE ${subcatCases.join(' ')} ELSE 999 END`
+            : null;
+
+        const order: Order = [[literal(catExpr), 'ASC']];
+        if (subcatExpr) order.push([literal(subcatExpr), 'ASC']);
         order.push(['id', 'DESC']);
         return order;
     }

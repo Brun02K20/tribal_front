@@ -1,46 +1,71 @@
-import { DataTypes, Model, Optional } from 'sequelize';
+import { DataTypes, Model, NonAttribute, Optional } from 'sequelize';
 import { sequelize } from 'src/database/database';
 
-interface OrdenConfigAttributes {
+// ── OrdenConfigCategoria ──────────────────────────────────────────────────────
+// Una fila por categoría priorizada, con su posición (1 = primera).
+
+interface OrdenConfigCategoriaAttributes {
     id: number;
-    id_categoria: number | null;
-    id_subcategoria: number | null;
+    id_categoria: number;
+    posicion: number;
 }
 
-interface OrdenConfigCreationAttributes extends Optional<OrdenConfigAttributes, 'id' | 'id_categoria' | 'id_subcategoria'> {}
+interface OrdenConfigCategoriaCreation extends Optional<OrdenConfigCategoriaAttributes, 'id'> {}
 
-export class OrdenConfig
-    extends Model<OrdenConfigAttributes, OrdenConfigCreationAttributes>
-    implements OrdenConfigAttributes
+export class OrdenConfigCategoria
+    extends Model<OrdenConfigCategoriaAttributes, OrdenConfigCategoriaCreation>
+    implements OrdenConfigCategoriaAttributes
 {
     declare id: number;
-    declare id_categoria: number | null;
-    declare id_subcategoria: number | null;
+    declare id_categoria: number;
+    declare posicion: number;
+    declare subcategorias?: NonAttribute<OrdenConfigSubcategoria[]>;
 }
 
-OrdenConfig.init(
+OrdenConfigCategoria.init(
     {
-        id: {
-            type: DataTypes.INTEGER,
-            primaryKey: true,
-            autoIncrement: true,
-            allowNull: false,
-        },
-        id_categoria: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-            defaultValue: null,
-        },
-        id_subcategoria: {
-            type: DataTypes.INTEGER,
-            allowNull: true,
-            defaultValue: null,
-        },
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+        id_categoria: { type: DataTypes.INTEGER, allowNull: false },
+        posicion: { type: DataTypes.INTEGER, allowNull: false },
     },
-    {
-        sequelize,
-        modelName: 'OrdenConfig',
-        tableName: 'OrdenConfig',
-        timestamps: false,
-    },
+    { sequelize, modelName: 'OrdenConfigCategoria', tableName: 'OrdenConfigCategoria', timestamps: false },
 );
+
+// ── OrdenConfigSubcategoria ───────────────────────────────────────────────────
+// Una fila por subcategoría priorizada dentro de una categoría.
+
+interface OrdenConfigSubcategoriaAttributes {
+    id: number;
+    id_categoria: number;
+    id_subcategoria: number;
+    posicion: number;
+}
+
+interface OrdenConfigSubcategoriaCreation extends Optional<OrdenConfigSubcategoriaAttributes, 'id'> {}
+
+export class OrdenConfigSubcategoria
+    extends Model<OrdenConfigSubcategoriaAttributes, OrdenConfigSubcategoriaCreation>
+    implements OrdenConfigSubcategoriaAttributes
+{
+    declare id: number;
+    declare id_categoria: number;
+    declare id_subcategoria: number;
+    declare posicion: number;
+}
+
+OrdenConfigSubcategoria.init(
+    {
+        id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, allowNull: false },
+        id_categoria: { type: DataTypes.INTEGER, allowNull: false },
+        id_subcategoria: { type: DataTypes.INTEGER, allowNull: false },
+        posicion: { type: DataTypes.INTEGER, allowNull: false },
+    },
+    { sequelize, modelName: 'OrdenConfigSubcategoria', tableName: 'OrdenConfigSubcategoria', timestamps: false },
+);
+
+// Asociación para poder hacer include de subcategorías al leer la config
+OrdenConfigCategoria.hasMany(OrdenConfigSubcategoria, {
+    foreignKey: 'id_categoria',
+    sourceKey: 'id_categoria',
+    as: 'subcategorias',
+});

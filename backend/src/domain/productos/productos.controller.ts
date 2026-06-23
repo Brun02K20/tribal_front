@@ -5,7 +5,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import SftpSingleton from 'src/utils/sftp/sftp_instance';
 import { upload } from 'src/utils/sftp/upload';
-import { ProductosService } from './productos.service';
+import { ProductosService, OrdenConfigItemDto } from './productos.service';
 import { FotosService } from 'src/domain/fotos/fotos.service';
 import { DisenosService } from 'src/domain/disenos/disenos.service';
 import { GetProductDto, SuccessDeleteProductDto, CreateUpdateProductDto, ProductFiltersDto, PaginatedProductsResponseDto, PaginatedProductsListResponseDto } from './DTOs/products.dto';
@@ -43,7 +43,7 @@ export class ProductosController {
         @ApiCookieAuth('cookieAuth')
         @Get('admin/orden-config')
         @ApiOperation({ summary: 'Obtener configuración de orden por categoría/subcategoría (admin)' })
-        async getOrdenConfig(): Promise<{ id_categoria: number | null; id_subcategoria: number | null } | null> {
+        async getOrdenConfig(): Promise<OrdenConfigItemDto[]> {
             return this.productosService.getOrdenConfig();
         }
 
@@ -53,18 +53,30 @@ export class ProductosController {
         @ApiOperation({ summary: 'Guardar configuración de orden por categoría/subcategoría (admin)' })
         @ApiBody({
             schema: {
-                type: 'object',
-                properties: {
-                    id_categoria: { type: 'number', nullable: true },
-                    id_subcategoria: { type: 'number', nullable: true },
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        id_categoria: { type: 'number' },
+                        posicion: { type: 'number' },
+                        subcategorias: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    id_subcategoria: { type: 'number' },
+                                    posicion: { type: 'number' },
+                                },
+                            },
+                        },
+                    },
                 },
             },
         })
-        async setOrdenConfig(@Req() req: Request): Promise<{ id_categoria: number | null; id_subcategoria: number | null }> {
-            const body = req.body as Record<string, unknown>;
-            const id_categoria = body['id_categoria'] != null ? Number(body['id_categoria']) || null : null;
-            const id_subcategoria = body['id_subcategoria'] != null && id_categoria != null ? Number(body['id_subcategoria']) || null : null;
-            return this.productosService.setOrdenConfig(id_categoria, id_subcategoria);
+        async setOrdenConfig(@Req() req: Request): Promise<OrdenConfigItemDto[]> {
+            const items = req.body as OrdenConfigItemDto[];
+            if (!Array.isArray(items)) throw new BadRequestException('Se esperaba un array de categorías');
+            return this.productosService.setOrdenConfig(items);
         }
 
         @Get()

@@ -207,6 +207,14 @@ export default function Metricas() {
           <p className="app-subtitle text-sm">Usuarios registrados en período</p>
           <p className="app-title mt-2 text-2xl">{metricas.clientes.usuariosRegistradosPeriodo}</p>
         </article>
+        <article className="app-panel p-4">
+          <p className="app-subtitle text-sm">Total de diseños en el sistema</p>
+          <p className="app-title mt-2 text-2xl">{metricas.productos.totalDisenos}</p>
+        </article>
+        <article className="app-panel p-4">
+          <p className="app-subtitle text-sm">Valor total de diseños</p>
+          <p className="app-title mt-2 text-2xl">{formatCurrencyArs(metricas.productos.valorTotalDisenos)}</p>
+        </article>
       </section>
 
       <section className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">

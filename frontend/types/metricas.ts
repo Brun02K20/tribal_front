@@ -35,6 +35,8 @@ export type MetricasResponse = {
     vendidosPorMes: BarMetricItem[];
     topMejorCalificados: ProductRatingMetricItem[];
     topPeorCalificados: ProductRatingMetricItem[];
+    totalDisenos: number;
+    valorTotalDisenos: number;
   };
   ventasPagos: {
     promedioGastadoTotal: number;

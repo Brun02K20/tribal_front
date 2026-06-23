@@ -20,6 +20,8 @@ type ProductRatingRow = {
 };
 type PieRow = { label: string; value: number | string | null };
 type NumericRow = { value: number | string | null };
+type DisenosStatsRow = { total: number | string | null; valor_total: number | string | null };
+
 type ClientRatioRow = {
   con_pedido: number | string | null;
   sin_pedido: number | string | null;
@@ -110,6 +112,7 @@ export class MetricasService {
       topMejorCalificadosRows,
       topPeorCalificadosRows,
       usuariosRegistradosRows,
+      disenosStatsRows,
     ] = await Promise.all([
       sequelize.query<ProductSalesRow>(
         `SELECT p.id, p.nombre, COALESCE(SUM(dp.unidades), 0) AS unidades_vendidas
@@ -297,6 +300,10 @@ export class MetricasService {
            AND u.fecha_registro >= :fechaDesde`,
         { type: QueryTypes.SELECT, replacements: { fechaDesde } },
       ),
+      sequelize.query<DisenosStatsRow>(
+        `SELECT COUNT(*) AS total, COALESCE(SUM(precio), 0) AS valor_total FROM Disenos`,
+        { type: QueryTypes.SELECT },
+      ),
     ]);
 
     const promedioGastadoTotal = this.toNumber(promedioGastadoRows[0]?.value);
@@ -317,6 +324,8 @@ export class MetricasService {
         vendidosPorMes: this.toMonthlyItems(productosVendidosPorMesRows),
         topMejorCalificados: this.toProductRatingItems(topMejorCalificadosRows),
         topPeorCalificados: this.toProductRatingItems(topPeorCalificadosRows),
+        totalDisenos: this.toNumber(disenosStatsRows[0]?.total),
+        valorTotalDisenos: this.toNumber(disenosStatsRows[0]?.valor_total),
       },
       ventasPagos: {
         promedioGastadoTotal,

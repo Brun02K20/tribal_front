@@ -18,8 +18,6 @@ import PaginationControls from "@/shared/ui/PaginationControls";
 export default function ProductosAdminPage() {
   const { showToast } = useToast();
   const [isOrdenModalOpen, setIsOrdenModalOpen] = useState(false);
-  const [ordenCategoria, setOrdenCategoria] = useState<string>("");
-  const [ordenSubcategoria, setOrdenSubcategoria] = useState<string>("");
   const [ordenSubmitting, setOrdenSubmitting] = useState(false);
 
   const {
@@ -63,35 +61,75 @@ export default function ProductosAdminPage() {
     changePageSize,
   } = useProductosAdmin();
 
-  const subcategoriasDelOrden = useMemo(
-    () => subcategorias.filter((s) => s.id_categoria === Number(ordenCategoria)),
-    [subcategorias, ordenCategoria],
-  );
+  type OrdenItem = { id_categoria: number; subcategorias: number[] };
+
+  const [ordenItems, setOrdenItems] = useState<OrdenItem[]>([]);
+
+  const categoriaIdsEnUso = useMemo(() => new Set(ordenItems.map((i) => i.id_categoria)), [ordenItems]);
 
   const openOrdenModal = async () => {
     try {
       const config = await productosService.getOrdenConfig();
-      setOrdenCategoria(config?.id_categoria ? String(config.id_categoria) : "");
-      setOrdenSubcategoria(config?.id_subcategoria ? String(config.id_subcategoria) : "");
+      setOrdenItems(config.map((c) => ({
+        id_categoria: c.id_categoria,
+        subcategorias: c.subcategorias.sort((a, b) => a.posicion - b.posicion).map((s) => s.id_subcategoria),
+      })));
     } catch {
-      setOrdenCategoria("");
-      setOrdenSubcategoria("");
+      setOrdenItems([]);
     }
     setIsOrdenModalOpen(true);
   };
 
-  const handleOrdenCategoriaChange = (value: string) => {
-    setOrdenCategoria(value);
-    setOrdenSubcategoria("");
+  const addOrdenCategoria = (id: number) => {
+    setOrdenItems((prev) => [...prev, { id_categoria: id, subcategorias: [] }]);
+  };
+
+  const removeOrdenCategoria = (index: number) => {
+    setOrdenItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const moveOrdenCategoria = (index: number, dir: -1 | 1) => {
+    setOrdenItems((prev) => {
+      const next = [...prev];
+      const target = index + dir;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  const addSubcatToOrden = (catIndex: number, idSubcat: number) => {
+    setOrdenItems((prev) => prev.map((item, i) =>
+      i === catIndex ? { ...item, subcategorias: [...item.subcategorias, idSubcat] } : item,
+    ));
+  };
+
+  const removeSubcatFromOrden = (catIndex: number, subcatIndex: number) => {
+    setOrdenItems((prev) => prev.map((item, i) =>
+      i === catIndex ? { ...item, subcategorias: item.subcategorias.filter((_, j) => j !== subcatIndex) } : item,
+    ));
+  };
+
+  const moveSubcat = (catIndex: number, subcatIndex: number, dir: -1 | 1) => {
+    setOrdenItems((prev) => prev.map((item, i) => {
+      if (i !== catIndex) return item;
+      const next = [...item.subcategorias];
+      const target = subcatIndex + dir;
+      if (target < 0 || target >= next.length) return item;
+      [next[subcatIndex], next[target]] = [next[target], next[subcatIndex]];
+      return { ...item, subcategorias: next };
+    }));
   };
 
   const saveOrdenConfig = async () => {
     setOrdenSubmitting(true);
     try {
-      await productosService.setOrdenConfig({
-        id_categoria: ordenCategoria ? Number(ordenCategoria) : null,
-        id_subcategoria: ordenCategoria && ordenSubcategoria ? Number(ordenSubcategoria) : null,
-      });
+      const payload = ordenItems.map((item, i) => ({
+        id_categoria: item.id_categoria,
+        posicion: i + 1,
+        subcategorias: item.subcategorias.map((id_sub, j) => ({ id_subcategoria: id_sub, posicion: j + 1 })),
+      }));
+      await productosService.setOrdenConfig(payload);
       showToast("Configuración de orden guardada", "success");
       setIsOrdenModalOpen(false);
     } catch {
@@ -266,61 +304,89 @@ export default function ProductosAdminPage() {
         {isOrdenModalOpen && (
           <AppModal>
             <div className="app-modal-backdrop">
-              <div className="app-modal-card max-w-md p-5">
+              <div className="app-modal-card max-w-lg p-5 max-h-[90vh] overflow-y-auto">
                 <h3 className="app-title text-xl mb-1">Configurar orden de productos</h3>
                 <p className="text-sm text-zinc-500 mb-4">
-                  Los productos de la categoría/subcategoría seleccionada aparecerán primero en todas las vistas.
+                  Definí qué categorías y subcategorías aparecen primero. Podés agregar varias categorías y ordenarlas entre sí.
                 </p>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium">Categoría prioritaria</label>
+                {/* Lista de categorías configuradas */}
+                <div className="space-y-3">
+                  {ordenItems.map((item, catIdx) => {
+                    const catInfo = categorias.find((c) => c.id === item.id_categoria);
+                    const subcatsDisponibles = subcategorias.filter(
+                      (s) => s.id_categoria === item.id_categoria && !item.subcategorias.includes(s.id),
+                    );
+                    return (
+                      <div key={item.id_categoria} className="rounded-lg border border-line p-3">
+                        {/* Header de categoría */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-zinc-400 w-5">{catIdx + 1}.</span>
+                          <span className="flex-1 text-sm font-semibold">{catInfo?.nombre ?? `Categoría ${item.id_categoria}`}</span>
+                          <button type="button" onClick={() => moveOrdenCategoria(catIdx, -1)} disabled={catIdx === 0} className="text-zinc-400 hover:text-zinc-700 disabled:opacity-30 text-xs px-1">▲</button>
+                          <button type="button" onClick={() => moveOrdenCategoria(catIdx, 1)} disabled={catIdx === ordenItems.length - 1} className="text-zinc-400 hover:text-zinc-700 disabled:opacity-30 text-xs px-1">▼</button>
+                          <button type="button" onClick={() => removeOrdenCategoria(catIdx)} className="text-red-400 hover:text-red-600 text-xs px-1">✕</button>
+                        </div>
+
+                        {/* Subcategorías de esta categoría */}
+                        <div className="mt-2 ml-5 space-y-1">
+                          {item.subcategorias.map((idSub, subIdx) => {
+                            const subInfo = subcategorias.find((s) => s.id === idSub);
+                            return (
+                              <div key={idSub} className="flex items-center gap-2 text-sm text-zinc-600">
+                                <span className="text-xs text-zinc-400 w-4">{subIdx + 1}.</span>
+                                <span className="flex-1">{subInfo?.nombre ?? `Subcat ${idSub}`}</span>
+                                <button type="button" onClick={() => moveSubcat(catIdx, subIdx, -1)} disabled={subIdx === 0} className="text-zinc-400 hover:text-zinc-700 disabled:opacity-30 text-xs px-1">▲</button>
+                                <button type="button" onClick={() => moveSubcat(catIdx, subIdx, 1)} disabled={subIdx === item.subcategorias.length - 1} className="text-zinc-400 hover:text-zinc-700 disabled:opacity-30 text-xs px-1">▼</button>
+                                <button type="button" onClick={() => removeSubcatFromOrden(catIdx, subIdx)} className="text-red-400 hover:text-red-600 text-xs px-1">✕</button>
+                              </div>
+                            );
+                          })}
+
+                          {/* Agregar subcategoría */}
+                          {subcatsDisponibles.length > 0 && (
+                            <select
+                              className="app-input text-xs mt-1"
+                              value=""
+                              onChange={(e) => { if (e.target.value) addSubcatToOrden(catIdx, Number(e.target.value)); }}
+                            >
+                              <option value="">+ Agregar subcategoría</option>
+                              {subcatsDisponibles.map((s) => (
+                                <option key={s.id} value={s.id}>{s.nombre}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Agregar categoría */}
+                {categorias.filter((c) => !categoriaIdsEnUso.has(c.id)).length > 0 && (
+                  <div className="mt-3">
                     <select
-                      className="app-input"
-                      value={ordenCategoria}
-                      onChange={(e) => handleOrdenCategoriaChange(e.target.value)}
+                      className="app-input text-sm"
+                      value=""
+                      onChange={(e) => { if (e.target.value) addOrdenCategoria(Number(e.target.value)); }}
                     >
-                      <option value="">Sin prioridad (orden por defecto)</option>
-                      {categorias.map((c) => (
+                      <option value="">+ Agregar categoría</option>
+                      {categorias.filter((c) => !categoriaIdsEnUso.has(c.id)).map((c) => (
                         <option key={c.id} value={c.id}>{c.nombre}</option>
                       ))}
                     </select>
                   </div>
+                )}
 
-                  <div>
-                    <label className="mb-1 block text-sm font-medium">Subcategoría prioritaria</label>
-                    <select
-                      className="app-input disabled:cursor-not-allowed disabled:opacity-50"
-                      value={ordenSubcategoria}
-                      onChange={(e) => setOrdenSubcategoria(e.target.value)}
-                      disabled={!ordenCategoria}
-                    >
-                      <option value="">Sin prioridad de subcategoría</option>
-                      {subcategoriasDelOrden.map((s) => (
-                        <option key={s.id} value={s.id}>{s.nombre}</option>
-                      ))}
-                    </select>
-                    {!ordenCategoria && (
-                      <p className="mt-1 text-xs text-zinc-400">Seleccioná una categoría primero</p>
-                    )}
-                  </div>
-                </div>
+                {ordenItems.length === 0 && (
+                  <p className="mt-3 text-sm text-zinc-400 text-center">Sin orden configurado — los productos se ordenan por fecha de creación.</p>
+                )}
 
                 <div className="mt-6 flex justify-end gap-2">
-                  <button
-                    type="button"
-                    className="app-btn-secondary"
-                    onClick={() => setIsOrdenModalOpen(false)}
-                    disabled={ordenSubmitting}
-                  >
+                  <button type="button" className="app-btn-secondary" onClick={() => setIsOrdenModalOpen(false)} disabled={ordenSubmitting}>
                     Cancelar
                   </button>
-                  <button
-                    type="button"
-                    className="app-btn-primary"
-                    onClick={saveOrdenConfig}
-                    disabled={ordenSubmitting}
-                  >
+                  <button type="button" className="app-btn-primary" onClick={saveOrdenConfig} disabled={ordenSubmitting}>
                     {ordenSubmitting ? "Guardando..." : "Guardar"}
                   </button>
                 </div>
