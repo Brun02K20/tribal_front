@@ -7,6 +7,7 @@ import type {
     ProductFilters,
     ProductPhotoOrderItem,
     PaginatedProductsResponse,
+    OrdenConfig,
 } from "@/types/products";
 import { parseApiError } from "@/shared/api/apiClient";
 
@@ -234,6 +235,24 @@ const deleteProduct = async (id: number): Promise<ProductDeleteResponse> => {
     }
 }
 
+async function getOrdenConfig(): Promise<OrdenConfig | null> {
+    try {
+        const { data } = await apiClient.get<OrdenConfig | null>("/productos/admin/orden-config");
+        return data;
+    } catch (error) {
+        throw parseApiError(error, { fallbackMessage: "No se pudo obtener la configuración de orden", prefix: "Productos" });
+    }
+}
+
+async function setOrdenConfig(config: OrdenConfig): Promise<OrdenConfig> {
+    try {
+        const { data } = await apiClient.put<OrdenConfig>("/productos/admin/orden-config", config);
+        return data;
+    } catch (error) {
+        throw parseApiError(error, { fallbackMessage: "No se pudo guardar la configuración de orden", prefix: "Productos" });
+    }
+}
+
 export const productosService = {
     getAllProducts,
     findByFilters,
@@ -245,6 +264,8 @@ export const productosService = {
     updateProduct,
     toggleProduct,
     deleteProduct,
+    getOrdenConfig,
+    setOrdenConfig,
 }
 
 

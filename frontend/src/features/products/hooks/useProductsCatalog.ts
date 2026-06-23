@@ -444,6 +444,7 @@ export function useProductsCatalog() {
     hasActiveFilters,
     categorias,
     filteredSubcategorias,
+    selectedCategoriaId,
     registerFilters,
     page,
     pageSize,

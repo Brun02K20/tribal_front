@@ -21,6 +21,7 @@ export default function ProductsPageClient() {
     products,
     categorias,
     filteredSubcategorias,
+    selectedCategoriaId,
     loading,
     error,
     hasProducts,
@@ -52,8 +53,8 @@ export default function ProductsPageClient() {
       <div className="app-container mx-auto max-w-360">
       <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="app-title text-2xl">Productos artesanales online</h1>
-          <p className="app-subtitle text-sm">Explora regalos originales, deco artesanal y productos hechos a mano en Argentina.</p>
+          <h1 className="app-title text-2xl">Accesorios Artesanales, lo mas unico, diferente, exclusivo y original para vos.</h1>
+          <p className="app-subtitle text-sm">¿Lista para destacar de entre la multitud? Cada pieza de Tribal Trend es una obra de arte única para llevar puesta, elaborada a mano con piedras naturales, resina y un intrincado entramado de alambre para reflejar tu individualidad. Encuentra la pieza perfecta que realce todo tu estilo. ¡Explora nuestra colección!</p>
         </div>
         <button
           onClick={goToCheckout}
@@ -97,7 +98,7 @@ export default function ProductsPageClient() {
 
               <div>
                 <label className="mb-1 block text-sm text-dark-gray">Subcategoria</label>
-                <select className="app-input" {...registerFilters("id_subcategoria")}>
+                <select className="app-input disabled:cursor-not-allowed disabled:opacity-50" disabled={!selectedCategoriaId} {...registerFilters("id_subcategoria")}>
                   <option value="">Todas</option>
                   {filteredSubcategorias.map((subcategoria) => (
                     <option key={subcategoria.id} value={subcategoria.id}>
@@ -192,11 +193,6 @@ export default function ProductsPageClient() {
                         {activeDesign && <p className="mt-1 text-sm font-semibold text-earth-brown">Diseño: {activeDesign.nombre}</p>}
                         <p className="mt-1 text-sm text-zinc-600">
                           {product.categoria?.nombre ?? "-"} / {product.subcategoria?.nombre ?? "-"}
-                        </p>
-                        <p className="mt-2 text-sm text-earth-brown">
-                          {product.es_unico
-                            ? "Este producto es único y exclusivo, no te pierdas la oportunidad de tenerlo"
-                            : "Tiene múltiples diseños disponibles"}
                         </p>
                         {hasDiscount ? (
                           <div className="mt-2">

@@ -1,5 +1,5 @@
 import { BadRequestException, Controller, Get, Post, Req, Res, Param, Query, Put, Delete, UseGuards } from '@nestjs/common';
-import { ApiBody, ApiConsumes, ApiTags, ApiCreatedResponse, ApiOkResponse, ApiParam, ApiQuery, ApiCookieAuth } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiTags, ApiCreatedResponse, ApiOkResponse, ApiParam, ApiQuery, ApiCookieAuth, ApiOperation } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -38,7 +38,35 @@ export class ProductosController {
         private readonly fotosService: FotosService,
         private readonly disenosService: DisenosService,
     ) {}
-       
+
+        @UseGuards(AuthGuard, Role1Guard)
+        @ApiCookieAuth('cookieAuth')
+        @Get('admin/orden-config')
+        @ApiOperation({ summary: 'Obtener configuración de orden por categoría/subcategoría (admin)' })
+        async getOrdenConfig(): Promise<{ id_categoria: number | null; id_subcategoria: number | null } | null> {
+            return this.productosService.getOrdenConfig();
+        }
+
+        @UseGuards(AuthGuard, Role1Guard)
+        @ApiCookieAuth('cookieAuth')
+        @Put('admin/orden-config')
+        @ApiOperation({ summary: 'Guardar configuración de orden por categoría/subcategoría (admin)' })
+        @ApiBody({
+            schema: {
+                type: 'object',
+                properties: {
+                    id_categoria: { type: 'number', nullable: true },
+                    id_subcategoria: { type: 'number', nullable: true },
+                },
+            },
+        })
+        async setOrdenConfig(@Req() req: Request): Promise<{ id_categoria: number | null; id_subcategoria: number | null }> {
+            const body = req.body as Record<string, unknown>;
+            const id_categoria = body['id_categoria'] != null ? Number(body['id_categoria']) || null : null;
+            const id_subcategoria = body['id_subcategoria'] != null && id_categoria != null ? Number(body['id_subcategoria']) || null : null;
+            return this.productosService.setOrdenConfig(id_categoria, id_subcategoria);
+        }
+
         @Get()
         @ApiQuery({ name: 'page', type: Number, required: false, description: 'Página (1-based)' })
         @ApiOkResponse({ type: PaginatedProductsListResponseDto })

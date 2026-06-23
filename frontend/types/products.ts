@@ -95,3 +95,8 @@ export type ProductsPagination = {
 export type PaginatedProductsResponse = ProductsPagination & {
   data: Product[];
 };
+
+export type OrdenConfig = {
+  id_categoria: number | null;
+  id_subcategoria: number | null;
+};

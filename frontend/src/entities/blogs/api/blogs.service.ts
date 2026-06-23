@@ -1,5 +1,5 @@
 import apiClient, { parseApiError } from '@/shared/api/apiClient';
-import type { BlogListItem, BlogDetail, BlogFormValues } from '@/types/blogs';
+import type { BlogListItem, BlogDetail, BlogFormValues, BlogPhotoOrderItem } from '@/types/blogs';
 
 const getAll = async (): Promise<BlogListItem[]> => {
     try {
@@ -43,10 +43,11 @@ const create = async (values: BlogFormValues, files: File[]): Promise<BlogDetail
     }
 };
 
-const update = async (id: number, values: BlogFormValues, files?: File[]): Promise<BlogDetail> => {
+const update = async (id: number, values: BlogFormValues, files?: File[], fotosOrdenadas?: BlogPhotoOrderItem[]): Promise<BlogDetail> => {
     const formData = new FormData();
     formData.append('blog', JSON.stringify(values));
     if (files) files.forEach(file => formData.append('file', file));
+    if (fotosOrdenadas) formData.append('fotos_ordenadas', JSON.stringify(fotosOrdenadas));
 
     try {
         const { data } = await apiClient.put<BlogDetail>(`/blogs/${id}`, formData, {

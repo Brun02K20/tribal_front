@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import AdminOnly from "@/features/admin/components/AdminOnly";
 import AdminShell from "@/features/admin/components/AdminShell";
 import AdminTable from "@/features/admin/components/AdminTable";
@@ -7,11 +8,20 @@ import AdminCrudActions from "@/features/admin/components/AdminCrudActions";
 import ConfirmDeleteModal from "@/features/admin/components/ConfirmDeleteModal";
 import ProductFormModal from "@/features/admin/components/ProductFormModal";
 import DisenosModal from "@/features/admin/components/DisenosModal";
+import AppModal from "@/shared/ui/AppModal";
 import { useProductosAdmin } from "@/features/admin/hooks/useProductosAdmin";
+import { productosService } from "@/entities/productos/api/productos.service";
+import { useToast } from "@/shared/providers/ToastContext";
 import { formatCurrencyArs } from "@/shared/lib/formatters";
 import PaginationControls from "@/shared/ui/PaginationControls";
 
 export default function ProductosAdminPage() {
+  const { showToast } = useToast();
+  const [isOrdenModalOpen, setIsOrdenModalOpen] = useState(false);
+  const [ordenCategoria, setOrdenCategoria] = useState<string>("");
+  const [ordenSubcategoria, setOrdenSubcategoria] = useState<string>("");
+  const [ordenSubmitting, setOrdenSubmitting] = useState(false);
+
   const {
     products,
     categorias,
@@ -53,6 +63,44 @@ export default function ProductosAdminPage() {
     changePageSize,
   } = useProductosAdmin();
 
+  const subcategoriasDelOrden = useMemo(
+    () => subcategorias.filter((s) => s.id_categoria === Number(ordenCategoria)),
+    [subcategorias, ordenCategoria],
+  );
+
+  const openOrdenModal = async () => {
+    try {
+      const config = await productosService.getOrdenConfig();
+      setOrdenCategoria(config?.id_categoria ? String(config.id_categoria) : "");
+      setOrdenSubcategoria(config?.id_subcategoria ? String(config.id_subcategoria) : "");
+    } catch {
+      setOrdenCategoria("");
+      setOrdenSubcategoria("");
+    }
+    setIsOrdenModalOpen(true);
+  };
+
+  const handleOrdenCategoriaChange = (value: string) => {
+    setOrdenCategoria(value);
+    setOrdenSubcategoria("");
+  };
+
+  const saveOrdenConfig = async () => {
+    setOrdenSubmitting(true);
+    try {
+      await productosService.setOrdenConfig({
+        id_categoria: ordenCategoria ? Number(ordenCategoria) : null,
+        id_subcategoria: ordenCategoria && ordenSubcategoria ? Number(ordenSubcategoria) : null,
+      });
+      showToast("Configuración de orden guardada", "success");
+      setIsOrdenModalOpen(false);
+    } catch {
+      showToast("Error guardando configuración", "error");
+    } finally {
+      setOrdenSubmitting(false);
+    }
+  };
+
   return (
     <AdminOnly>
       <AdminShell
@@ -61,9 +109,14 @@ export default function ProductosAdminPage() {
       >
         <div className="flex items-center justify-between">
           <p className="app-subtitle">Total: {totalItems}</p>
-          <button className="app-btn-primary" onClick={openCreate}>
-            Crear producto
-          </button>
+          <div className="flex gap-2">
+            <button className="app-btn-secondary" onClick={openOrdenModal}>
+              Ordenar
+            </button>
+            <button className="app-btn-primary" onClick={openCreate}>
+              Crear producto
+            </button>
+          </div>
         </div>
 
         <form
@@ -209,6 +262,72 @@ export default function ProductosAdminPage() {
           onUpdate={updateDiseno}
           onDelete={deleteDiseno}
         />
+
+        {isOrdenModalOpen && (
+          <AppModal>
+            <div className="app-modal-backdrop">
+              <div className="app-modal-card max-w-md p-5">
+                <h3 className="app-title text-xl mb-1">Configurar orden de productos</h3>
+                <p className="text-sm text-zinc-500 mb-4">
+                  Los productos de la categoría/subcategoría seleccionada aparecerán primero en todas las vistas.
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Categoría prioritaria</label>
+                    <select
+                      className="app-input"
+                      value={ordenCategoria}
+                      onChange={(e) => handleOrdenCategoriaChange(e.target.value)}
+                    >
+                      <option value="">Sin prioridad (orden por defecto)</option>
+                      {categorias.map((c) => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Subcategoría prioritaria</label>
+                    <select
+                      className="app-input disabled:cursor-not-allowed disabled:opacity-50"
+                      value={ordenSubcategoria}
+                      onChange={(e) => setOrdenSubcategoria(e.target.value)}
+                      disabled={!ordenCategoria}
+                    >
+                      <option value="">Sin prioridad de subcategoría</option>
+                      {subcategoriasDelOrden.map((s) => (
+                        <option key={s.id} value={s.id}>{s.nombre}</option>
+                      ))}
+                    </select>
+                    {!ordenCategoria && (
+                      <p className="mt-1 text-xs text-zinc-400">Seleccioná una categoría primero</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    className="app-btn-secondary"
+                    onClick={() => setIsOrdenModalOpen(false)}
+                    disabled={ordenSubmitting}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="app-btn-primary"
+                    onClick={saveOrdenConfig}
+                    disabled={ordenSubmitting}
+                  >
+                    {ordenSubmitting ? "Guardando..." : "Guardar"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </AppModal>
+        )}
       </AdminShell>
     </AdminOnly>
   );

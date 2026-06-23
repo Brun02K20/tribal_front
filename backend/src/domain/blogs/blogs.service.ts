@@ -81,7 +81,7 @@ export class BlogsService {
         return this.findById(blog.id);
     }
 
-    async update(id: number, dto: CreateUpdateBlogDto, newFotoUrls?: string[]): Promise<GetBlogDto> {
+    async update(id: number, dto: CreateUpdateBlogDto, newFotoUrls?: string[], orderedFotoUrls?: string[]): Promise<GetBlogDto> {
         const blog = await Blogs.findByPk(id);
         if (!blog) throw new NotFoundException('Artículo no encontrado');
 
@@ -90,11 +90,10 @@ export class BlogsService {
             cuerpo: dto.cuerpo,
         });
 
-        if (newFotoUrls && newFotoUrls.length > 0) {
-            const fotosDto: CreateBlogFotosDto[] = newFotoUrls.map(url => ({
-                url,
-                id_blog: id,
-            }));
+        if (orderedFotoUrls !== undefined) {
+            await this.fotosService.replaceBlogFotos(id, orderedFotoUrls.map(url => ({ url, id_blog: id })));
+        } else if (newFotoUrls && newFotoUrls.length > 0) {
+            const fotosDto: CreateBlogFotosDto[] = newFotoUrls.map(url => ({ url, id_blog: id }));
             await this.fotosService.bulkCreateForBlog(fotosDto);
         }
 

@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Op } from 'sequelize';
+import { Injectable, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
+import { Op, literal } from 'sequelize';
 import type { Includeable, Order } from 'sequelize';
+import { OrdenConfig } from './models/OrdenConfig';
 import { FotosService } from 'src/domain/fotos/fotos.service';
 import { Fotos } from 'src/domain/fotos/models/Fotos';
 import { Categorias } from 'src/domain/categorias/models/Categorias';
@@ -45,11 +46,26 @@ const PRODUCT_INCLUDE: Includeable[] = [
 ];
 
 @Injectable()
-export class ProductosService {
+export class ProductosService implements OnApplicationBootstrap {
     constructor(
         private readonly fotosService: FotosService,
         private readonly descuentosService: DescuentosService,
     ) {}
+
+    async onApplicationBootstrap(): Promise<void> {
+        await OrdenConfig.sync({ force: false });
+    }
+
+    async getOrdenConfig(): Promise<{ id_categoria: number | null; id_subcategoria: number | null } | null> {
+        const config = await OrdenConfig.findOne({ where: { id: 1 } });
+        if (!config) return null;
+        return { id_categoria: config.id_categoria, id_subcategoria: config.id_subcategoria };
+    }
+
+    async setOrdenConfig(id_categoria: number | null, id_subcategoria: number | null): Promise<{ id_categoria: number | null; id_subcategoria: number | null }> {
+        const [config] = await OrdenConfig.upsert({ id: 1, id_categoria, id_subcategoria });
+        return { id_categoria: config.id_categoria, id_subcategoria: config.id_subcategoria };
+    }
 
     private mapFotos(producto: Productos): GetFotoDto[] {
         return (producto.fotos ?? []).map((foto) => ({
@@ -170,6 +186,19 @@ export class ProductosService {
         return pageSize;
     }
 
+    private async buildOrder(): Promise<Order> {
+        const config = await this.getOrdenConfig();
+        if (!config?.id_categoria) return [['id', 'DESC']];
+
+        const order: Order = [];
+        if (config.id_subcategoria) {
+            order.push([literal(`CASE WHEN id_subcategoria = ${config.id_subcategoria} THEN 0 ELSE 1 END`), 'ASC']);
+        }
+        order.push([literal(`CASE WHEN id_categoria = ${config.id_categoria} THEN 0 ELSE 1 END`), 'ASC']);
+        order.push(['id', 'DESC']);
+        return order;
+    }
+
     private async findProductosPaginated(params: {
         where?: Record<string, unknown>;
         page?: number;
@@ -182,7 +211,7 @@ export class ProductosService {
         const { rows, count } = await Productos.findAndCountAll({
             where: params.where,
             include: PRODUCT_INCLUDE,
-            order: [['id', 'DESC']],
+            order: await this.buildOrder(),
             limit: pageSize,
             offset,
             distinct: true,

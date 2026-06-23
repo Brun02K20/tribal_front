@@ -19,3 +19,7 @@ export type BlogFormValues = {
     titulo: string;
     cuerpo: string;
 };
+
+export type BlogPhotoOrderItem =
+    | { type: 'existing'; url: string }
+    | { type: 'new'; fileIndex: number };

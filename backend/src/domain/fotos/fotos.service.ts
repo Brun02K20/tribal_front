@@ -28,6 +28,13 @@ export class FotosService {
         await Fotos.destroy({ where: { id_blog: idBlog } });
     }
 
+    async replaceBlogFotos(idBlog: number, fotos: CreateBlogFotosDto[]): Promise<void> {
+        await Fotos.destroy({ where: { id_blog: idBlog } });
+        if (fotos.length) {
+            await Fotos.bulkCreate(fotos.map(f => ({ url: f.url, id_blog: f.id_blog, id_producto: null })));
+        }
+    }
+
     async replaceProductFotos(idProducto: number, fotos: CreateProductFotosDto[]): Promise<void> {
         await Fotos.destroy({ where: { id_producto: idProducto } });
         if (fotos.length) {

@@ -131,15 +131,19 @@ export class BlogsController {
             console.log('[BlogsController] update: inicio, id:', id);
             await this.runMulter(req, res);
 
-            const dto = this.parseBlogDto(req.body as Record<string, unknown>);
+            const body = req.body as Record<string, unknown>;
+            const dto = this.parseBlogDto(body);
             const files = req.files as Express.Multer.File[] | undefined;
-            const newFotoUrls: string[] = [];
+            const photoOrder = this.parsePhotoOrder(body);
+
+            const uploadedUrlsByFileIndex = new Map<number, string>();
 
             if (files && files.length > 0) {
                 const sftp = await SftpSingleton.getInstance();
                 await this.ensureRemoteDirectory(sftp, Number(id));
 
-                for (const file of files) {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
                     const fileName = this.buildFileName(file.originalname);
                     const remotePath = `${REMOTE_BLOGS_BASE_PATH}/${id}/${fileName}`;
                     try {
@@ -147,15 +151,25 @@ export class BlogsController {
                     } finally {
                         await fs.unlink(file.path).catch(() => undefined);
                     }
-                    newFotoUrls.push(`${PUBLIC_BASE_URL}/files/blogs/${id}/${fileName}`);
+                    uploadedUrlsByFileIndex.set(i, `${PUBLIC_BASE_URL}/files/blogs/${id}/${fileName}`);
                 }
             }
 
-            const updated = await this.blogsService.update(
-                Number(id),
-                dto,
-                newFotoUrls.length ? newFotoUrls : undefined,
-            );
+            let orderedFotoUrls: string[] | undefined;
+            let newFotoUrls: string[] | undefined;
+
+            if (photoOrder.length > 0) {
+                orderedFotoUrls = photoOrder.map((item) => {
+                    if (item.type === 'existing') return item.url;
+                    const url = uploadedUrlsByFileIndex.get(item.fileIndex);
+                    if (!url) throw new BadRequestException('No se encontró una foto nueva del orden enviado');
+                    return url;
+                });
+            } else if (uploadedUrlsByFileIndex.size > 0) {
+                newFotoUrls = Array.from(uploadedUrlsByFileIndex.values());
+            }
+
+            const updated = await this.blogsService.update(Number(id), dto, newFotoUrls, orderedFotoUrls);
 
             console.log('[BlogsController] update: completado, id:', id);
             res.status(200).json(updated);
@@ -191,6 +205,32 @@ export class BlogsController {
     }
 
     // ========== Helpers privados ==========
+
+    private parsePhotoOrder(body: Record<string, unknown>): Array<{ type: 'existing'; url: string } | { type: 'new'; fileIndex: number }> {
+        const raw = body['fotos_ordenadas'];
+        if (raw === undefined || raw === null || raw === '') return [];
+
+        let parsed: unknown;
+        if (typeof raw === 'string') {
+            try { parsed = JSON.parse(raw); } catch { throw new BadRequestException('fotos_ordenadas inválido'); }
+        } else {
+            parsed = raw;
+        }
+
+        if (!Array.isArray(parsed)) throw new BadRequestException('fotos_ordenadas debe ser un array');
+
+        return parsed.map((item: unknown) => {
+            if (!item || typeof item !== 'object') throw new BadRequestException('Item de foto inválido');
+            const data = item as Record<string, unknown>;
+            if (data['type'] === 'existing' && typeof data['url'] === 'string' && data['url'].trim()) {
+                return { type: 'existing' as const, url: (data['url'] as string).trim() };
+            }
+            if (data['type'] === 'new' && Number.isInteger(Number(data['fileIndex']))) {
+                return { type: 'new' as const, fileIndex: Number(data['fileIndex']) };
+            }
+            throw new BadRequestException('Item de foto inválido');
+        });
+    }
 
     private parseBlogDto(body: Record<string, unknown>) {
         const raw = body['blog'];
