@@ -9,8 +9,11 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      OLLAMA_URL: http://host.docker.internal:11434
     ports:
       - "3001:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
   frontend:

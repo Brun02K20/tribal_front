@@ -6,9 +6,10 @@ import { AuthModule } from 'src/auth/auth.module';
 import { Role1Guard } from 'src/auth/utils/role1.guard';
 import { DescuentosModule } from 'src/domain/descuentos/descuentos.module';
 import { DisenosModule } from 'src/domain/disenos/disenos.module';
+import { BusquedaSemanticaModule } from 'src/domain/busqueda-semantica/busqueda-semantica.module';
 
 @Module({
-    imports: [AuthModule, DescuentosModule, DisenosModule],
+    imports: [AuthModule, DescuentosModule, DisenosModule, BusquedaSemanticaModule],
     controllers: [ProductosController],
     providers: [ProductosService, FotosService, Role1Guard],
 })

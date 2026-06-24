@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, OnApplicationBootstrap } from '@nestjs/c
 import { Op, literal } from 'sequelize';
 import type { Includeable, Order } from 'sequelize';
 import { OrdenConfigCategoria, OrdenConfigSubcategoria } from './models/OrdenConfig';
+import { BusquedaSemanticaService } from 'src/domain/busqueda-semantica/busqueda-semantica.service';
 import { FotosService } from 'src/domain/fotos/fotos.service';
 import { Fotos } from 'src/domain/fotos/models/Fotos';
 import { Categorias } from 'src/domain/categorias/models/Categorias';
@@ -56,6 +57,7 @@ export class ProductosService implements OnApplicationBootstrap {
     constructor(
         private readonly fotosService: FotosService,
         private readonly descuentosService: DescuentosService,
+        private readonly semanticaService: BusquedaSemanticaService,
     ) {}
 
     async onApplicationBootstrap(): Promise<void> {
@@ -314,6 +316,33 @@ export class ProductosService implements OnApplicationBootstrap {
         return this.mapProducto(producto, undefined, descuentosAplicados.get(producto.id));
     }
 
+    private buildEmbeddingText(nombre: string, descripcion: string): string {
+        // El nombre se repite 3 veces para darle mayor peso semántico frente a la descripción
+        return `${nombre} ${nombre} ${nombre} ${descripcion}`.trim();
+    }
+
+    private async saveEmbedding(producto: Productos): Promise<void> {
+        const vec = await this.semanticaService.generateEmbedding(
+            this.buildEmbeddingText(producto.nombre, producto.descripcion),
+        );
+        if (vec) await producto.update({ embedding: JSON.stringify(vec) });
+    }
+
+    async reindexarTodos(): Promise<{ total: number; indexados: number }> {
+        const productos = await Productos.findAll({ attributes: ['id', 'nombre', 'descripcion', 'embedding'] });
+        let indexados = 0;
+        for (const p of productos) {
+            const vec = await this.semanticaService.generateEmbedding(
+                this.buildEmbeddingText(p.nombre, p.descripcion),
+            );
+            if (vec) {
+                await p.update({ embedding: JSON.stringify(vec) });
+                indexados++;
+            }
+        }
+        return { total: productos.length, indexados };
+    }
+
     async create(createProductDto: CreateUpdateProductDto, fotos: { url: string }[]): Promise<GetProductDto> {
         const producto = await Productos.create({
             nombre: createProductDto.nombre,
@@ -339,6 +368,8 @@ export class ProductosService implements OnApplicationBootstrap {
             await this.fotosService.bulkCreate(fotosConProductoId);
         }
 
+        void this.saveEmbedding(producto); // fire-and-forget, no bloquea la respuesta
+
         return this.findById(producto.id);
     }
 
@@ -360,6 +391,8 @@ export class ProductosService implements OnApplicationBootstrap {
 
             await this.fotosService.replaceProductFotos(id, fotosConProductoId);
         }
+
+        void this.saveEmbedding(producto); // fire-and-forget
 
         return this.findById(id);
     }
@@ -403,13 +436,54 @@ export class ProductosService implements OnApplicationBootstrap {
         return this.mapProductosWithDiscount(productos);
     }
 
-    async findByFiltersPaginated(filters: ProductFiltersDto, page?: number): Promise<PaginatedProductsResponseDto<GetProductDto>> {
-        return this.findProductosPaginated({
-            where: {
-                ...this.buildWhereByFilters(filters),
-                es_activo: true,
-            },
+    private async findByFiltersSemantico(
+        filters: ProductFiltersDto,
+        page: number,
+        pageSize: number,
+        extraWhere: Record<string, unknown> = {},
+        clientIp?: string,
+    ): Promise<PaginatedProductsResponseDto<GetProductDto> | null> {
+        // Construye el WHERE sin el filtro de nombre (lo maneja semántica)
+        const whereClause = { ...this.buildWhereByFilters({ ...filters, nombre: undefined }), ...extraWhere };
+
+        const rows = await Productos.findAll({
+            where: whereClause,
+            include: PRODUCT_INCLUDE,
+            order: await this.buildOrder(),
+            attributes: { include: ['embedding'] },
+        });
+
+        const ranked = await this.semanticaService.rankBySimilarity(filters.nombre!, rows, clientIp);
+        if (ranked === null) return null; // Ollama caído o rate limit → usar fallback
+
+        const totalItems = ranked.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        const offset = (page - 1) * pageSize;
+        const pageRows = ranked.slice(offset, offset + pageSize);
+
+        const descuentosAplicados = await this.descuentosService.resolveEffectiveDiscountsForProducts(pageRows);
+
+        return {
             page,
+            pageSize,
+            totalItems,
+            totalPages,
+            data: pageRows.map((p) => this.mapProducto(p, undefined, descuentosAplicados.get(p.id))),
+        };
+    }
+
+    async findByFiltersPaginated(filters: ProductFiltersDto, page?: number, clientIp?: string): Promise<PaginatedProductsResponseDto<GetProductDto>> {
+        const normalizedPage = this.normalizePage(page);
+
+        if (filters.nombre) {
+            const semantic = await this.findByFiltersSemantico(filters, normalizedPage, 12, { es_activo: true }, clientIp);
+            if (semantic) return semantic;
+        }
+
+        // Fallback: LIKE normal
+        return this.findProductosPaginated({
+            where: { ...this.buildWhereByFilters(filters), es_activo: true },
+            page: normalizedPage,
             pageSize: 12,
         });
     }
@@ -419,10 +493,23 @@ export class ProductosService implements OnApplicationBootstrap {
         page?: number,
         pageSize?: number,
     ): Promise<PaginatedProductsResponseDto<GetProductDto>> {
+        const normalizedPage = this.normalizePage(page);
+        const normalizedPageSize = this.normalizeAdminPageSize(pageSize);
+
+        if (filters.nombre) {
+            const semantic = await this.findByFiltersSemantico(filters, normalizedPage, normalizedPageSize);
+            if (semantic) return semantic;
+        }
+
+        // Fallback: LIKE normal
         return this.findProductosPaginated({
             where: this.buildWhereByFilters(filters),
-            page,
-            pageSize: this.normalizeAdminPageSize(pageSize),
+            page: normalizedPage,
+            pageSize: normalizedPageSize,
         });
+    }
+
+    async reindexar(): Promise<{ total: number; indexados: number }> {
+        return this.reindexarTodos();
     }
 }

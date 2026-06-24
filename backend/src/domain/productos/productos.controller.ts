@@ -41,6 +41,14 @@ export class ProductosController {
 
         @UseGuards(AuthGuard, Role1Guard)
         @ApiCookieAuth('cookieAuth')
+        @Post('admin/reindexar')
+        @ApiOperation({ summary: 'Re-genera embeddings semánticos de todos los productos (admin)' })
+        async reindexar(): Promise<{ total: number; indexados: number }> {
+            return this.productosService.reindexar();
+        }
+
+        @UseGuards(AuthGuard, Role1Guard)
+        @ApiCookieAuth('cookieAuth')
         @Get('admin/orden-config')
         @ApiOperation({ summary: 'Obtener configuración de orden por categoría/subcategoría (admin)' })
         async getOrdenConfig(): Promise<OrdenConfigItemDto[]> {
@@ -111,6 +119,7 @@ export class ProductosController {
         @ApiQuery({ name: 'page', type: Number, required: false, description: 'Página (1-based)' })
         @ApiOkResponse({ type: PaginatedProductsListResponseDto })
         async findByFilters(
+            @Req() req: Request,
             @Query('name') name?: string,
             @Query('id_categoria') id_categoria?: string,
             @Query('id_subcategoria') id_subcategoria?: string,
@@ -126,7 +135,8 @@ export class ProductosController {
                 precio_max: this.parseOptionalNumber(precio_max),
             };
 
-            return this.productosService.findByFiltersPaginated(filters, this.parseOptionalNumber(page));
+            const clientIp = (req as unknown as import('express').Request).ip ?? 'unknown';
+            return this.productosService.findByFiltersPaginated(filters, this.parseOptionalNumber(page), clientIp);
         }
 
         @UseGuards(AuthGuard, Role1Guard)

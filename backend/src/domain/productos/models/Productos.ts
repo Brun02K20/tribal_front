@@ -17,10 +17,11 @@ interface ProductoAttributes {
     peso_gramos: number;
     es_activo: boolean;
     es_unico: boolean;
+    embedding: string | null;
 }
 
 interface ProductoCreationAttributes
-    extends Optional<ProductoAttributes, 'id'> {}
+    extends Optional<ProductoAttributes, 'id' | 'embedding'> {}
 
 export class Productos
     extends Model<ProductoAttributes, ProductoCreationAttributes>
@@ -39,6 +40,7 @@ export class Productos
     declare peso_gramos: number;
     declare es_activo: boolean;
     declare es_unico: boolean;
+    declare embedding: string | null;
 
     declare fotos?: NonAttribute<Fotos[]>;
     declare disenos?: NonAttribute<Disenos[]>;
@@ -104,6 +106,11 @@ Productos.init(
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: true,
+        },
+        embedding: {
+            type: DataTypes.TEXT('long'),
+            allowNull: true,
+            defaultValue: null,
         },
     },
     {

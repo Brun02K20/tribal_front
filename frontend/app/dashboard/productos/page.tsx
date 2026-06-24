@@ -19,6 +19,20 @@ export default function ProductosAdminPage() {
   const { showToast } = useToast();
   const [isOrdenModalOpen, setIsOrdenModalOpen] = useState(false);
   const [ordenSubmitting, setOrdenSubmitting] = useState(false);
+  const [reindexando, setReindexando] = useState(false);
+
+  const reindexar = async () => {
+    if (!confirm("¿Reindexar todos los productos? Esto puede tardar unos minutos según la cantidad de productos.")) return;
+    setReindexando(true);
+    try {
+      const { data } = await (await import("@/shared/api/apiClient")).default.post<{ total: number; indexados: number }>("/productos/admin/reindexar");
+      showToast(`Reindexado: ${data.indexados}/${data.total} productos`, "success");
+    } catch {
+      showToast("Error al reindexar. ¿Ollama está corriendo?", "error");
+    } finally {
+      setReindexando(false);
+    }
+  };
 
   const {
     products,
@@ -148,6 +162,9 @@ export default function ProductosAdminPage() {
         <div className="flex items-center justify-between">
           <p className="app-subtitle">Total: {totalItems}</p>
           <div className="flex gap-2">
+            <button className="app-btn-secondary text-sm" onClick={() => void reindexar()} disabled={reindexando}>
+              {reindexando ? "Reindexando..." : "Reindexar búsqueda"}
+            </button>
             <button className="app-btn-secondary" onClick={openOrdenModal}>
               Ordenar
             </button>
