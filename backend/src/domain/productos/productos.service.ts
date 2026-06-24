@@ -232,7 +232,7 @@ export class ProductosService implements OnApplicationBootstrap {
         if (!configs.length) return [['id', 'DESC']];
 
         // CASE para prioridad de categoría: cat en pos 1 → 0, pos 2 → 1, resto → 999
-        const catCases = configs.map((c) => `WHEN id_categoria = ${c.id_categoria} THEN ${c.posicion - 1}`).join(' ');
+        const catCases = configs.map((c) => `WHEN \`Productos\`.\`id_categoria\` = ${c.id_categoria} THEN ${c.posicion - 1}`).join(' ');
         const catExpr = `CASE ${catCases} ELSE 999 END`;
 
         // CASE para prioridad de subcategoría dentro de cada categoría
@@ -240,7 +240,7 @@ export class ProductosService implements OnApplicationBootstrap {
         for (const c of configs) {
             for (const s of c.subcategorias ?? []) {
                 subcatCases.push(
-                    `WHEN id_categoria = ${c.id_categoria} AND id_subcategoria = ${s.id_subcategoria} THEN ${s.posicion - 1}`,
+                    `WHEN \`Productos\`.\`id_categoria\` = ${c.id_categoria} AND \`Productos\`.\`id_subcategoria\` = ${s.id_subcategoria} THEN ${s.posicion - 1}`,
                 );
             }
         }

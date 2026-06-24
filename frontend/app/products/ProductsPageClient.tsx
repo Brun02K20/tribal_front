@@ -54,7 +54,7 @@ export default function ProductsPageClient() {
       <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="app-title text-2xl">Accesorios Artesanales, lo mas unico, diferente, exclusivo y original para vos.</h1>
-          <p className="app-subtitle text-sm">¿Lista para destacar de entre la multitud? Cada pieza de Tribal Trend es una obra de arte única para llevar puesta, elaborada a mano con piedras naturales, resina y un intrincado entramado de alambre para reflejar tu individualidad. Encuentra la pieza perfecta que realce todo tu estilo. ¡Explora nuestra colección!</p>
+          <p className="app-subtitle text-sm max-w-xl">¿Lista para destacar de entre la multitud? Cada pieza de Tribal Trend es una obra de arte única para llevar puesta, elaborada a mano con piedras naturales, resina y un intrincado entramado de alambre para reflejar tu individualidad. Encuentra la pieza perfecta que realce todo tu estilo. ¡Explora nuestra colección!</p>
         </div>
         <button
           onClick={goToCheckout}
