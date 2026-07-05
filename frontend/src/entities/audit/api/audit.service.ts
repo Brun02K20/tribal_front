@@ -3,6 +3,7 @@ import apiClient from "@/shared/api/apiClient";
 export type AuditEventType =
   | "USER_REGISTERED"
   | "USER_LOGIN"
+  | "PAGE_VISITED"
   | "PRODUCT_VIEWED"
   | "PRODUCT_SEARCHED"
   | "CHECKOUT_STARTED"

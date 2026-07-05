@@ -20,6 +20,7 @@ async function bootstrap() {
     return xssValidationMiddleware(req, res, next);
   });
   const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', true);
 
   expressApp.use((req, res, next) => {
     const start = Date.now();
@@ -29,7 +30,7 @@ async function bootstrap() {
         path: req.originalUrl,
         statusCode: res.statusCode,
         durationMs: Date.now() - start,
-        ip: req.ip,
+        ip: req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || req.ip,
       });
     });
     next();

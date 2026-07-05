@@ -4,6 +4,7 @@ import { sequelize } from 'src/database/database';
 export type AuditEventType =
   | 'USER_REGISTERED'
   | 'USER_LOGIN'
+  | 'PAGE_VISITED'
   | 'PRODUCT_VIEWED'
   | 'PRODUCT_SEARCHED'
   | 'CHECKOUT_STARTED'

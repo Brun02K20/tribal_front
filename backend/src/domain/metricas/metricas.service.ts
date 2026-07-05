@@ -5,7 +5,9 @@ import type {
   BarMetricItem,
   AuditRecentEventItem,
   ClientOrdersMetricItem,
+  DesignPurchaseMetricItem,
   MetricasResponse,
+  RegisteredUserMetricItem,
   PieMetricItem,
   ProductRatingMetricItem,
   ProductSalesMetricItem,
@@ -25,11 +27,26 @@ type DisenosStatsRow = { total: number | string | null; valor_total: number | st
 type AuditRecentEventRow = {
   id: number | string;
   user_id: number | string | null;
+  user_label: string | null;
   event_type: string;
   entity_type: string | null;
   entity_id: number | string | null;
+  entity_label: string | null;
   ip: string | null;
   created_at: string | Date;
+};
+type RegisteredUserRow = {
+  id: number | string;
+  nombre: string;
+  telefono: string | null;
+  fecha_registro: string | Date;
+};
+type DesignUrlRow = { disenos_urls: string[] | string | null };
+type DesignRow = {
+  id: number | string;
+  nombre: string;
+  url_foto: string | null;
+  producto: string | null;
 };
 
 type ClientRatioRow = {
@@ -46,6 +63,19 @@ type ClientOrdersRow = {
 
 @Injectable()
 export class MetricasService {
+  private readonly eventLabels: Record<string, string> = {
+    USER_REGISTERED: 'Usuarios registrados',
+    USER_LOGIN: 'Inicios de sesion',
+    PAGE_VISITED: 'Visitas a pagina',
+    PRODUCT_VIEWED: 'Productos visitados',
+    PRODUCT_SEARCHED: 'Busquedas de productos',
+    CHECKOUT_STARTED: 'Checkouts iniciados',
+    PAYMENT_STARTED: 'Pagos iniciados',
+    PAYMENT_APPROVED: 'Pagos aprobados',
+    ADDRESS_CREATED: 'Direcciones creadas',
+    ACCOUNT_UPDATED: 'Cuentas actualizadas',
+  };
+
   private getFechaDesde(months: number): Date {
     const today = new Date();
     const start = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -102,20 +132,155 @@ export class MetricasService {
     }));
   }
 
+  private toTranslatedPieItems(rows: PieRow[]): PieMetricItem[] {
+    return rows.map((row) => ({
+      label: this.translateEvent(row.label),
+      value: this.toNumber(row.value),
+    }));
+  }
+
   private toAuditRecentEventItems(rows: AuditRecentEventRow[]): AuditRecentEventItem[] {
     return rows.map((row) => ({
       id: this.toNumber(row.id),
       userId: row.user_id === null ? null : this.toNumber(row.user_id),
+      userLabel: row.user_label,
       eventType: row.event_type,
+      eventLabel: this.translateEvent(row.event_type),
       entityType: row.entity_type,
       entityId: row.entity_id === null ? null : this.toNumber(row.entity_id),
+      entityLabel: row.entity_label,
       ip: row.ip,
       createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString(),
     }));
   }
 
-  async getDashboardMetricas(months = 12): Promise<MetricasResponse> {
+  private toRegisteredUsers(rows: RegisteredUserRow[]): RegisteredUserMetricItem[] {
+    return rows.map((row) => ({
+      id: this.toNumber(row.id),
+      nombre: row.nombre,
+      telefono: row.telefono ?? '',
+      fechaRegistro: row.fecha_registro instanceof Date
+        ? row.fecha_registro.toISOString()
+        : new Date(row.fecha_registro).toISOString(),
+    }));
+  }
+
+  private translateEvent(eventType: string): string {
+    return this.eventLabels[eventType] ?? eventType;
+  }
+
+  private parseDesignUrls(value: string[] | string | null): string[] {
+    if (!value) {
+      return [];
+    }
+
+    if (Array.isArray(value)) {
+      return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+    }
+
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+      }
+    } catch {
+      return [];
+    }
+
+    return [];
+  }
+
+  private async getDisenosMasComprados(fechaDesde: Date): Promise<DesignPurchaseMetricItem[]> {
+    const [detalleRows, designRows] = await Promise.all([
+      sequelize.query<DesignUrlRow>(
+        `SELECT dp.disenos_urls
+         FROM DetallePedidos dp
+         INNER JOIN Pedidos pe ON pe.id = dp.id_pedido AND pe.es_activo = 1
+         WHERE dp.es_activo = 1
+           AND dp.disenos_urls IS NOT NULL
+           AND pe.fecha_pedido >= :fechaDesde`,
+        { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+      ),
+      sequelize.query<DesignRow>(
+        `SELECT d.id, d.nombre, d.url_foto, p.nombre AS producto
+         FROM Disenos d
+         LEFT JOIN Productos p ON p.id = d.id_producto
+         WHERE d.url_foto IS NOT NULL`,
+        { type: QueryTypes.SELECT },
+      ),
+    ]);
+
+    const countsByUrl = new Map<string, number>();
+    for (const row of detalleRows) {
+      for (const url of this.parseDesignUrls(row.disenos_urls)) {
+        countsByUrl.set(url, (countsByUrl.get(url) ?? 0) + 1);
+      }
+    }
+
+    return designRows
+      .map((row) => ({
+        id: this.toNumber(row.id),
+        nombre: row.nombre,
+        producto: row.producto ?? '',
+        urlFoto: row.url_foto ?? '',
+        value: countsByUrl.get(row.url_foto ?? '') ?? 0,
+      }))
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value || a.nombre.localeCompare(b.nombre))
+      .slice(0, 20);
+  }
+
+  async getDashboardMetricas(
+    months = 12,
+    pagination: {
+      userPage?: number;
+      userPageSize?: number;
+      auditPage?: number;
+      auditPageSize?: number;
+      auditEventType?: string;
+      auditDateFrom?: string;
+      auditDateTo?: string;
+      auditUserId?: number;
+      auditEntityType?: string;
+      auditEntityId?: number;
+    } = {},
+  ): Promise<MetricasResponse> {
     const fechaDesde = this.getFechaDesde(months);
+    const userPage = Math.max(1, Math.trunc(pagination.userPage ?? 1));
+    const userPageSize = Math.max(1, Math.trunc(pagination.userPageSize ?? 10));
+    const userOffset = (userPage - 1) * userPageSize;
+    const auditPage = Math.max(1, Math.trunc(pagination.auditPage ?? 1));
+    const auditPageSize = Math.max(1, Math.trunc(pagination.auditPageSize ?? 20));
+    const auditOffset = (auditPage - 1) * auditPageSize;
+    const auditWhereParts = ['al.created_at >= :fechaDesde'];
+    const auditReplacements: Record<string, unknown> = { fechaDesde, auditLimit: auditPageSize, auditOffset };
+
+    if (pagination.auditEventType) {
+      auditWhereParts.push('al.event_type = :auditEventType');
+      auditReplacements.auditEventType = pagination.auditEventType;
+    }
+    if (pagination.auditDateFrom) {
+      auditWhereParts.push('al.created_at >= :auditDateFrom');
+      auditReplacements.auditDateFrom = new Date(pagination.auditDateFrom);
+    }
+    if (pagination.auditDateTo) {
+      auditWhereParts.push('al.created_at < DATE_ADD(:auditDateTo, INTERVAL 1 DAY)');
+      auditReplacements.auditDateTo = new Date(pagination.auditDateTo);
+    }
+    if (pagination.auditUserId) {
+      auditWhereParts.push('al.user_id = :auditUserId');
+      auditReplacements.auditUserId = pagination.auditUserId;
+    }
+    if (pagination.auditEntityType) {
+      auditWhereParts.push('al.entity_type = :auditEntityType');
+      auditReplacements.auditEntityType = pagination.auditEntityType;
+    }
+    if (pagination.auditEntityId) {
+      auditWhereParts.push('al.entity_id = :auditEntityId');
+      auditReplacements.auditEntityId = pagination.auditEntityId;
+    }
+
+    const auditWhereSql = auditWhereParts.join(' AND ');
 
     const [
       topMasVendidosRows,
@@ -140,7 +305,12 @@ export class MetricasService {
       auditEventosPorMesRows,
       auditProductosMasVistosRows,
       auditBusquedasFrecuentesRows,
-      auditUltimosEventosRows,
+      auditIntervalosPrecioRows,
+      auditEventosTotalRows,
+      auditEventosRows,
+      usuariosRegistradosTotalRows,
+      usuariosRegistradosPaginaRows,
+      disenosMasComprados,
     ] = await Promise.all([
       sequelize.query<ProductSalesRow>(
         `SELECT p.id, p.nombre, COALESCE(SUM(dp.unidades), 0) AS unidades_vendidas
@@ -365,7 +535,7 @@ export class MetricasService {
            AND al.created_at >= :fechaDesde
          GROUP BY al.entity_id, p.nombre
          ORDER BY value DESC, label ASC
-         LIMIT 10`,
+         LIMIT 20`,
         { type: QueryTypes.SELECT, replacements: { fechaDesde } },
       ),
       sequelize.query<PieRow>(
@@ -374,25 +544,85 @@ export class MetricasService {
          FROM AuditLogs al
          WHERE al.event_type = 'PRODUCT_SEARCHED'
            AND al.created_at >= :fechaDesde
+           AND NULLIF(JSON_UNQUOTE(JSON_EXTRACT(al.metadata, '$.nombre')), '') IS NOT NULL
          GROUP BY label
          ORDER BY value DESC, label ASC
-         LIMIT 10`,
+         LIMIT 20`,
         { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+      ),
+      sequelize.query<PieRow>(
+        `SELECT CONCAT(
+                  'Min: ',
+                  COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(al.metadata, '$.precio_min')), ''), 'Sin min'),
+                  ' / Max: ',
+                  COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(al.metadata, '$.precio_max')), ''), 'Sin max')
+                ) AS label,
+                COUNT(al.id) AS value
+         FROM AuditLogs al
+         WHERE al.event_type = 'PRODUCT_SEARCHED'
+           AND al.created_at >= :fechaDesde
+           AND (
+             NULLIF(JSON_UNQUOTE(JSON_EXTRACT(al.metadata, '$.precio_min')), '') IS NOT NULL
+             OR NULLIF(JSON_UNQUOTE(JSON_EXTRACT(al.metadata, '$.precio_max')), '') IS NOT NULL
+           )
+         GROUP BY label
+         ORDER BY value DESC, label ASC
+         LIMIT 20`,
+        { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+      ),
+      sequelize.query<NumericRow>(
+        `SELECT COUNT(al.id) AS value
+         FROM AuditLogs al
+         WHERE ${auditWhereSql}`,
+        { type: QueryTypes.SELECT, replacements: auditReplacements },
       ),
       sequelize.query<AuditRecentEventRow>(
         `SELECT al.id,
                 al.user_id,
+                u.nombre AS user_label,
                 al.event_type,
                 al.entity_type,
                 al.entity_id,
+                CASE
+                  WHEN al.entity_type = 'USER' THEN eu.nombre
+                  WHEN al.entity_type = 'PRODUCT' THEN p.nombre
+                  WHEN al.entity_type = 'PEDIDO' THEN CONCAT('Pedido #', al.entity_id)
+                  WHEN al.entity_type = 'ENCARGO' THEN CONCAT('Encargo #', al.entity_id)
+                  WHEN al.entity_type = 'ADDRESS' THEN CONCAT('Direccion #', al.entity_id)
+                  WHEN al.entity_type = 'CHECKOUT' THEN 'Checkout'
+                  WHEN al.entity_type = 'PAGE' THEN COALESCE(JSON_UNQUOTE(JSON_EXTRACT(al.metadata, '$.path')), 'Pagina')
+                  WHEN al.entity_type = 'PAYMENT_PREFERENCE' THEN 'Preferencia de pago'
+                  ELSE NULL
+                END AS entity_label,
                 al.ip,
                 al.created_at
          FROM AuditLogs al
-         WHERE al.created_at >= :fechaDesde
+         LEFT JOIN Usuarios u ON u.id = al.user_id
+         LEFT JOIN Usuarios eu ON eu.id = al.entity_id AND al.entity_type = 'USER'
+         LEFT JOIN Productos p ON p.id = al.entity_id AND al.entity_type = 'PRODUCT'
+         WHERE ${auditWhereSql}
          ORDER BY al.created_at DESC, al.id DESC
-         LIMIT 20`,
-        { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+         LIMIT :auditLimit OFFSET :auditOffset`,
+        { type: QueryTypes.SELECT, replacements: auditReplacements },
       ),
+      sequelize.query<NumericRow>(
+        `SELECT COUNT(u.id) AS value
+         FROM Usuarios u
+         WHERE u.id_rol = 2`,
+        { type: QueryTypes.SELECT },
+      ),
+      sequelize.query<RegisteredUserRow>(
+        `SELECT u.id,
+                u.nombre,
+                u.telefono,
+                u.fecha_registro
+         FROM Usuarios u
+         WHERE u.id_rol = 2
+         ORDER BY u.fecha_registro DESC, u.id DESC
+         LIMIT :limit OFFSET :offset`,
+        { type: QueryTypes.SELECT, replacements: { limit: userPageSize, offset: userOffset } },
+      ),
+      this.getDisenosMasComprados(fechaDesde),
     ]);
 
     const promedioGastadoTotal = this.toNumber(promedioGastadoRows[0]?.value);
@@ -441,11 +671,27 @@ export class MetricasService {
       },
       auditoria: {
         totalEventos: this.toNumber(auditTotalRows[0]?.value),
-        eventosPorTipo: this.toPieItems(auditEventosPorTipoRows),
+        eventosPorTipo: this.toTranslatedPieItems(auditEventosPorTipoRows),
         eventosPorMes: this.toMonthlyItems(auditEventosPorMesRows),
         productosMasVistos: this.toPieItems(auditProductosMasVistosRows),
         busquedasFrecuentes: this.toPieItems(auditBusquedasFrecuentesRows),
-        ultimosEventos: this.toAuditRecentEventItems(auditUltimosEventosRows),
+        intervalosPrecioBuscados: this.toPieItems(auditIntervalosPrecioRows),
+        disenosMasComprados,
+        eventos: {
+          page: auditPage,
+          pageSize: auditPageSize,
+          totalItems: this.toNumber(auditEventosTotalRows[0]?.value),
+          totalPages: Math.max(1, Math.ceil(this.toNumber(auditEventosTotalRows[0]?.value) / auditPageSize)),
+          data: this.toAuditRecentEventItems(auditEventosRows),
+        },
+        ultimosEventos: this.toAuditRecentEventItems(auditEventosRows),
+      },
+      usuariosRegistrados: {
+        page: userPage,
+        pageSize: userPageSize,
+        totalItems: this.toNumber(usuariosRegistradosTotalRows[0]?.value),
+        totalPages: Math.max(1, Math.ceil(this.toNumber(usuariosRegistradosTotalRows[0]?.value) / userPageSize)),
+        data: this.toRegisteredUsers(usuariosRegistradosPaginaRows),
       },
     };
   }

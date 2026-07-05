@@ -5,6 +5,7 @@ import type { AuditEventType } from '../models/AuditLogs';
 export const AUDIT_EVENT_TYPES: AuditEventType[] = [
   'USER_REGISTERED',
   'USER_LOGIN',
+  'PAGE_VISITED',
   'PRODUCT_VIEWED',
   'PRODUCT_SEARCHED',
   'CHECKOUT_STARTED',

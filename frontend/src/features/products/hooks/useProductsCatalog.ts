@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { productosService } from "@/entities/productos/api/productos.service";
+import { auditService } from "@/entities/audit/api/audit.service";
 import { categoriasService } from "@/entities/categorias/api/categorias.service";
 import { subcategoriasService } from "@/entities/subcategorias/api/subcategorias.service";
 import { useCart } from "@/shared/providers/CartContext";
@@ -77,6 +78,7 @@ export function useProductsCatalog() {
   const [designQuantity, setDesignQuantity] = useState(1);
   const [selectedDesignUrls, setSelectedDesignUrls] = useState<string[]>([]);
   const productsCacheRef = useRef<Record<string, Record<number, PaginatedProductsResponse>>>({});
+  const pageVisitTrackedRef = useRef(false);
   const {
     registerFilters,
     applyFilters,
@@ -108,6 +110,22 @@ export function useProductsCatalog() {
     return subcategorias.filter((subcategoria) => subcategoria.id_categoria === selectedCategoriaId);
   }, [selectedCategoriaId, subcategorias]);
   const productsCacheKey = useMemo(() => JSON.stringify(appliedFilters), [appliedFilters]);
+
+  useEffect(() => {
+    if (pageVisitTrackedRef.current) {
+      return;
+    }
+
+    pageVisitTrackedRef.current = true;
+    void auditService.trackEvent({
+      event_type: "PAGE_VISITED",
+      entity_type: "PAGE",
+      metadata: {
+        path: "/products",
+        page_name: "Productos",
+      },
+    });
+  }, []);
 
   useEffect(() => {
     const selectedSubcategoriaId = Number(getValues("id_subcategoria") || 0);
