@@ -26,6 +26,7 @@ import {
 } from 'src/utils/mail/templates/purchase-notification.template';
 import {CorreoArgentinoService} from '../correoArgentino/correoArgentino.service';
 import { provinceNameToCACode } from '../correoArgentino/utils/province-code-mapper';
+import { AuditService } from '../audit/audit.service';
 
 interface MetadataProducto {
 	id_producto: number;
@@ -100,7 +101,10 @@ export class PagosService {
 	private readonly frontendBaseUrl = (process.env.FRONTEND_PUBLIC_URL ?? 'https://tribaltrend.com.ar').replace(/\/$/, '');
 	private paymentLockTableReadyPromise: Promise<void> | null = null;
 
-	constructor(private readonly correoArgentinoService: CorreoArgentinoService) {}
+	constructor(
+		private readonly correoArgentinoService: CorreoArgentinoService,
+		private readonly auditService: AuditService,
+	) {}
 
 	// aca es donde se recibe la notificacion de pago de mercado pago, y se procesa el pago
 	// esta ruta debe ser la misma que se configura en el webhook de mercado pago
@@ -440,6 +444,19 @@ export class PagosService {
 			});
 
 			if (pedidoCreadoId) {
+				await this.auditService.log({
+					userId: usuarioId,
+					eventType: 'PAYMENT_APPROVED',
+					entityType: 'PEDIDO',
+					entityId: pedidoCreadoId,
+					metadata: {
+						payment_id: paymentId,
+						monto_total: montoTotalPago,
+						id_direccion: direccionId,
+						productos: detalles.length,
+					},
+				});
+
 				const productosNotificacion = detalles.map((detalle) => ({
 					nombre:
 						productNamesById.get(Number(detalle.id_producto)) ??
@@ -837,6 +854,17 @@ export class PagosService {
 			});
 
 			this.logger.log(`[EncargoWebhook] paymentId=${paymentId} transaction commit OK`);
+			await this.auditService.log({
+				userId: usuarioIdMetadata,
+				eventType: 'PAYMENT_APPROVED',
+				entityType: 'ENCARGO',
+				entityId: idEncargo,
+				metadata: {
+					payment_id: paymentId,
+					monto_total: montoTotalPago,
+					id_direccion: idDireccion,
+				},
+			});
 		} catch (error) {
 			this.logger.error(
 				`[EncargoWebhook] paymentId=${paymentId} fallo en processEncargoPayment. error=${error instanceof Error ? error.message : String(error)}`,

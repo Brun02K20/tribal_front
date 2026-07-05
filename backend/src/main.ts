@@ -6,10 +6,13 @@ import { GlobalExceptionFilter } from './errors/global-exception.filter';
 import { xssValidationMiddleware } from './middlewares/xss-validation.middleware';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import { WinstonNestLogger, winstonLogger } from './utils/logger/winston-logger';
 
 async function bootstrap() {
   await connectToDatabase();
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: new WinstonNestLogger(),
+  });
   app.use(cookieParser());
   app.useGlobalFilters(new GlobalExceptionFilter());
   app.use((req, res, next) => {
@@ -17,6 +20,20 @@ async function bootstrap() {
     return xssValidationMiddleware(req, res, next);
   });
   const expressApp = app.getHttpAdapter().getInstance();
+
+  expressApp.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      winstonLogger.info('http_request', {
+        method: req.method,
+        path: req.originalUrl,
+        statusCode: res.statusCode,
+        durationMs: Date.now() - start,
+        ip: req.ip,
+      });
+    });
+    next();
+  });
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Tribal API')
@@ -69,6 +86,7 @@ async function bootstrap() {
   expressApp.use('/usuarios', sensitiveLimiter);
   expressApp.use('/pedidos', sensitiveLimiter);
   expressApp.use('/pagos', sensitiveLimiter);
+  expressApp.use('/audit', sensitiveLimiter);
 
   app.enableCors({
     origin: process.env.FRONTEND_URL?.split(',') ?? true,

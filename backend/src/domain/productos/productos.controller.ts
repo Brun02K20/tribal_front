@@ -12,6 +12,7 @@ import { GetProductDto, SuccessDeleteProductDto, CreateUpdateProductDto, Product
 import { CreateProductFotosDto } from 'src/domain/fotos/DTOs/fotos.dto';
 import { AuthGuard } from 'src/auth/utils/auth.guard';
 import { Role1Guard } from 'src/auth/utils/role1.guard';
+import { AuditService } from 'src/domain/audit/audit.service';
 
 const REMOTE_PRODUCTS_BASE_PATH = '/var/www/tribal_trend/files/products';
 const PUBLIC_PRODUCTS_PATH = '/products';
@@ -37,6 +38,7 @@ export class ProductosController {
         private readonly productosService: ProductosService,
         private readonly fotosService: FotosService,
         private readonly disenosService: DisenosService,
+        private readonly auditService: AuditService,
     ) {}
 
         @UseGuards(AuthGuard, Role1Guard)
@@ -136,7 +138,20 @@ export class ProductosController {
             };
 
             const clientIp = (req as unknown as import('express').Request).ip ?? 'unknown';
-            return this.productosService.findByFiltersPaginated(filters, this.parseOptionalNumber(page), clientIp);
+            const result = await this.productosService.findByFiltersPaginated(filters, this.parseOptionalNumber(page), clientIp);
+            if (this.hasSearchIntent(filters)) {
+                await this.auditService.log({
+                    eventType: 'PRODUCT_SEARCHED',
+                    entityType: 'PRODUCT',
+                    metadata: {
+                        ...filters,
+                        page: this.parseOptionalNumber(page) ?? 1,
+                        results_count: result.totalItems,
+                    },
+                    request: req,
+                });
+            }
+            return result;
         }
 
         @UseGuards(AuthGuard, Role1Guard)
@@ -182,26 +197,52 @@ export class ProductosController {
         @ApiQuery({ name: 'precio_max', type: Number, required: false, description: 'Precio máximo para filtrar (opcional)' })
         @ApiOkResponse({ type: GetProductDto, isArray: true })
         async search(
+            @Req() req: Request,
             @Query('name') name?: string,
             @Query('id_categoria') id_categoria?: string,
             @Query('id_subcategoria') id_subcategoria?: string,
             @Query('precio_min') precio_min?: string,
             @Query('precio_max') precio_max?: string,
         ): Promise<GetProductDto[]> {
-            return this.productosService.getProductsByCategoryIdOrSubcategoryIdOrName({
+            const filters = {
                 nombre: name,
                 id_categoria: this.parseOptionalNumber(id_categoria),
                 id_subcategoria: this.parseOptionalNumber(id_subcategoria),
                 precio_min: this.parseOptionalNumber(precio_min),
                 precio_max: this.parseOptionalNumber(precio_max),
-            });
+            };
+            const result = await this.productosService.getProductsByCategoryIdOrSubcategoryIdOrName(filters);
+            if (this.hasSearchIntent(filters)) {
+                await this.auditService.log({
+                    eventType: 'PRODUCT_SEARCHED',
+                    entityType: 'PRODUCT',
+                    metadata: {
+                        ...filters,
+                        results_count: result.length,
+                    },
+                    request: req,
+                });
+            }
+            return result;
         }
 
         @Get(':id')
         @ApiParam({ name: 'id', type: Number, description: 'ID del producto a obtener', example: 1 })
         @ApiOkResponse({ type: GetProductDto })
-        async findById(@Param('id') id: number): Promise<GetProductDto> {
-            return this.productosService.findById(id);
+        async findById(@Param('id') id: number, @Req() req: Request): Promise<GetProductDto> {
+            const product = await this.productosService.findById(id);
+            await this.auditService.log({
+                eventType: 'PRODUCT_VIEWED',
+                entityType: 'PRODUCT',
+                entityId: product.id,
+                metadata: {
+                    nombre: product.nombre,
+                    categoria: product.categoria?.nombre,
+                    subcategoria: product.subcategoria?.nombre,
+                },
+                request: req,
+            });
+            return product;
         }
 
         @UseGuards(AuthGuard, Role1Guard)
@@ -776,6 +817,16 @@ export class ProductosController {
 
             const trimmed = value.trim();
             return trimmed.length ? trimmed : undefined;
+        }
+
+        private hasSearchIntent(filters: ProductFiltersDto): boolean {
+            return Boolean(
+                filters.nombre
+                || filters.id_categoria
+                || filters.id_subcategoria
+                || filters.precio_min
+                || filters.precio_max,
+            );
         }
 
         private runMulter(req: Request, res: Response): Promise<void> {

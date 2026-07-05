@@ -9,6 +9,7 @@ import { pedidosService } from "@/entities/pedidos/api/pedidos.service";
 import { usuariosService } from "@/entities/usuarios/api/usuarios.service";
 import { locationsService } from "@/entities/locations/api/locations.service";
 import { productosService } from "@/entities/productos/api/productos.service";
+import { auditService } from "@/entities/audit/api/audit.service";
 import type { Ciudad, Provincia } from "@/types/locations";
 import type { CreateUserAddressPayload, UserAddress } from "@/types/usuarios";
 import type { PedidoDetalleCreateInput } from "@/types/pedidos";
@@ -36,6 +37,7 @@ export function useCheckout() {
   const [ciudades, setCiudades] = useState<Ciudad[]>([]);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [creatingAddress, setCreatingAddress] = useState(false);
+  const [checkoutStartedTracked, setCheckoutStartedTracked] = useState(false);
 
   // 3. Agregar estados nuevos (dentro del hook):
 const [shippingRates, setShippingRates] = useState<ShippingRateItem[]>([]);
@@ -119,10 +121,7 @@ useEffect(() => {
         length: totalDepth,
       });
       setShippingRates(data.rates);
-      // Autoseleccionar el primero
-      if (data.rates.length > 0 && !selectedRate) {
-        setSelectedRate(data.rates[0]);
-      }
+      setSelectedRate((currentRate) => currentRate ?? data.rates[0] ?? null);
     } catch (err) {
       console.error('Error cargando rates:', err);
       setShippingRates([]);
@@ -140,6 +139,22 @@ useEffect(() => {
       router.replace("/login?redirect=/checkout");
     }
   }, [isAuthenticated, loading, router]);
+
+  useEffect(() => {
+    if (loading || !isAuthenticated || checkoutStartedTracked || !items.length) {
+      return;
+    }
+
+    setCheckoutStartedTracked(true);
+    void auditService.trackEvent({
+      event_type: "CHECKOUT_STARTED",
+      entity_type: "CHECKOUT",
+      metadata: {
+        total_items: totalItems,
+        subtotal,
+      },
+    });
+  }, [checkoutStartedTracked, isAuthenticated, items.length, loading, subtotal, totalItems]);
 
   const loadUserAddresses = useCallback(async () => {
     if (!user?.id) {

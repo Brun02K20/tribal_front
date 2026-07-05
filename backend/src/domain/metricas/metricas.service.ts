@@ -3,6 +3,7 @@ import { QueryTypes } from 'sequelize';
 import { sequelize } from 'src/database/database';
 import type {
   BarMetricItem,
+  AuditRecentEventItem,
   ClientOrdersMetricItem,
   MetricasResponse,
   PieMetricItem,
@@ -21,6 +22,15 @@ type ProductRatingRow = {
 type PieRow = { label: string; value: number | string | null };
 type NumericRow = { value: number | string | null };
 type DisenosStatsRow = { total: number | string | null; valor_total: number | string | null };
+type AuditRecentEventRow = {
+  id: number | string;
+  user_id: number | string | null;
+  event_type: string;
+  entity_type: string | null;
+  entity_id: number | string | null;
+  ip: string | null;
+  created_at: string | Date;
+};
 
 type ClientRatioRow = {
   con_pedido: number | string | null;
@@ -92,6 +102,18 @@ export class MetricasService {
     }));
   }
 
+  private toAuditRecentEventItems(rows: AuditRecentEventRow[]): AuditRecentEventItem[] {
+    return rows.map((row) => ({
+      id: this.toNumber(row.id),
+      userId: row.user_id === null ? null : this.toNumber(row.user_id),
+      eventType: row.event_type,
+      entityType: row.entity_type,
+      entityId: row.entity_id === null ? null : this.toNumber(row.entity_id),
+      ip: row.ip,
+      createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString(),
+    }));
+  }
+
   async getDashboardMetricas(months = 12): Promise<MetricasResponse> {
     const fechaDesde = this.getFechaDesde(months);
 
@@ -113,6 +135,12 @@ export class MetricasService {
       topPeorCalificadosRows,
       usuariosRegistradosRows,
       disenosStatsRows,
+      auditTotalRows,
+      auditEventosPorTipoRows,
+      auditEventosPorMesRows,
+      auditProductosMasVistosRows,
+      auditBusquedasFrecuentesRows,
+      auditUltimosEventosRows,
     ] = await Promise.all([
       sequelize.query<ProductSalesRow>(
         `SELECT p.id, p.nombre, COALESCE(SUM(dp.unidades), 0) AS unidades_vendidas
@@ -304,6 +332,67 @@ export class MetricasService {
         `SELECT COUNT(*) AS total, COALESCE(SUM(precio), 0) AS valor_total FROM Disenos`,
         { type: QueryTypes.SELECT },
       ),
+      sequelize.query<NumericRow>(
+        `SELECT COUNT(*) AS value
+         FROM AuditLogs al
+         WHERE al.created_at >= :fechaDesde`,
+        { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+      ),
+      sequelize.query<PieRow>(
+        `SELECT al.event_type AS label,
+                COUNT(al.id) AS value
+         FROM AuditLogs al
+         WHERE al.created_at >= :fechaDesde
+         GROUP BY al.event_type
+         ORDER BY value DESC, al.event_type ASC`,
+        { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+      ),
+      sequelize.query<MonthlyRow>(
+        `SELECT DATE_FORMAT(al.created_at, '%Y-%m') AS month,
+                COUNT(al.id) AS value
+         FROM AuditLogs al
+         WHERE al.created_at >= :fechaDesde
+         GROUP BY DATE_FORMAT(al.created_at, '%Y-%m')
+         ORDER BY month ASC`,
+        { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+      ),
+      sequelize.query<PieRow>(
+        `SELECT COALESCE(p.nombre, CONCAT('Producto #', al.entity_id)) AS label,
+                COUNT(al.id) AS value
+         FROM AuditLogs al
+         LEFT JOIN Productos p ON p.id = al.entity_id
+         WHERE al.event_type = 'PRODUCT_VIEWED'
+           AND al.created_at >= :fechaDesde
+         GROUP BY al.entity_id, p.nombre
+         ORDER BY value DESC, label ASC
+         LIMIT 10`,
+        { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+      ),
+      sequelize.query<PieRow>(
+        `SELECT COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(al.metadata, '$.nombre')), ''), 'Sin texto') AS label,
+                COUNT(al.id) AS value
+         FROM AuditLogs al
+         WHERE al.event_type = 'PRODUCT_SEARCHED'
+           AND al.created_at >= :fechaDesde
+         GROUP BY label
+         ORDER BY value DESC, label ASC
+         LIMIT 10`,
+        { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+      ),
+      sequelize.query<AuditRecentEventRow>(
+        `SELECT al.id,
+                al.user_id,
+                al.event_type,
+                al.entity_type,
+                al.entity_id,
+                al.ip,
+                al.created_at
+         FROM AuditLogs al
+         WHERE al.created_at >= :fechaDesde
+         ORDER BY al.created_at DESC, al.id DESC
+         LIMIT 20`,
+        { type: QueryTypes.SELECT, replacements: { fechaDesde } },
+      ),
     ]);
 
     const promedioGastadoTotal = this.toNumber(promedioGastadoRows[0]?.value);
@@ -349,6 +438,14 @@ export class MetricasService {
         },
         usuariosRegistradosPeriodo: this.toNumber(usuariosRegistradosRows[0]?.value),
         topConMasPedidos: this.toClientOrdersItems(topClientesRows),
+      },
+      auditoria: {
+        totalEventos: this.toNumber(auditTotalRows[0]?.value),
+        eventosPorTipo: this.toPieItems(auditEventosPorTipoRows),
+        eventosPorMes: this.toMonthlyItems(auditEventosPorMesRows),
+        productosMasVistos: this.toPieItems(auditProductosMasVistosRows),
+        busquedasFrecuentes: this.toPieItems(auditBusquedasFrecuentesRows),
+        ultimosEventos: this.toAuditRecentEventItems(auditUltimosEventosRows),
       },
     };
   }

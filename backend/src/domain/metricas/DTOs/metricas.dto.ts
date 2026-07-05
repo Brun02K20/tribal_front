@@ -55,6 +55,29 @@ export class ClientOrdersMetricItemDto {
   pedidos!: number;
 }
 
+export class AuditRecentEventItemDto {
+  @ApiProperty({ example: 1 })
+  id!: number;
+
+  @ApiProperty({ example: 12, nullable: true })
+  userId!: number | null;
+
+  @ApiProperty({ example: 'PRODUCT_VIEWED' })
+  eventType!: string;
+
+  @ApiProperty({ example: 'PRODUCT', nullable: true })
+  entityType!: string | null;
+
+  @ApiProperty({ example: 15, nullable: true })
+  entityId!: number | null;
+
+  @ApiProperty({ example: '190.1.2.3', nullable: true })
+  ip!: string | null;
+
+  @ApiProperty({ example: '2026-07-05T15:20:00.000Z' })
+  createdAt!: string;
+}
+
 export class MetricasResponseDto {
   @ApiProperty({
     example: {
@@ -101,4 +124,16 @@ export class MetricasResponseDto {
     },
   })
   clientes!: unknown;
+
+  @ApiProperty({
+    example: {
+      totalEventos: 350,
+      eventosPorTipo: [{ label: 'PRODUCT_VIEWED', value: 180 }],
+      eventosPorMes: [{ label: '2026-07', value: 120 }],
+      productosMasVistos: [{ label: 'Pulsera artesanal', value: 42 }],
+      busquedasFrecuentes: [{ label: 'anillo plata', value: 12 }],
+      ultimosEventos: [{ id: 1, userId: 5, eventType: 'USER_LOGIN', entityType: 'USER', entityId: 5, ip: '190.1.2.3', createdAt: '2026-07-05T15:20:00.000Z' }],
+    },
+  })
+  auditoria!: unknown;
 }

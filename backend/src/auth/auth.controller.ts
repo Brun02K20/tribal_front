@@ -10,6 +10,7 @@ import {
 	RegisterDto,
 } from './DTOs/auth.dto';
 import { clearAuthCookie, setAuthCookie } from './utils/auth-cookie';
+import { AuditService } from 'src/domain/audit/audit.service';
 
 const authUserSchema = {
 	type: 'object',
@@ -34,7 +35,10 @@ const authSessionSchema = {
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-	constructor(private readonly authService: AuthService) {}
+	constructor(
+		private readonly authService: AuthService,
+		private readonly auditService: AuditService,
+	) {}
 
 	@Post('register')
 	@ApiOperation({ summary: 'Registro con email/password y creación de sesión por cookie HTTP-only' })
@@ -57,9 +61,21 @@ export class AuthController {
 		description: 'Sesión iniciada. El token se envía en Set-Cookie (HTTP-only).',
 		schema: authSessionSchema,
 	})
-	async register(@Body() body: RegisterDto, @Res({ passthrough: true }) response: Response) {
+	async register(
+		@Body() body: RegisterDto,
+		@Req() request: Request,
+		@Res({ passthrough: true }) response: Response,
+	) {
 		const result = await this.authService.register(body);
 		setAuthCookie(response, result.token);
+		await this.auditService.log({
+			userId: result.user.id,
+			eventType: 'USER_REGISTERED',
+			entityType: 'USER',
+			entityId: result.user.id,
+			metadata: { email: result.user.email, provider: 'password' },
+			request,
+		});
 		return { user: result.user };
 	}
 
@@ -80,9 +96,21 @@ export class AuthController {
 		description: 'Sesión iniciada. El token se envía en Set-Cookie (HTTP-only).',
 		schema: authSessionSchema,
 	})
-	async login(@Body() body: LoginDto, @Res({ passthrough: true }) response: Response) {
+	async login(
+		@Body() body: LoginDto,
+		@Req() request: Request,
+		@Res({ passthrough: true }) response: Response,
+	) {
 		const result = await this.authService.login(body);
 		setAuthCookie(response, result.token);
+		await this.auditService.log({
+			userId: result.user.id,
+			eventType: 'USER_LOGIN',
+			entityType: 'USER',
+			entityId: result.user.id,
+			metadata: { email: result.user.email, provider: 'password' },
+			request,
+		});
 		return { user: result.user };
 	}
 
@@ -110,7 +138,11 @@ export class AuthController {
 		description: 'Sesión iniciada. El token se envía en Set-Cookie (HTTP-only).',
 		schema: authSessionSchema,
 	})
-	async registerWithGoogle(@Body() body: GoogleRegisterDto, @Res({ passthrough: true }) response: Response) {
+	async registerWithGoogle(
+		@Body() body: GoogleRegisterDto,
+		@Req() request: Request,
+		@Res({ passthrough: true }) response: Response,
+	) {
 		const result = await this.authService.registerWithGoogle({
 			idToken: body.idToken,
 			nombre: body.nombre ?? '',
@@ -120,6 +152,14 @@ export class AuthController {
 			id_rol: body.id_rol,
 		});
 		setAuthCookie(response, result.token);
+		await this.auditService.log({
+			userId: result.user.id,
+			eventType: 'USER_REGISTERED',
+			entityType: 'USER',
+			entityId: result.user.id,
+			metadata: { email: result.user.email, provider: 'google' },
+			request,
+		});
 		return { user: result.user };
 	}
 
@@ -142,9 +182,21 @@ export class AuthController {
 		description: 'Sesión iniciada. El token se envía en Set-Cookie (HTTP-only).',
 		schema: authSessionSchema,
 	})
-	async loginWithGoogle(@Body() body: GoogleLoginDto, @Res({ passthrough: true }) response: Response) {
+	async loginWithGoogle(
+		@Body() body: GoogleLoginDto,
+		@Req() request: Request,
+		@Res({ passthrough: true }) response: Response,
+	) {
 		const result = await this.authService.loginWithGoogle(body.idToken);
 		setAuthCookie(response, result.token);
+		await this.auditService.log({
+			userId: result.user.id,
+			eventType: 'USER_LOGIN',
+			entityType: 'USER',
+			entityId: result.user.id,
+			metadata: { email: result.user.email, provider: 'google' },
+			request,
+		});
 		return { user: result.user };
 	}
 

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiBody, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { PedidosService } from './pedidos.service';
 import { CreatePedidoDto } from './DTOs/createpedido.dto';
@@ -9,11 +9,16 @@ import { AuthGuard } from 'src/auth/utils/auth.guard';
 import { Role2Guard } from 'src/auth/utils/role2.guard';
 import { Role1Guard } from 'src/auth/utils/role1.guard';
 import { Role1OrOwnerPedidoGuard } from './guards/role1-or-owner-pedido.guard';
+import type { Request } from 'express';
+import { AuditService } from 'src/domain/audit/audit.service';
 
 @ApiTags('Pedidos')
 @Controller('pedidos')
 export class PedidosController {
-	constructor(private readonly pedidosService: PedidosService) {}
+	constructor(
+		private readonly pedidosService: PedidosService,
+		private readonly auditService: AuditService,
+	) {}
 
 	@UseGuards(AuthGuard, Role2Guard)
 	@ApiCookieAuth('cookieAuth')
@@ -36,8 +41,25 @@ export class PedidosController {
 			},
 		},
 	})
-	async createPedido(@Body() createPedidoDto: CreatePedidoDto): Promise<{ init_point: string }> {
+	async createPedido(
+		@Body() createPedidoDto: CreatePedidoDto,
+		@Req() request: Request,
+	): Promise<{ init_point: string }> {
 		const init_point = await this.pedidosService.createPedido(createPedidoDto);
+		await this.auditService.log({
+			userId: createPedidoDto.id_usuario,
+			eventType: 'PAYMENT_STARTED',
+			entityType: 'PAYMENT_PREFERENCE',
+			entityId: createPedidoDto.id_direccion,
+			metadata: {
+				id_direccion: createPedidoDto.id_direccion,
+				total_productos: createPedidoDto.detalles?.length ?? 0,
+				costo_total_productos: createPedidoDto.costo_total_productos,
+				costo_envio: createPedidoDto.costo_envio,
+				ca_product_type: createPedidoDto.ca_product_type,
+			},
+			request,
+		});
 		return { init_point };
 	}
 

@@ -11,11 +11,15 @@ import {
 } from '../DTOs/user.dto';
 import { AuthGuard } from '../utils/auth.guard';
 import { Role2Guard } from '../utils/role2.guard';
+import { AuditService } from 'src/domain/audit/audit.service';
 
 @Controller('usuarios')
 @ApiTags('Usuarios')
 export class UsuariosController {
-    constructor(private readonly usuariosService: UsuariosService) { }
+    constructor(
+        private readonly usuariosService: UsuariosService,
+        private readonly auditService: AuditService,
+    ) { }
 
     @UseGuards(AuthGuard, Role2Guard)
     @ApiCookieAuth('cookieAuth')
@@ -32,7 +36,23 @@ export class UsuariosController {
             throw new ForbiddenException('No puedes actualizar la configuración de otro usuario');
         }
 
-        return this.usuariosService.updateAccountConfig(userId, data);
+        const result = await this.usuariosService.updateAccountConfig(userId, data);
+        await this.auditService.log({
+            userId,
+            eventType: 'ACCOUNT_UPDATED',
+            entityType: 'USER',
+            entityId: userId,
+            metadata: {
+                updatedFields: {
+                    username: data.username !== undefined,
+                    telefono: data.telefono !== undefined,
+                    password: Boolean(data.password),
+                    direcciones: data.direcciones !== undefined,
+                },
+            },
+            request: req,
+        });
+        return result;
     }
 
     @UseGuards(AuthGuard, Role2Guard)
@@ -81,7 +101,20 @@ export class UsuariosController {
             throw new ForbiddenException('No puedes crear direcciones para otro usuario');
         }
 
-        return this.usuariosService.createUserAddress(userId, data);
+        const result = await this.usuariosService.createUserAddress(userId, data);
+        await this.auditService.log({
+            userId,
+            eventType: 'ADDRESS_CREATED',
+            entityType: 'ADDRESS',
+            entityId: result.id,
+            metadata: {
+                id_ciudad: result.id_ciudad,
+                id_provincia: result.id_provincia,
+                cod_postal_destino: result.cod_postal_destino,
+            },
+            request: req,
+        });
+        return result;
     }
 }
 

@@ -28,6 +28,16 @@ export type ClientOrdersMetricItem = {
   pedidos: number;
 };
 
+export type AuditRecentEventItem = {
+  id: number;
+  userId: number | null;
+  eventType: string;
+  entityType: string | null;
+  entityId: number | null;
+  ip: string | null;
+  createdAt: string;
+};
+
 export type MetricasResponse = {
   productos: {
     topMasVendidos: ProductSalesMetricItem[];
@@ -60,5 +70,13 @@ export type MetricasResponse = {
     };
     usuariosRegistradosPeriodo: number;
     topConMasPedidos: ClientOrdersMetricItem[];
+  };
+  auditoria: {
+    totalEventos: number;
+    eventosPorTipo: PieMetricItem[];
+    eventosPorMes: BarMetricItem[];
+    productosMasVistos: BarMetricItem[];
+    busquedasFrecuentes: BarMetricItem[];
+    ultimosEventos: AuditRecentEventItem[];
   };
 };
