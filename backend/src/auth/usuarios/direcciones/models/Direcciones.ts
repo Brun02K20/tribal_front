@@ -13,10 +13,13 @@ interface DireccionAttributes {
     id_ciudad: number;
     id_usuario: number;
     es_activo: boolean;
+    piso: number | null;
+    departamento: string | null;
+    observaciones: string | null;
 }
 
 interface DireccionCreationAttributes
-    extends Optional<DireccionAttributes, 'id' > {}
+    extends Optional<DireccionAttributes, 'id' | 'piso' | 'departamento' | 'observaciones'> {}
 
 export class Direcciones
     extends Model<DireccionAttributes, DireccionCreationAttributes>
@@ -30,6 +33,9 @@ export class Direcciones
     declare id_ciudad: number;
     declare id_usuario: number;
     declare es_activo: boolean;
+    declare piso: number | null;
+    declare departamento: string | null;
+    declare observaciones: string | null;
 
     declare provincia?: NonAttribute<Provincias>;
     declare ciudad?: NonAttribute<Ciudades>;
@@ -75,6 +81,18 @@ Direcciones.init(
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: true,
+        },
+        piso: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+        departamento: {
+            type: DataTypes.STRING(10),
+            allowNull: true,
+        },
+        observaciones: {
+            type: DataTypes.TEXT,
+            allowNull: true,
         },
     },
     {

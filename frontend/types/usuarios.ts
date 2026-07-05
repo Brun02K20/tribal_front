@@ -8,6 +8,9 @@ export type UserAddress = {
   id_ciudad: number;
   ciudad: string;
   id_usuario: number;
+  piso?: number | null;
+  departamento?: string | null;
+  observaciones?: string | null;
 };
 
 export type CreateUserAddressPayload = {
@@ -16,6 +19,9 @@ export type CreateUserAddressPayload = {
   altura: string;
   id_provincia: number;
   id_ciudad: number;
+  piso?: number | null;
+  departamento?: string | null;
+  observaciones?: string | null;
 };
 
 export type AccountConfigAddress = {
@@ -25,6 +31,9 @@ export type AccountConfigAddress = {
   id_provincia: number;
   id_ciudad: number;
   id_usuario: number;
+  piso?: number | null;
+  departamento?: string | null;
+  observaciones?: string | null;
 };
 
 export type AccountConfigResponse = {

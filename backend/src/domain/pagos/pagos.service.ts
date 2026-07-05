@@ -84,6 +84,9 @@ interface PaymentMetadata {
         id?: number;
         calle?: string;
         altura?: string;
+        piso?: number | null;
+        departamento?: string | null;
+        observaciones?: string | null;
         cod_postal_destino?: string;
         ciudad?: { id?: number; nombre?: string } | null;
         provincia?: { id?: number; nombre?: string } | null;
@@ -414,6 +417,8 @@ export class PagosService {
                                 address: {
                                     streetName: direccionEnvio?.calle,
                                     streetNumber: direccionEnvio?.altura,
+                                    floor: direccionEnvio?.piso != null ? String(direccionEnvio.piso) : undefined,
+                                    apartment: direccionEnvio?.departamento ?? undefined,
                                     city: direccionEnvio?.ciudad?.nombre,
                                     provinceCode: provinceNameToCACode(direccionEnvio?.provincia?.nombre ?? ''),
                                     postalCode: direccionEnvio?.cod_postal_destino,

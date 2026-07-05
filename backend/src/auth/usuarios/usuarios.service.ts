@@ -64,7 +64,16 @@ export class UsuariosService {
                     include: [{
                         model: Direcciones,
                         as: 'direcciones',
-                        attributes: ['calle', 'altura', 'id_ciudad', 'id_provincia', 'cod_postal_destino'],
+                        attributes: [
+                            'calle',
+                            'altura',
+                            'id_ciudad',
+                            'id_provincia',
+                            'cod_postal_destino',
+                            'piso',
+                            'departamento',
+                            'observaciones',
+                        ],
                     }],
                 });
 
@@ -79,6 +88,9 @@ export class UsuariosService {
                     id_provincia: dir.id_provincia,
                     cod_postal_destino: dir.cod_postal_destino,
                     id_usuario: userId,
+                    piso: dir.piso,
+                    departamento: dir.departamento,
+                    observaciones: dir.observaciones,
                 }));
 
                 return {
@@ -152,6 +164,9 @@ export class UsuariosService {
                     id_ciudad: data.id_ciudad,
                     id_usuario: userId,
                     es_activo: true,
+                    piso: data.piso ?? null,
+                    departamento: this.normalizeNullableString(data.departamento),
+                    observaciones: this.normalizeNullableString(data.observaciones),
                 });
 
                 const direccion = await Direcciones.findByPk(created.id, {
@@ -203,6 +218,9 @@ export class UsuariosService {
                 cod_postal_destino: dir.cod_postal_destino,
                 altura: dir.altura,
                 es_activo: true,
+                piso: dir.piso ?? null,
+                departamento: this.normalizeNullableString(dir.departamento),
+                observaciones: this.normalizeNullableString(dir.observaciones),
             })),
         );
     }
@@ -235,6 +253,14 @@ export class UsuariosService {
             id_ciudad: direccion.id_ciudad,
             ciudad: direccion.ciudad?.nombre ?? '',
             id_usuario: direccion.id_usuario,
+            piso: direccion.piso,
+            departamento: direccion.departamento,
+            observaciones: direccion.observaciones,
         };
+    }
+
+    private normalizeNullableString(value?: string | null): string | null {
+        const normalized = typeof value === 'string' ? value.trim() : '';
+        return normalized.length ? normalized : null;
     }
 }

@@ -59,6 +59,9 @@ export type PedidoAdmin = {
       calle: string;
       altura: string;
       cod_postal_destino: string;
+      piso?: number | null;
+      departamento?: string | null;
+      observaciones?: string | null;
     };
   };
   detalles?: PedidoDetalleItem[];

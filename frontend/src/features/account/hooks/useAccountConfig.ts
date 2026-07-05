@@ -34,7 +34,20 @@ const buildEmptyAddress = (userId: number, idProvincia = 0): AccountConfigAddres
   id_provincia: idProvincia,
   id_ciudad: 0,
   id_usuario: userId,
+  piso: null,
+  departamento: null,
+  observaciones: null,
 });
+
+const normalizeOptionalText = (value?: string | null) => {
+  const normalized = value?.trim() ?? "";
+  return normalized.length ? normalized : null;
+};
+
+const normalizeOptionalNumber = (value?: number | null) => {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null;
+};
 
 export type UseAccountConfigResult = {
   loading: boolean;
@@ -132,6 +145,9 @@ export function useAccountConfig(): UseAccountConfigResult {
         id_provincia: Number(direccion.id_provincia),
         id_ciudad: Number(direccion.id_ciudad),
         id_usuario: user.id,
+        piso: direccion.piso ?? null,
+        departamento: direccion.departamento ?? null,
+        observaciones: direccion.observaciones ?? null,
       }));
 
       reset({
@@ -235,6 +251,9 @@ export function useAccountConfig(): UseAccountConfigResult {
           id_provincia: Number(direccion.id_provincia),
           id_ciudad: Number(direccion.id_ciudad),
           id_usuario: user.id,
+          piso: normalizeOptionalNumber(direccion.piso),
+          departamento: normalizeOptionalText(direccion.departamento),
+          observaciones: normalizeOptionalText(direccion.observaciones),
         })),
       };
 

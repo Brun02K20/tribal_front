@@ -67,7 +67,7 @@ export class PedidosService {
                     {
                         model: Direcciones,
                         as: 'direccion',
-                        attributes: ['id', 'calle', 'altura', 'cod_postal_destino'],
+                        attributes: ['id', 'calle', 'altura', 'cod_postal_destino', 'piso', 'departamento', 'observaciones'],
                         include: [
                             {
                                 model: Ciudades,
@@ -272,6 +272,9 @@ export class PedidosService {
                     calle: pedido.envio?.direccion?.calle ?? '',
                     altura: pedido.envio?.direccion?.altura ?? '',
                     cod_postal_destino: pedido.envio?.direccion?.cod_postal_destino ?? '',
+                    piso: pedido.envio?.direccion?.piso ?? null,
+                    departamento: pedido.envio?.direccion?.departamento ?? null,
+                    observaciones: pedido.envio?.direccion?.observaciones ?? null,
                 },
             },
             detalles: includeDetalles
@@ -332,7 +335,7 @@ export class PedidosService {
                         id: createPedidoDto.id_direccion,
                         id_usuario: createPedidoDto.id_usuario,
                     },
-                    attributes: ['id', 'cod_postal_destino', 'calle', 'altura', 'id_provincia', 'id_ciudad'],
+                    attributes: ['id', 'cod_postal_destino', 'calle', 'altura', 'id_provincia', 'id_ciudad', 'piso', 'departamento', 'observaciones'],
                     include: [
                         {
                             model: Ciudades,
@@ -565,6 +568,9 @@ export class PedidosService {
                             id: direccion.id,
                             calle: direccion.calle,
                             altura: direccion.altura,
+                            piso: direccion.piso,
+                            departamento: direccion.departamento,
+                            observaciones: direccion.observaciones,
                             cod_postal_destino: direccion.cod_postal_destino,
                             ciudad: direccion.ciudad
                                 ? {

@@ -42,6 +42,15 @@ const [shippingRates, setShippingRates] = useState<ShippingRateItem[]>([]);
 const [loadingRates, setLoadingRates] = useState(false);
 const [selectedRate, setSelectedRate] = useState<ShippingRateItem | null>(null);
 
+const normalizeOptionalText = (value?: string | null) => {
+  const normalized = value?.trim() ?? "";
+  return normalized.length ? normalized : null;
+};
+
+const normalizeOptionalNumber = (value?: number | null) => {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null;
+};
 
   const {
     register: registerObservaciones,
@@ -67,6 +76,9 @@ const [selectedRate, setSelectedRate] = useState<ShippingRateItem | null>(null);
       altura: "",
       id_provincia: 0,
       id_ciudad: 0,
+      piso: null,
+      departamento: null,
+      observaciones: null,
     },
   });
   const selectedProvinciaId = useWatch({
@@ -251,6 +263,9 @@ useEffect(() => {
       altura: "",
       id_provincia: provincias[0]?.id ?? 0,
       id_ciudad: 0,
+      piso: null,
+      departamento: null,
+      observaciones: null,
     });
   };
 
@@ -285,6 +300,9 @@ useEffect(() => {
         altura: values.altura.trim(),
         id_provincia: Number(values.id_provincia),
         id_ciudad: Number(values.id_ciudad),
+        piso: normalizeOptionalNumber(values.piso),
+        departamento: normalizeOptionalText(values.departamento),
+        observaciones: normalizeOptionalText(values.observaciones),
       };
 
       const created = await usuariosService.createUserAddress(user.id, payload);

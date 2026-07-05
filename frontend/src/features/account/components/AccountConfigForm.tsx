@@ -201,6 +201,38 @@ export default function AccountConfigForm({ model }: AccountConfigFormProps) {
                     </div>
 
                     <div>
+                      <label className="mb-1 block text-sm font-medium text-dark-gray">Piso</label>
+                      <input
+                        className="app-input"
+                        inputMode="numeric"
+                        placeholder="Ej: 3"
+                        {...register(`direcciones.${index}.piso`, {
+                          setValueAs: (value) => {
+                            const parsed = Number(value);
+                            return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+                          },
+                          min: {
+                            value: 1,
+                            message: "El piso debe ser mayor a 0",
+                          },
+                        })}
+                      />
+                      {formState.errors.direcciones?.[index]?.piso && (
+                        <p className="mt-1 text-sm text-red-600">{formState.errors.direcciones[index]?.piso?.message}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-dark-gray">Departamento</label>
+                      <input
+                        className="app-input"
+                        placeholder="Ej: A"
+                        maxLength={10}
+                        {...register(`direcciones.${index}.departamento`)}
+                      />
+                    </div>
+
+                    <div>
                       <label className="mb-1 block text-sm font-medium text-dark-gray">Provincia</label>
                       <select
                         className="app-input"
@@ -243,6 +275,15 @@ export default function AccountConfigForm({ model }: AccountConfigFormProps) {
                       {formState.errors.direcciones?.[index]?.id_ciudad && (
                         <p className="mt-1 text-sm text-red-600">{formState.errors.direcciones[index]?.id_ciudad?.message}</p>
                       )}
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="mb-1 block text-sm font-medium text-dark-gray">Observaciones</label>
+                      <textarea
+                        className="app-input min-h-24 resize-y"
+                        placeholder="Ej: Dejar en la puerta"
+                        {...register(`direcciones.${index}.observaciones`)}
+                      />
                     </div>
                   </div>
                 </div>

@@ -33,6 +33,21 @@ export class DireccionDto {
     @ApiProperty({ example: 1 })
     @IsInt()
     id_usuario!: number;
+
+    @ApiProperty({ example: 3, required: false, nullable: true })
+    @IsOptional()
+    @IsInt()
+    piso?: number | null;
+
+    @ApiProperty({ example: 'A', required: false, nullable: true })
+    @IsOptional()
+    @IsString()
+    departamento?: string | null;
+
+    @ApiProperty({ example: 'Dejar en la puerta', required: false, nullable: true })
+    @IsOptional()
+    @IsString()
+    observaciones?: string | null;
 }
 
 export class AccountConfigDto {
@@ -153,6 +168,21 @@ export class CreateDireccionDto {
     @ApiProperty({ example: 1 })
     @IsInt()
     id_ciudad!: number;
+
+    @ApiProperty({ example: 3, required: false, nullable: true })
+    @IsOptional()
+    @IsInt()
+    piso?: number | null;
+
+    @ApiProperty({ example: 'A', required: false, nullable: true })
+    @IsOptional()
+    @IsString()
+    departamento?: string | null;
+
+    @ApiProperty({ example: 'Dejar en la puerta', required: false, nullable: true })
+    @IsOptional()
+    @IsString()
+    observaciones?: string | null;
 }
 
 export class UserDireccionDto {
@@ -191,4 +221,19 @@ export class UserDireccionDto {
     @ApiProperty({ example: 1 })
     @IsInt()
     id_usuario!: number;
+
+    @ApiProperty({ example: 3, required: false, nullable: true })
+    @IsOptional()
+    @IsInt()
+    piso?: number | null;
+
+    @ApiProperty({ example: 'A', required: false, nullable: true })
+    @IsOptional()
+    @IsString()
+    departamento?: string | null;
+
+    @ApiProperty({ example: 'Dejar en la puerta', required: false, nullable: true })
+    @IsOptional()
+    @IsString()
+    observaciones?: string | null;
 }

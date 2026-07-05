@@ -121,6 +121,15 @@ export class DireccionPedidoDto {
     @ApiProperty({ example: 'X5016' })
     @IsString()
     cod_postal_destino!: string;
+
+    @ApiProperty({ example: 3, required: false, nullable: true })
+    piso!: number | null;
+
+    @ApiProperty({ example: 'A', required: false, nullable: true })
+    departamento!: string | null;
+
+    @ApiProperty({ example: 'Dejar en la puerta', required: false, nullable: true })
+    observaciones!: string | null;
 }
 
 export class EnvioPedidoDto {

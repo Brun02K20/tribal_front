@@ -97,6 +97,14 @@ export default function CheckoutPage() {
                   />
                   <span className="text-sm">
                     {address.calle} {address.altura}, {address.ciudad}, {address.provincia} ({address.cod_postal_destino})
+                    {(address.piso || address.departamento) && (
+                      <span className="block text-xs text-dark-gray">
+                        Piso {address.piso ?? "-"} {address.departamento ? `Depto ${address.departamento}` : ""}
+                      </span>
+                    )}
+                    {address.observaciones && (
+                      <span className="block text-xs text-dark-gray">{address.observaciones}</span>
+                    )}
                   </span>
                 </label>
               ))}
@@ -390,6 +398,40 @@ export default function CheckoutPage() {
                     )}
                   </div>
 
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-sm text-dark-gray">Piso</label>
+                      <input
+                        className="app-input"
+                        placeholder="Ej: 3"
+                        inputMode="numeric"
+                        {...registerAddress("piso", {
+                          setValueAs: (value) => {
+                            const parsed = Number(value);
+                            return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+                          },
+                          min: {
+                            value: 1,
+                            message: "El piso debe ser mayor a 0",
+                          },
+                        })}
+                      />
+                      {addressErrors.piso && (
+                        <p className="mt-1 text-xs text-red-600">{addressErrors.piso.message}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-sm text-dark-gray">Departamento</label>
+                      <input
+                        className="app-input"
+                        placeholder="Ej: A"
+                        maxLength={10}
+                        {...registerAddress("departamento")}
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="mb-1 block text-sm text-dark-gray">Provincia</label>
                     <select
@@ -432,6 +474,15 @@ export default function CheckoutPage() {
                     {addressErrors.id_ciudad && (
                       <p className="mt-1 text-xs text-red-600">{addressErrors.id_ciudad.message}</p>
                     )}
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm text-dark-gray">Observaciones</label>
+                    <textarea
+                      className="app-input min-h-24 resize-y"
+                      placeholder="Ej: Dejar en la puerta"
+                      {...registerAddress("observaciones")}
+                    />
                   </div>
 
                   <div className="mt-5 flex justify-end gap-2">
