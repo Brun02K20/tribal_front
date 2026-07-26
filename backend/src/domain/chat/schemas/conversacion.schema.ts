@@ -8,7 +8,7 @@ export class Conversacion {
   @Prop({ required: true, index: true, unique: true })
   declare cliente_id: number;
 
-  @Prop({ index: true })
+  @Prop()
   declare visitante_id?: string;
 
   @Prop({ index: true })
@@ -25,14 +25,3 @@ export class Conversacion {
 }
 
 export const ConversacionSchema = SchemaFactory.createForClass(Conversacion);
-
-ConversacionSchema.index(
-  { visitante_id: 1 },
-  {
-    unique: true,
-    partialFilterExpression: {
-      visitante_id: { $type: 'string' },
-      es_visitante: true,
-    },
-  },
-);
