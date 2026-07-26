@@ -20,7 +20,7 @@ export class Conversacion {
   @Prop({ required: true, default: Date.now })
   declare fecha_creacion: Date;
 
-  @Prop({ required: true, default: '' })
+  @Prop({ default: '' })
   declare ultimo_mensaje: string;
 }
 
