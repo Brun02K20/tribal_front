@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { chatService } from '@/entities/chat/api/chat.service';
 import { createChatSocket } from '@/shared/realtime/chatSocket';
@@ -26,6 +26,7 @@ export const useAdminChat = () => {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   const selectedConversation = useMemo(
     () => conversations.find((conversation) => conversation._id === selectedConversationId) ?? null,
@@ -137,6 +138,7 @@ export const useAdminChat = () => {
     }
 
     const socket: Socket = createChatSocket();
+    socketRef.current = socket;
 
     socket.on('connect', () => {
       if (selectedConversationId) {
@@ -206,6 +208,7 @@ export const useAdminChat = () => {
     });
 
     return () => {
+      socketRef.current = null;
       socket.disconnect();
     };
   }, [isAuthenticated, selectedConversationId, user?.id_rol]);
@@ -228,10 +231,17 @@ export const useAdminChat = () => {
     setSending(true);
     setError(null);
     try {
-      const response = await chatService.sendMessage({
+      const socket = socketRef.current;
+      if (!socket?.connected) {
+        throw new Error('El chat se está conectando. Intentá nuevamente en un instante.');
+      }
+      const response = await socket.timeout(8000).emitWithAck('chat:send', {
         conversacion_id: selectedConversationId,
         contenido,
       });
+      if (!response?.ok) {
+        throw new Error(response?.message ?? 'No se pudo enviar el mensaje');
+      }
 
       const created = response?.message as ChatMessage | undefined;
       if (created) {

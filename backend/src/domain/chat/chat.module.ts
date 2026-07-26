@@ -6,6 +6,7 @@ import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
 import { Conversacion, ConversacionSchema } from './schemas/conversacion.schema';
 import { Mensaje, MensajeSchema } from './schemas/mensaje.schema';
+import { OptionalAuthGuard } from 'src/auth/utils/optional-auth.guard';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { Mensaje, MensajeSchema } from './schemas/mensaje.schema';
     ]),
   ],
   controllers: [ChatController],
-  providers: [ChatService, ChatGateway],
+  providers: [ChatService, ChatGateway, OptionalAuthGuard],
   exports: [ChatService],
 })
 export class ChatModule {}

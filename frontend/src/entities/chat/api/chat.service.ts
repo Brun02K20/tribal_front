@@ -13,6 +13,18 @@ const getClientBootstrap = async (): Promise<ClientChatBootstrap> => {
   }
 };
 
+const getPublicBootstrap = async (): Promise<ClientChatBootstrap> => {
+  try {
+    const { data } = await apiClient.get<ClientChatBootstrap>('/chat/publico');
+    return data;
+  } catch (error) {
+    throw parseApiError(error, {
+      fallbackMessage: 'No se pudo cargar la conversación',
+      prefix: 'Chat',
+    });
+  }
+};
+
 const getAdminConversations = async (): Promise<ChatConversation[]> => {
   try {
     const { data } = await apiClient.get<ChatConversation[]>('/chat/conversaciones');
@@ -49,6 +61,18 @@ const sendMessage = async (payload: { contenido: string; conversacion_id?: strin
   }
 };
 
+const sendPublicMessage = async (contenido: string) => {
+  try {
+    const { data } = await apiClient.post('/chat/publico/mensajes', { contenido });
+    return data;
+  } catch (error) {
+    throw parseApiError(error, {
+      fallbackMessage: 'No se pudo enviar el mensaje',
+      prefix: 'Chat',
+    });
+  }
+};
+
 const markAsRead = async (conversationId: string) => {
   try {
     await apiClient.patch(`/chat/conversaciones/${conversationId}/leido`);
@@ -62,8 +86,10 @@ const markAsRead = async (conversationId: string) => {
 
 export const chatService = {
   getClientBootstrap,
+  getPublicBootstrap,
   getAdminConversations,
   getMessages,
   sendMessage,
+  sendPublicMessage,
   markAsRead,
 };

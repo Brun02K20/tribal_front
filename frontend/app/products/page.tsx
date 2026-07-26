@@ -2,26 +2,28 @@ import type { Metadata } from "next";
 import ProductsPageClient from "./ProductsPageClient";
 
 export const metadata: Metadata = {
-  title: "Arte, decoraciones y artesanias online",
+  title: "Joyería artesanal: collares, anillos y pulseras",
   description:
-    "Explora arte, decoraciones y artesanias en nuestra tienda online. Compra en Cordoba y toda Argentina con envios y atencion personalizada.",
+    "Descubrí collares, anillos, pulseras y bijouterie artesanal de Tribal Trend. Piezas únicas hechas a mano en Argentina con envíos a todo el país.",
   alternates: {
     canonical: "/products",
   },
   keywords: [
-    "arte",
-    "decoraciones",
-    "artesanias",
-    "tienda de artesanias",
-    "tienda de arte",
+    "joyería artesanal",
+    "bijouterie artesanal",
+    "bijou argentina",
+    "collares artesanales",
+    "anillos artesanales",
+    "pulseras artesanales",
+    "accesorios artesanales",
     "regalos artesanales",
-    "cordoba",
-    "argentina",
+    "joyería argentina",
+    "Tribal Trend",
   ],
   openGraph: {
-    title: "Arte, decoraciones y artesanias online | Tribal Trend",
+    title: "Joyería artesanal: collares, anillos y pulseras | Tribal Trend",
     description:
-      "Descubre arte, decoraciones y artesanias con envios en Cordoba y toda Argentina.",
+      "Piezas únicas de joyería y bijouterie artesanal hechas a mano en Argentina.",
     url: "/products",
     type: "website",
   },

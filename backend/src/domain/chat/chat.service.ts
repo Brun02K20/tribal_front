@@ -4,7 +4,7 @@ import { Model, Types } from 'mongoose';
 import { Conversacion } from './schemas/conversacion.schema';
 import { Mensaje } from './schemas/mensaje.schema';
 import { Usuarios } from 'src/auth/models/Usuarios';
-import { SendMessageInput } from './types/chat.types';
+import { ClientChatIdentity, SendMessageInput } from './types/chat.types';
 import { findSuspiciousInputPaths } from 'src/utils/security/xss-detector';
 
 @Injectable()
@@ -44,8 +44,12 @@ export class ChatService {
     return new Types.ObjectId(id);
   }
 
-  private async enrichConversationsWithClientName<T extends { cliente_id: number }>(conversaciones: T[]) {
-    const uniqueClientIds = [...new Set(conversaciones.map((conv) => Number(conv.cliente_id)).filter((id) => Number.isFinite(id)))];
+  private async enrichConversationsWithClientName<T extends { cliente_id?: number }>(conversaciones: T[]) {
+    const uniqueClientIds = [...new Set(
+      conversaciones
+        .map((conv) => Number(conv.cliente_id))
+        .filter((id) => Number.isInteger(id) && id > 0),
+    )];
     const users = await Promise.all(uniqueClientIds.map((id) => Usuarios.findByPk(id)));
     const nameMap = new Map<number, string>();
 
@@ -57,7 +61,9 @@ export class ChatService {
 
     return conversaciones.map((conv) => ({
       ...conv,
-      cliente_nombre: nameMap.get(Number(conv.cliente_id)) ?? `Cliente #${conv.cliente_id}`,
+      cliente_nombre: conv.cliente_id && conv.cliente_id > 0
+        ? nameMap.get(Number(conv.cliente_id)) ?? `Cliente #${conv.cliente_id}`
+        : 'Visitante',
     }));
   }
 
@@ -94,6 +100,120 @@ export class ChatService {
     }
 
     return conversation;
+  }
+
+  async getOrCreateConversationForIdentity(identity: ClientChatIdentity) {
+    const userConversation = identity.clienteId
+      ? await this.conversacionModel.findOne({ cliente_id: identity.clienteId })
+      : null;
+    // The long-lived visitor cookie is more precise; the IP hash is only a
+    // recovery fallback when that cookie is no longer available.
+    const conversationByVisitor = await this.conversacionModel.findOne({
+      visitante_id: identity.visitanteId,
+      es_visitante: true,
+    });
+    const anonymousConversation = conversationByVisitor ?? await this.conversacionModel
+      .findOne({ ip_hash: identity.ipHash, es_visitante: true })
+      .sort({ fecha_creacion: -1 });
+
+    if (userConversation && anonymousConversation && !userConversation._id.equals(anonymousConversation._id)) {
+      await this.mensajeModel.updateMany(
+        { conversacion_id: anonymousConversation._id },
+        { $set: { conversacion_id: userConversation._id } },
+      );
+      if (anonymousConversation.ultimo_mensaje) {
+        userConversation.ultimo_mensaje = anonymousConversation.ultimo_mensaje;
+        await userConversation.save();
+      }
+      await anonymousConversation.deleteOne();
+    }
+
+    if (userConversation) {
+      userConversation.visitante_id = identity.visitanteId;
+      userConversation.ip_hash = identity.ipHash;
+      await userConversation.save();
+      return userConversation.toObject();
+    }
+
+    if (anonymousConversation) {
+      if (identity.clienteId) {
+        anonymousConversation.cliente_id = identity.clienteId;
+        anonymousConversation.es_visitante = false;
+      }
+      anonymousConversation.visitante_id = identity.visitanteId;
+      anonymousConversation.ip_hash = identity.ipHash;
+      await anonymousConversation.save();
+      return anonymousConversation.toObject();
+    }
+
+    const anonymousNumericId = -Number.parseInt(identity.visitanteId.slice(0, 12), 16);
+    return this.conversacionModel.create({
+      cliente_id: identity.clienteId ?? anonymousNumericId,
+      visitante_id: identity.visitanteId,
+      ip_hash: identity.ipHash,
+      es_visitante: !identity.clienteId,
+      fecha_creacion: new Date(),
+      ultimo_mensaje: '',
+    }).then((conversation) => conversation.toObject());
+  }
+
+  async getConversationForIdentityWithMessages(identity: ClientChatIdentity) {
+    const conversation = await this.getOrCreateConversationForIdentity(identity);
+    const messages = await this.mensajeModel
+      .find({ conversacion_id: conversation._id })
+      .sort({ fecha_creacion: 1 })
+      .lean();
+    return { conversation, messages };
+  }
+
+  async assertConversationAccessForIdentity(
+    conversacionId: string,
+    identity: ClientChatIdentity,
+  ) {
+    const conversation = await this.getOrCreateConversationForIdentity(identity);
+    if (String(conversation._id) !== conversacionId) {
+      throw new ForbiddenException('No tenés permisos para acceder a esta conversación');
+    }
+    return conversation;
+  }
+
+  async markAsReadForIdentity(
+    conversacionId: string,
+    identity: ClientChatIdentity,
+  ) {
+    const conversation = await this.assertConversationAccessForIdentity(conversacionId, identity);
+    await this.mensajeModel.updateMany(
+      { conversacion_id: conversation._id, rol: 'admin', leido: false },
+      { $set: { leido: true } },
+    );
+    return { ok: true };
+  }
+
+  async sendClientMessage(identity: ClientChatIdentity, contenidoInput: string) {
+    const contenido = this.sanitizeContenido(contenidoInput);
+    const conversation = await this.getOrCreateConversationForIdentity(identity);
+    const created = await this.mensajeModel.create({
+      conversacion_id: conversation._id,
+      autor_id: identity.clienteId ?? 0,
+      rol: 'cliente',
+      fecha_creacion: new Date(),
+      contenido,
+      leido: false,
+    });
+    await this.conversacionModel.updateOne(
+      { _id: conversation._id },
+      { $set: { ultimo_mensaje: contenido } },
+    );
+    return {
+      conversation: {
+        ...conversation,
+        cliente_nombre: identity.clienteId
+          ? await this.getClientNameById(identity.clienteId)
+          : 'Visitante',
+        ultimo_mensaje: contenido,
+      },
+      message: created.toObject(),
+    };
   }
 
   async assertConversationAccess(conversacionId: string, userId: number, userRole: number) {

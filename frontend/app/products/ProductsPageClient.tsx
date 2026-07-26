@@ -232,6 +232,23 @@ export default function ProductsPageClient() {
           </div>
         </section>
       )}
+      <section className="app-panel mt-8" aria-labelledby="sobre-joyeria-artesanal">
+        <h2 id="sobre-joyeria-artesanal" className="app-title text-xl">
+          Joyería y bijouterie artesanal argentina
+        </h2>
+        <div className="mt-3 grid gap-3 text-sm leading-6 text-dark-gray md:grid-cols-2">
+          <p>
+            En Tribal Trend creamos collares, anillos, pulseras y accesorios artesanales
+            para quienes buscan una pieza original. Cada joya se trabaja a mano con
+            piedras naturales, resina y entramados de alambre.
+          </p>
+          <p>
+            Nuestra colección de bijou artesanal reúne diseños únicos elaborados en
+            Argentina. Podés comprar online y recibir tu pedido en Córdoba o mediante
+            envíos a todo el país.
+          </p>
+        </div>
+      </section>
       {designProduct && (
         <AppModal>
           <div className="app-modal-backdrop">

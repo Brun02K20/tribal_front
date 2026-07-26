@@ -11,3 +11,9 @@ export type SendMessageInput = {
   autor_id: number;
   rol: 'cliente' | 'admin';
 };
+
+export type ClientChatIdentity = {
+  clienteId?: number;
+  visitanteId: string;
+  ipHash: string;
+};

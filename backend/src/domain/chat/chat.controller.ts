@@ -1,12 +1,14 @@
-import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiCookieAuth, ApiBody, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import type { Request, Response } from 'express';
+import { createHmac, randomUUID } from 'crypto';
 import { AuthGuard } from 'src/auth/utils/auth.guard';
 import { Role1Guard } from 'src/auth/utils/role1.guard';
 import { Role2Guard } from 'src/auth/utils/role2.guard';
 import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './DTOs/send-message.dto';
+import { OptionalAuthGuard } from 'src/auth/utils/optional-auth.guard';
 
 type RequestWithUser = Request & {
   user?: {
@@ -18,12 +20,45 @@ type RequestWithUser = Request & {
 @ApiTags('Chat')
 @ApiCookieAuth('cookieAuth')
 @Controller('chat')
-@UseGuards(AuthGuard)
 export class ChatController {
   constructor(
     private readonly chatService: ChatService,
     private readonly chatGateway: ChatGateway,
   ) {}
+
+  private readonly visitorCookieName = 'tribal_chat_visitor';
+
+  private getPublicIdentity(req: RequestWithUser, res: Response) {
+    let visitorToken = req.cookies?.[this.visitorCookieName] as string | undefined;
+    if (!visitorToken || !/^[0-9a-f-]{36}$/i.test(visitorToken)) {
+      visitorToken = randomUUID();
+      const secure = process.env.NODE_ENV === 'production';
+      res.cookie(this.visitorCookieName, visitorToken, {
+        httpOnly: true,
+        secure,
+        sameSite: secure ? 'none' : 'lax',
+        maxAge: 365 * 24 * 60 * 60 * 1000,
+        path: '/',
+        domain: process.env.AUTH_COOKIE_DOMAIN || undefined,
+      });
+    }
+
+    const forwarded = req.headers['cf-connecting-ip'] ?? req.headers['x-real-ip'];
+    const ip = String(Array.isArray(forwarded) ? forwarded[0] : forwarded ?? req.ip ?? 'unknown')
+      .split(',')[0]
+      .trim();
+    const secret = process.env.CHAT_IDENTITY_SECRET ?? process.env.JWT_SECRET ?? 'chat-development-secret';
+    const digest = (value: string) => createHmac('sha256', secret).update(value).digest('hex');
+    const userId = Number(req.user?.sub);
+
+    return {
+      clienteId: Number.isInteger(userId) && userId > 0 && Number(req.user?.id_rol) === 2
+        ? userId
+        : undefined,
+      visitanteId: digest(visitorToken),
+      ipHash: digest(ip),
+    };
+  }
 
   private parseAuthenticatedUserId(value: unknown): number {
     const userId = Number(value);
@@ -41,7 +76,7 @@ export class ChatController {
   }
 
   @Get('conversaciones')
-  @UseGuards(Role1Guard)
+  @UseGuards(AuthGuard, Role1Guard)
   @ApiOperation({ summary: 'Listar conversaciones (solo admin)' })
   @ApiOkResponse({
     description: 'Listado de conversaciones con resumen y no leídos',
@@ -66,7 +101,7 @@ export class ChatController {
   }
 
   @Get('conversaciones/mia')
-  @UseGuards(Role2Guard)
+  @UseGuards(AuthGuard, Role2Guard)
   @ApiOperation({ summary: 'Obtener conversación propia del cliente con su historial' })
   @ApiOkResponse({
     description: 'Conversación del cliente autenticado y sus mensajes',
@@ -105,7 +140,41 @@ export class ChatController {
     return this.chatService.getOwnConversationWithMessages(userId);
   }
 
+  @Get('publico')
+  @UseGuards(OptionalAuthGuard)
+  @ApiOperation({ summary: 'Obtener el chat del comprador, con o sin sesión iniciada' })
+  async getPublicConversation(
+    @Req() req: RequestWithUser,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.chatService.getConversationForIdentityWithMessages(this.getPublicIdentity(req, res));
+  }
+
+  @Post('publico/mensajes')
+  @UseGuards(OptionalAuthGuard)
+  @ApiOperation({ summary: 'Enviar un mensaje como comprador o visitante' })
+  async sendPublicMessage(
+    @Body() body: SendMessageDto,
+    @Req() req: RequestWithUser,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.chatService.sendClientMessage(
+      this.getPublicIdentity(req, res),
+      body.contenido,
+    );
+    this.chatGateway.emitNewMessage({
+      conversationId: String(result.message.conversacion_id),
+      clienteId: Number(result.conversation?.cliente_id ?? 0),
+      clienteNombre: String(result.conversation?.cliente_nombre ?? 'Visitante'),
+      message: result.message,
+      ultimoMensaje: String(result.message.contenido),
+      ultimoMensajeFecha: result.message.fecha_creacion,
+    });
+    return result;
+  }
+
   @Get('conversaciones/:id/mensajes')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Obtener mensajes de una conversación (admin o cliente propietario)' })
   @ApiParam({ name: 'id', type: String, description: 'ID de la conversación', example: '65f8b2e41e6b77f2a1b2c3d4' })
   @ApiOkResponse({
@@ -138,6 +207,7 @@ export class ChatController {
   }
 
   @Post('mensajes')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Enviar mensaje en una conversación' })
   @ApiBody({ type: SendMessageDto })
   @ApiCreatedResponse({
@@ -189,6 +259,7 @@ export class ChatController {
   }
 
   @Patch('conversaciones/:id/leido')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Marcar como leídos los mensajes de la conversación' })
   @ApiParam({ name: 'id', type: String, description: 'ID de la conversación', example: '65f8b2e41e6b77f2a1b2c3d4' })
   @ApiOkResponse({

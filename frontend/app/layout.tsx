@@ -7,10 +7,11 @@ import { ToastProvider } from "@/shared/providers/ToastContext";
 import AppHeader from "@/shared/layout/AppHeader";
 import AppFooter from "@/shared/layout/AppFooter";
 import AutumnLeavesBackground from "@/shared/ui/AutumnLeavesBackground";
+import ClientChatWidget from "@/features/chat/components/ClientChatWidget";
 
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://tribaltrend.com.ar").replace(/\/+$/, "");
 const siteName = "Tribal Trend";
-const siteDescription = "Tribal Trend: tienda de arte, decoraciones y artesanias con envios a Cordoba y toda Argentina.";
+const siteDescription = "Tribal Trend: joyería y bijouterie artesanal argentina. Collares, anillos, pulseras y accesorios únicos hechos a mano, con envíos a todo el país.";
 const logoPath = "/icons/logo_tribal_trnasparente.png";
 const logoAbsoluteUrl = `${siteUrl}${logoPath}`;
 const openGraphImageUrl = `${siteUrl}/opengraph-image`;
@@ -64,17 +65,21 @@ export const metadata: Metadata = {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
   },
   keywords: [
-    "arte",
-    "decoraciones",
-    "artesanias",
-    "tienda de artesanias",
-    "tienda de arte",
-    "regalos artesanales",
-    "decoracion para el hogar",
-    "cordoba",
-    "cordoba argentina",
-    "argentina",
     "Tribal Trend",
+    "joyería artesanal",
+    "joyería artesanal argentina",
+    "bijouterie artesanal",
+    "bijouterie argentina",
+    "bijou artesanal",
+    "collares artesanales",
+    "anillos artesanales",
+    "pulseras artesanales",
+    "accesorios artesanales",
+    "piedras naturales",
+    "joyas de resina",
+    "joyas de alambre",
+    "regalos artesanales",
+    "Córdoba Argentina",
   ],
   openGraph: {
     title: siteName,
@@ -135,6 +140,7 @@ export default function RootLayout({
                 <AppHeader />
                 <main className="flex-1">{children}</main>
                 <AppFooter />
+                <ClientChatWidget />
               </div>
             </CartProvider>
           </ToastProvider>
@@ -143,4 +149,3 @@ export default function RootLayout({
     </html>
   );
 }
-

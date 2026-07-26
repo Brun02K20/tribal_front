@@ -279,11 +279,6 @@ export default function AppHeader() {
                 Mis pedidos
               </Link>
             )}
-            {isAuthenticated && user?.id_rol === 2 && (
-              <Link href="/chat" className="app-nav-link cursor-pointer">
-                Chat
-              </Link>
-            )}
             {isAuthenticated && user?.id_rol === 1 && (
               <Link href="/dashboard" className="app-nav-link cursor-pointer">
                 Dashboard
@@ -327,11 +322,6 @@ export default function AppHeader() {
           {isAuthenticated && user?.id_rol === 2 && (
             <Link href="/mis-pedidos" className="app-nav-link cursor-pointer" onClick={closeMenus}>
               Mis pedidos
-            </Link>
-          )}
-          {isAuthenticated && user?.id_rol === 2 && (
-            <Link href="/chat" className="app-nav-link cursor-pointer" onClick={closeMenus}>
-              Chat
             </Link>
           )}
           {isAuthenticated && user?.id_rol === 1 && (
