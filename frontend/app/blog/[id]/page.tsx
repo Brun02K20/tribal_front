@@ -6,6 +6,8 @@ import Link from "next/link";
 import { blogsService } from "@/entities/blogs/api/blogs.service";
 import type { BlogDetail } from "@/types/blogs";
 import LoadingState from "@/shared/ui/LoadingState";
+import ShopCtaBanner from "@/shared/ui/ShopCtaBanner";
+import { IconArrowLeft } from "@/shared/ui/Icons";
 
 function ImageCarousel({ images }: { images: { id: number; url: string }[] }) {
     const [current, setCurrent] = useState(0);
@@ -87,8 +89,8 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
 
     if (loading) {
         return (
-            <main className="app-page">
-                <LoadingState message="Cargando artículo..." />
+            <main className="mx-auto w-full max-w-240 px-4 py-10">
+                <LoadingState message="Cargando artículo..." className="text-dark-gray" />
             </main>
         );
     }
@@ -99,27 +101,28 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
     const restFotos = article.fotos.slice(1);
 
     return (
-        <main className="app-page">
-            <article className="app-container mx-auto max-w-240">
-                <Link href="/blog" className="app-btn-secondary mb-4 inline-block text-sm">
-                    ← Volver al blog
+        <main className="mx-auto w-full max-w-360 px-4 pt-6 md:px-6 md:pt-10">
+            <article className="mx-auto max-w-240">
+                <Link href="/blog" className="mb-5 inline-flex items-center gap-1.5 text-sm text-dark-gray hover:text-earth-brown">
+                    <IconArrowLeft className="h-4 w-4" /> Blog
                 </Link>
 
                 {/* Portada */}
                 {portada && (
-                    <div className="mb-6 flex justify-center">
+                    <div className="mb-8 overflow-hidden rounded-[1.75rem] bg-sand shadow-[0_24px_48px_rgba(47,47,47,0.16)]">
                         <img
                             src={portada.url}
                             alt={article.titulo}
-                            className="max-h-[500px] w-auto max-w-full object-contain"
+                            className="max-h-[560px] w-full object-cover"
                         />
                     </div>
                 )}
 
                 {/* Encabezado */}
                 <header className="mb-6">
-                    <h1 className="app-title text-3xl sm:text-4xl">{article.titulo}</h1>
-                    <p className="mt-2 text-sm text-zinc-500">
+                    <p className="app-kicker">Blog Tribal</p>
+                    <h1 className="app-display mt-2 text-4xl sm:text-5xl">{article.titulo}</h1>
+                    <p className="mt-3 text-sm text-dark-gray">
                         {new Date(article.created_at).toLocaleDateString("es-AR", {
                             year: "numeric",
                             month: "long",
@@ -130,18 +133,24 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
 
                 {/* Cuerpo */}
                 <section
-                    className="prose prose-stone max-w-none"
+                    className="app-prose"
                     dangerouslySetInnerHTML={{ __html: article.cuerpo }}
                 />
 
                 {/* Galería */}
                 {restFotos.length > 0 && (
                     <section className="mt-8">
-                        <h3 className="mb-4 text-lg font-semibold">Galería</h3>
+                        <h3 className="app-display mb-4 text-2xl">Galería</h3>
                         <ImageCarousel images={restFotos} />
                     </section>
                 )}
             </article>
+
+            <ShopCtaBanner
+                className="mt-16"
+                kicker="¿Te inspiró?"
+                title="Llevate una pieza hecha a mano"
+            />
         </main>
     );
 }

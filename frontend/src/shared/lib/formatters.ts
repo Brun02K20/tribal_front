@@ -7,6 +7,15 @@ export const formatCurrencyArs = (value: number | string) =>
     minimumFractionDigits: 2,
   }).format(Number(value || 0));
 
+// Precio para vitrina: sin centavos cuando no hacen falta ("$ 40.000").
+export const formatPrice = (value: number | string) =>
+  new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+
 export const formatDateTimeEsAr = (value: string) => {
   if (!value) {
     return "-";

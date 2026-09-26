@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { ProductDiseno, ProductFoto } from "@/types/products";
+import { formatPrice } from "@/shared/lib/formatters";
+import { IconCheck, IconMinus, IconPlus } from "@/shared/ui/Icons";
 
 type ProductDesignSelectorProps = {
   fotos: ProductFoto[];
@@ -12,18 +14,19 @@ type ProductDesignSelectorProps = {
   onQuantityChange: (quantity: number) => void;
   onToggleUrl: (url: string) => void;
   onDesignQuantityChange?: (url: string, quantity: number) => void;
+  /** Se llama al tocar un diseño, para mostrarlo en grande en la galería. */
+  onPreview?: (url: string) => void;
 };
 
 export default function ProductDesignSelector({
   fotos,
   disenos,
-  quantity,
   maxQuantity,
   selectedUrls,
   onQuantityChange,
   onDesignQuantityChange,
+  onPreview,
 }: ProductDesignSelectorProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
   const designItems = disenos?.length
     ? disenos.filter((diseno) => Boolean(diseno.url_foto)).map((diseno) => ({
         id: diseno.id,
@@ -35,11 +38,10 @@ export default function ProductDesignSelector({
     : fotos.map((foto, index) => ({
         id: foto.id,
         url: foto.url,
-        nombre: `Diseno ${index + 1}`,
+        nombre: `Diseño ${index + 1}`,
         precio: null as number | null,
         stock: Math.max(0, maxQuantity),
       }));
-  const activeFoto = designItems[Math.min(activeIndex, Math.max(designItems.length - 1, 0))];
   const selectedCounts = useMemo(
     () =>
       selectedUrls.reduce((acc, url) => {
@@ -48,6 +50,7 @@ export default function ProductDesignSelector({
       }, new Map<string, number>()),
     [selectedUrls],
   );
+  const selectedTotal = selectedUrls.length;
 
   const setUrlQuantity = (url: string, nextQuantity: number) => {
     const item = designItems.find((design) => design.url === url);
@@ -62,107 +65,89 @@ export default function ProductDesignSelector({
     onQuantityChange(selectedUrls.filter((selectedUrl) => selectedUrl !== url).length + safeQuantity);
   };
 
-  const goToPrev = () => {
-    if (!designItems.length) {
+  const handlePick = (url: string, stock: number) => {
+    onPreview?.(url);
+    const count = selectedCounts.get(url) ?? 0;
+    if (count < stock) {
+      setUrlQuantity(url, count + 1);
       return;
     }
-    setActiveIndex((prev) => (prev === 0 ? designItems.length - 1 : prev - 1));
+    // Con una sola unidad, volver a tocar la foto la deselecciona.
+    if (stock === 1) {
+      setUrlQuantity(url, 0);
+    }
   };
 
-  const goToNext = () => {
-    if (!designItems.length) {
-      return;
-    }
-    setActiveIndex((prev) => (prev === designItems.length - 1 ? 0 : prev + 1));
-  };
+  if (!designItems.length) {
+    return <p className="text-sm text-red-600">Este producto no tiene fotos disponibles para seleccionar diseños.</p>;
+  }
 
   return (
-    <div className="rounded-lg border border-line bg-white/75 p-3">
-      <p className="text-sm font-semibold text-dark-gray">
-        Este producto tiene multiples disenos, cuantos productos queres? Que disenos queres comprar?
-      </p>
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-sm font-semibold text-black">Elegí tu diseño</p>
+        <p className="text-xs text-dark-gray" aria-live="polite">
+          {selectedTotal === 0 ? "Ninguno elegido" : `${selectedTotal} ${selectedTotal === 1 ? "elegido" : "elegidos"}`}
+        </p>
+      </div>
+      <p className="mt-0.5 text-xs text-dark-gray">Tocá la foto para sumarla. Podés combinar varios.</p>
 
-      <p className="mt-3 text-sm text-dark-gray">Cantidad total: {quantity}</p>
+      <ul className="mt-3 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
+        {designItems.map((item) => {
+          const count = selectedCounts.get(item.url) ?? 0;
+          const isSoldOut = item.stock <= 0;
 
-      {activeFoto ? (
-        <div className="mt-3">
-          <div className="relative overflow-hidden rounded-md border border-earth-brown/35 bg-white">
-            <button
-              type="button"
-              className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/85 px-2 py-1 text-sm font-bold text-earth-brown shadow"
-              onClick={goToPrev}
-              aria-label="Foto anterior"
+          return (
+            <li
+              key={item.id}
+              className={`rounded-2xl border bg-white/85 p-1.5 transition ${
+                count > 0 ? "border-terracotta ring-2 ring-terracotta/25" : "border-line hover:border-earth-brown/60"
+              }`}
             >
-              {"<"}
-            </button>
-            <button
-              type="button"
-              className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/85 px-2 py-1 text-sm font-bold text-earth-brown shadow"
-              onClick={goToNext}
-              aria-label="Foto siguiente"
-            >
-              {">"}
-            </button>
-            <button
-              type="button"
-              className="relative block h-56 w-full"
-              onClick={() => setUrlQuantity(activeFoto.url, (selectedCounts.get(activeFoto.url) ?? 0) + 1)}
-              aria-label="Ver diseno visible"
-            >
-              <img src={activeFoto.url} alt={activeFoto.nombre} className="h-full w-full object-contain p-2" />
-              {(selectedCounts.get(activeFoto.url) ?? 0) > 0 && (
-                <span className="absolute right-3 top-3 inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-earth-brown px-2 text-sm font-bold text-cream shadow">
-                  x{selectedCounts.get(activeFoto.url)}
-                </span>
+              <button
+                type="button"
+                className="relative block aspect-square w-full overflow-hidden rounded-xl disabled:cursor-not-allowed"
+                onClick={() => handlePick(item.url, item.stock)}
+                disabled={isSoldOut}
+                aria-pressed={count > 0}
+                aria-label={`${count > 0 ? "Quitar o sumar" : "Elegir"} diseño ${item.nombre}`}
+              >
+                <img src={item.url} alt={item.nombre} className="h-full w-full object-cover" loading="lazy" />
+                {count > 0 && (
+                  <span className="absolute right-1.5 top-1.5 grid h-6 min-w-6 place-items-center rounded-full bg-terracotta px-1 text-xs font-bold text-cream shadow">
+                    {item.stock === 1 ? <IconCheck className="h-3.5 w-3.5" /> : `x${count}`}
+                  </span>
+                )}
+                {isSoldOut && (
+                  <span className="absolute inset-0 grid place-items-center bg-cream/70 text-[11px] font-semibold uppercase tracking-wider text-dark-gray">
+                    Agotado
+                  </span>
+                )}
+              </button>
+              <p className="mt-1.5 truncate px-0.5 text-xs font-semibold first-letter:uppercase">{item.nombre}</p>
+              {item.precio !== null && Number.isFinite(item.precio) && (
+                <p className="px-0.5 text-xs text-earth-brown">{formatPrice(item.precio)}</p>
               )}
-            </button>
-          </div>
-          <div className="mt-2">
-            <p className="text-sm font-semibold text-dark-gray">{activeFoto.nombre}</p>
-            {activeFoto.precio !== null && <p className="text-sm text-earth-brown">${activeFoto.precio.toFixed(2)}</p>}
-            <div className="mt-2 max-w-40">
-              <label className="mb-1 block text-xs text-dark-gray">Cantidad de este diseno</label>
-              <input
-                type="number"
-                min={0}
-                max={Math.max(0, activeFoto.stock)}
-                value={selectedCounts.get(activeFoto.url) ?? 0}
-                onChange={(event) => setUrlQuantity(activeFoto.url, Number(event.target.value))}
-                className="app-input"
-              />
-              <p className="app-subtitle mt-1 text-xs">Stock disponible: {activeFoto.stock}</p>
-            </div>
-          </div>
-
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-            {designItems.map((item, index) => {
-              const selectedCount = selectedCounts.get(item.url) ?? 0;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`relative h-16 w-16 shrink-0 rounded-md border bg-white p-1 ${
-                    index === activeIndex ? "border-earth-brown ring-2 ring-earth-brown/25" : "border-line"
-                  }`}
-                  onClick={() => setActiveIndex(index)}
-                  aria-label={`Ver diseno ${index + 1}`}
-                >
-                  <img src={item.url} alt={item.nombre} className="h-full w-full object-contain" />
-                  {selectedCount > 0 && (
-                    <span className="absolute right-1 top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-earth-brown px-1 text-xs font-bold text-cream">
-                      {selectedCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : (
-        <p className="mt-3 text-sm text-red-600">Este producto no tiene fotos disponibles para seleccionar disenos.</p>
-      )}
-
-      <p className="mt-2 text-xs text-dark-gray">Seleccionados: {selectedUrls.length}</p>
+              {item.stock > 1 && count > 0 && (
+                <div className="app-stepper mt-1.5 w-full justify-between">
+                  <button type="button" onClick={() => setUrlQuantity(item.url, count - 1)} aria-label={`Restar ${item.nombre}`}>
+                    <IconMinus className="h-3.5 w-3.5" />
+                  </button>
+                  <span>{count}</span>
+                  <button
+                    type="button"
+                    onClick={() => setUrlQuantity(item.url, count + 1)}
+                    disabled={count >= item.stock}
+                    aria-label={`Sumar ${item.nombre}`}
+                  >
+                    <IconPlus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

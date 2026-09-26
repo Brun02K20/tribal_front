@@ -27,12 +27,14 @@ function LoginPageContent() {
 
   return (
     <AuthPageShell
-      title="Login"
+      title="Ingresá a tu cuenta"
+      mode="login"
+      redirect={redirect}
       error={error}
       googleContainerRef={googleContainerRef}
-      footerText="¿No tenes cuenta?"
+      footerText="¿No tenés cuenta?"
       footerHref={`/register?redirect=${encodeURIComponent(redirect)}`}
-      footerLinkLabel="Registrate"
+      footerLinkLabel="Creala gratis"
     >
       <form onSubmit={handleSubmit((values) => submitWithPassword(values))} className="space-y-3">
         <div>
@@ -47,7 +49,7 @@ function LoginPageContent() {
         {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
 
         <div>
-          <label className="mb-1 block text-sm text-dark-gray">Contrasena</label>
+          <label className="mb-1 block text-sm text-dark-gray">Contraseña</label>
           <input
             className="app-input"
             type="password"
@@ -57,7 +59,7 @@ function LoginPageContent() {
         </div>
         {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
 
-        <button className="app-btn-primary w-full" type="submit" disabled={loading}>
+        <button className="app-btn-cta w-full" type="submit" disabled={loading}>
           {loading ? "Ingresando..." : "Ingresar"}
         </button>
       </form>

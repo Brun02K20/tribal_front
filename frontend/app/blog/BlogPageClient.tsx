@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { blogsService } from "@/entities/blogs/api/blogs.service";
 import type { BlogListItem } from "@/types/blogs";
-import LoadingState from "@/shared/ui/LoadingState";
-import EmptyState from "@/shared/ui/EmptyState";
-import ImagePlaceholder from "@/shared/ui/ImagePlaceholder";
+import ShopCtaBanner from "@/shared/ui/ShopCtaBanner";
+import { IconArrowRight } from "@/shared/ui/Icons";
+
+const formatDate = (value: string) =>
+    new Date(value).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
 
 export default function BlogPageClient() {
     const [articles, setArticles] = useState<BlogListItem[]>([]);
@@ -20,50 +22,53 @@ export default function BlogPageClient() {
     }, []);
 
     return (
-        <main className="app-page">
-            <section className="app-container mx-auto max-w-360">
-                <header className="app-panel mb-6">
-                    <h1 className="app-title text-3xl">Blog</h1>
-                    <p className="app-subtitle mt-2">Tips, novedades y artículos sobre el mundo artesanal.</p>
-                </header>
+        <main className="mx-auto w-full max-w-360 px-4 pt-8 md:px-6 md:pt-12">
+            <header className="max-w-2xl">
+                <p className="app-kicker">Blog Tribal</p>
+                <h1 className="app-display mt-2 text-4xl md:text-5xl">Historias, piedras y tips</h1>
+                <p className="mt-3 text-dark-gray">Inspiración para elegir, combinar y cuidar tus piezas artesanales.</p>
+            </header>
 
-                {loading ? (
-                    <LoadingState message="Cargando artículos..." />
-                ) : articles.length === 0 ? (
-                    <EmptyState message="Todavía no hay artículos publicados." />
-                ) : (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {articles.map((article) => (
-                            <Link
-                                key={article.id}
-                                href={`/blog/${article.id}`}
-                                className="app-panel group overflow-hidden transition-shadow hover:shadow-md"
-                            >
+            {loading ? (
+                <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                        <div key={index} className="space-y-3">
+                            <div className="app-skeleton aspect-4/3 rounded-3xl" />
+                            <div className="app-skeleton h-5 w-3/4 rounded-full" />
+                        </div>
+                    ))}
+                </div>
+            ) : articles.length === 0 ? (
+                <p className="mt-8 rounded-3xl border border-dashed border-earth-brown/40 bg-white/60 p-8 text-center text-dark-gray">
+                    Todavía no hay artículos publicados. Mientras tanto, ¡mirá las piezas nuevas!
+                </p>
+            ) : (
+                <div className="mt-8 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+                    {articles.map((article, index) => (
+                        <Link key={article.id} href={`/blog/${article.id}`} className="group block">
+                            <div className="relative aspect-4/3 overflow-hidden rounded-3xl bg-sand shadow-[0_14px_28px_rgba(47,47,47,0.12)]">
                                 {article.portada_url ? (
                                     <img
                                         src={article.portada_url}
                                         alt={article.titulo}
-                                        className="h-48 w-full object-cover"
+                                        loading={index < 3 ? "eager" : "lazy"}
+                                        className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                                     />
                                 ) : (
-                                    <ImagePlaceholder
-                                        className="flex h-48 w-full items-center justify-center bg-zinc-100"
-                                        textClassName="text-xs text-zinc-500"
-                                    />
+                                    <span className="absolute inset-0 grid place-items-center text-5xl text-earth-brown/40">✦</span>
                                 )}
-                                <div className="p-4">
-                                    <h2 className="text-lg font-semibold group-hover:text-earth-brown">
-                                        {article.titulo}
-                                    </h2>
-                                    <p className="mt-1 text-xs text-zinc-500">
-                                        {new Date(article.created_at).toLocaleDateString("es-AR")}
-                                    </p>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                )}
-            </section>
+                            </div>
+                            <p className="mt-4 text-xs uppercase tracking-[0.14em] text-dark-gray">{formatDate(article.created_at)}</p>
+                            <h2 className="font-display mt-1 text-2xl leading-tight text-black transition group-hover:text-earth-brown">{article.titulo}</h2>
+                            <span className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-earth-brown">
+                                Leer artículo <IconArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                            </span>
+                        </Link>
+                    ))}
+                </div>
+            )}
+
+            <ShopCtaBanner className="mt-16" />
         </main>
     );
 }

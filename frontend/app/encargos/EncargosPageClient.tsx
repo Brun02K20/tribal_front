@@ -30,6 +30,12 @@ const toDateTime = (value: string) => {
   return date.toLocaleString("es-AR");
 };
 
+const encargoSteps = [
+  { title: "Contás tu idea", text: "Describí la pieza que querés." },
+  { title: "Te pasamos el presupuesto", text: "Lo ves acá mismo, en tus encargos." },
+  { title: "Pagás y la creamos", text: "Con Mercado Pago, y te la enviamos." },
+];
+
 export default function EncargosPageClient() {
   const router = useRouter();
   const {
@@ -80,13 +86,32 @@ export default function EncargosPageClient() {
 
   return (
     <ProtectedRoute>
-      <main className="app-page">
-        <section className="app-container mx-auto max-w-360 space-y-5">
-          <header>
-            <h1 className="app-title text-2xl">Gestión de encargos</h1>
-            <p className="app-subtitle mt-2">
-              Creá tu encargo con dirección de entrega y seguí su estado hasta recibir el link de pago.
-            </p>
+      <main className="mx-auto w-full max-w-360 px-4 pt-6 md:px-6 md:pt-10">
+        <section className="space-y-6">
+          <header className="app-campaign p-7 sm:p-10">
+            <div className="relative z-10 grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+              <div>
+                <p className="app-kicker">Encargos personalizados</p>
+                <h1 className="app-display mt-2 text-4xl md:text-5xl">Tu pieza, a tu manera</h1>
+                <p className="mt-3 max-w-lg text-cream/85">
+                  Contanos qué te imaginás: piedra, colores, estilo o para quién es. La creamos a mano, solo para vos.
+                </p>
+                <a href="#nuevo-encargo" className="app-btn-cta mt-6 text-base">
+                  Contar mi idea
+                </a>
+              </div>
+              <ol className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                {encargoSteps.map((step, index) => (
+                  <li key={step.title} className="flex items-start gap-3 rounded-2xl bg-white/10 p-4">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-mustard font-bold text-black">{index + 1}</span>
+                    <span>
+                      <span className="block font-semibold text-cream">{step.title}</span>
+                      <span className="block text-sm text-cream/75">{step.text}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
           </header>
 
           {loading && <LoadingState message="Cargando encargos..." />}
@@ -97,7 +122,7 @@ export default function EncargosPageClient() {
             <>
               <section className="app-panel">
                 <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Dirección de entrega</h2>
+                  <h2 className="app-display text-2xl">¿Dónde lo recibís?</h2>
                   <button type="button" className="app-btn-secondary text-sm" onClick={openAddressModal}>
                     Nueva dirección
                   </button>
@@ -130,31 +155,35 @@ export default function EncargosPageClient() {
                 )}
               </section>
 
-              <form className="app-panel grid gap-3" onSubmit={handleCreateEncargo}>
-                <h2 className="app-title text-xl">Nuevo encargo</h2>
+              <form id="nuevo-encargo" className="app-panel grid scroll-mt-28 gap-3 rounded-3xl! p-5! md:p-6!" onSubmit={handleCreateEncargo}>
+                <h2 className="app-display text-2xl">Contanos tu idea</h2>
                 <label className="grid gap-1 text-sm text-dark-gray">
-                  Descripción del encargo
+                  ¿Cómo te imaginás tu pieza?
                   <textarea
                     className="app-input"
-                    rows={4}
+                    rows={5}
                     value={descripcion}
                     onChange={(event) => setDescripcion(event.target.value)}
+                    placeholder="Ej: Un collar con piedra amatista, engarzado en alambre de cobre, cadena de 45 cm. Es para regalar."
                     required
                   />
                 </label>
-                <div>
+                <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="submit"
-                    className="app-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+                    className="app-btn-cta"
                     disabled={creatingEncargo || !selectedAddressId}
                   >
-                    {creatingEncargo ? "Creando..." : "Crear encargo"}
+                    {creatingEncargo ? "Enviando..." : "Enviar mi encargo"}
                   </button>
+                  {!selectedAddressId && (
+                    <p className="text-xs text-terracotta">Elegí o cargá una dirección de entrega para enviarlo.</p>
+                  )}
                 </div>
               </form>
 
               <section className="app-panel overflow-x-auto">
-                <h2 className="app-title mb-3 text-xl">Listado de encargos</h2>
+                <h2 className="app-display mb-3 text-2xl">Mis encargos</h2>
                 <table className="min-w-195 text-left text-sm">
                   <thead>
                     <tr className="border-b border-line">

@@ -23,8 +23,12 @@ export type CartContextType = {
   items: CartItem[];
   totalItems: number;
   subtotal: number;
-  addItem: (item: AddCartItemInput) => void;
+  /** Devuelve cuántas unidades se sumaron realmente (0 si ya estaba al tope de stock). */
+  addItem: (item: AddCartItemInput) => number;
   removeItem: (id: number) => void;
   updateQuantity: (id: number, quantity: number) => void;
   clearCart: () => void;
+  isCartOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
 };

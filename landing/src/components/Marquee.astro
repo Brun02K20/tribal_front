@@ -1,0 +1,19 @@
+---
+const messages = [
+	'Envíos a todo el país',
+	'Piezas únicas hechas a mano',
+	'Pagá seguro con Mercado Pago',
+	'Encargá tu diseño personalizado',
+	'Piedras naturales, resina y alambre',
+];
+const loop = [...messages, ...messages];
+---
+
+<div class="marquee" role="region" aria-label="Novedades de la tienda">
+	<p class="sr-only">{messages.join('. ')}</p>
+	<div class="marquee-track" aria-hidden="true">
+		{loop.map((message) => (
+			<span>{message}<b>✦</b></span>
+		))}
+	</div>
+</div>

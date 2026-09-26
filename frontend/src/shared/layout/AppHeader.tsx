@@ -3,16 +3,25 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/shared/providers/AuthContext";
+import { useCart } from "@/shared/providers/CartContext";
 import InstagramButton from "@/shared/ui/InstagramButton";
+import { getEncargosHref, LANDING_URL } from "@/shared/lib/brand";
+import { IconBag, IconClose, IconMenu, IconUser } from "@/shared/ui/Icons";
 
-const LANDING_URL = "https://landing.tribaltrend.com.ar";
+type NavItem = {
+  href: string;
+  label: string;
+  external?: boolean;
+};
 
 export default function AppHeader() {
   const { isAuthenticated, user, loading, logout } = useAuth();
+  const { totalItems, openCart } = useCart();
   const router = useRouter();
+  const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -21,6 +30,18 @@ export default function AppHeader() {
   const desktopTriggerRef = useRef<HTMLButtonElement | null>(null);
   const desktopMenuRef = useRef<HTMLDivElement | null>(null);
   const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const isAdmin = isAuthenticated && user?.id_rol === 1;
+  const isClient = isAuthenticated && user?.id_rol === 2;
+
+  const navItems: NavItem[] = [
+    { href: "/products", label: "Tienda" },
+    ...(!isAdmin ? [{ href: getEncargosHref(isAuthenticated), label: "Encargos" }] : []),
+    ...(isClient ? [{ href: "/mis-pedidos", label: "Mis pedidos" }] : []),
+    ...(isAdmin ? [{ href: "/dashboard", label: "Dashboard" }, { href: "/dashboard/chat", label: "Chat" }] : []),
+    { href: "/blog", label: "Blog" },
+    { href: LANDING_URL, label: "Conocenos", external: true },
+  ];
 
   useEffect(() => {
     setIsMounted(true);
@@ -112,21 +133,62 @@ export default function AppHeader() {
     setIsUserMenuOpen(false);
   };
 
+  const isActive = (href: string) => href === "/products" ? pathname?.startsWith("/products") : pathname === href;
+
+  const renderNavLink = (item: NavItem, className: string) => (
+    <Link
+      key={item.label}
+      href={item.href}
+      className={className}
+      data-active={isActive(item.href)}
+      onClick={closeMenus}
+      {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+    >
+      {item.label}
+    </Link>
+  );
+
+  const userMenuItems = (
+    <>
+      <Link
+        href="/AccounConfig"
+        className="block cursor-pointer px-4 py-2 text-sm text-black hover:bg-earth-brown hover:text-cream"
+        onClick={closeMenus}
+        tabIndex={isUserMenuOpen ? 0 : -1}
+      >
+        Configuración de cuenta
+      </Link>
+      <button
+        type="button"
+        className="block w-full cursor-pointer px-4 py-2 text-left text-sm text-black hover:bg-earth-brown hover:text-cream"
+        onClick={handleLogout}
+        tabIndex={isUserMenuOpen ? 0 : -1}
+      >
+        Cerrar sesión
+      </button>
+    </>
+  );
+
   const renderUserDropdown = ({ mobile = false }: { mobile?: boolean }) => {
     if (loading) {
       return <span className="text-sm text-dark-gray">Cargando...</span>;
     }
 
     if (!isAuthenticated) {
-      return (
-        <div className={`flex ${mobile ? "flex-col gap-2" : "items-center gap-4"}`}>
-          <Link href="/login" className="app-nav-link cursor-pointer" onClick={closeMenus}>
-            Iniciar sesión
+      return mobile ? (
+        <div className="grid grid-cols-2 gap-2">
+          <Link href="/login" className="app-btn-outline text-sm" onClick={closeMenus}>
+            Ingresar
           </Link>
-          <Link href="/register" className="app-nav-link cursor-pointer" onClick={closeMenus}>
-            Registrarse
+          <Link href="/register" className="app-btn-cta text-sm" onClick={closeMenus}>
+            Crear cuenta
           </Link>
         </div>
+      ) : (
+        <Link href="/login" className="app-nav-link flex items-center gap-2 text-sm" onClick={closeMenus}>
+          <IconUser className="h-5 w-5" />
+          Ingresar
+        </Link>
       );
     }
 
@@ -135,11 +197,12 @@ export default function AppHeader() {
         <div className="w-full" ref={mobileMenuRef}>
           <button
             type="button"
-            className="app-nav-link cursor-pointer"
+            className="app-nav-link flex cursor-pointer items-center gap-2"
             onClick={() => setIsUserMenuOpen((prev) => !prev)}
             aria-expanded={isUserMenuOpen}
             aria-haspopup="menu"
           >
+            <IconUser className="h-5 w-5" />
             {user?.nombre ?? "Usuario"}
           </button>
 
@@ -148,22 +211,7 @@ export default function AppHeader() {
             data-open={isUserMenuOpen}
             aria-hidden={!isUserMenuOpen}
           >
-            <Link
-              href="/AccounConfig"
-              className="block cursor-pointer px-4 py-2 text-sm text-black hover:bg-earth-brown hover:text-cream"
-              onClick={closeMenus}
-              tabIndex={isUserMenuOpen ? 0 : -1}
-            >
-              Configuración de cuenta
-            </Link>
-            <button
-              type="button"
-              className="block w-full cursor-pointer px-4 py-2 text-left text-sm text-black hover:bg-earth-brown hover:text-cream"
-              onClick={handleLogout}
-              tabIndex={isUserMenuOpen ? 0 : -1}
-            >
-              Cerrar sesión
-            </button>
+            {userMenuItems}
           </div>
         </div>
       );
@@ -174,7 +222,7 @@ export default function AppHeader() {
         <button
           ref={desktopTriggerRef}
           type="button"
-          className="app-nav-link cursor-pointer"
+          className="app-nav-link flex cursor-pointer items-center gap-2 text-sm"
           onClick={() => {
             setIsUserMenuOpen((prev) => !prev);
             updateDesktopMenuPosition();
@@ -182,7 +230,8 @@ export default function AppHeader() {
           aria-expanded={isUserMenuOpen}
           aria-haspopup="menu"
         >
-          {user?.nombre ?? "Usuario"}
+          <IconUser className="h-5 w-5" />
+          <span className="max-w-32 truncate">{user?.nombre ?? "Usuario"}</span>
         </button>
 
         {isMounted && isDesktopViewport && createPortal(
@@ -199,22 +248,7 @@ export default function AppHeader() {
               zIndex: 9999,
             }}
           >
-            <Link
-              href="/AccounConfig"
-              className="block cursor-pointer px-4 py-2 text-sm text-black hover:bg-earth-brown hover:text-cream"
-              onClick={closeMenus}
-              tabIndex={isUserMenuOpen ? 0 : -1}
-            >
-              Configuración de cuenta
-            </Link>
-            <button
-              type="button"
-              className="block w-full cursor-pointer px-4 py-2 text-left text-sm text-black hover:bg-earth-brown hover:text-cream"
-              onClick={handleLogout}
-              tabIndex={isUserMenuOpen ? 0 : -1}
-            >
-              Cerrar sesión
-            </button>
+            {userMenuItems}
           </div>,
           document.body,
         )}
@@ -223,130 +257,107 @@ export default function AppHeader() {
   };
 
   return (
-    <header className="app-header-shared relative z-110 border-b border-earth-brown/70 bg-transparent">
-      <div className="relative z-10 mx-auto w-full max-w-360 px-4 py-2">
-        <div className="mb-3 flex justify-center md:hidden">
-          <Link href="/products" className="flex items-center gap-2">
+    <header className="app-header-shared sticky top-0 z-110 border-b border-earth-brown/40">
+      <div className="relative z-10 mx-auto grid h-16 w-full max-w-360 grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 md:h-20 md:px-5">
+        <div className="flex items-center">
+          <div className="md:hidden">
+            <button
+              type="button"
+              className="app-icon-btn"
+              onClick={() => {
+                setIsMobileOpen((prev) => !prev);
+                setIsUserMenuOpen(false);
+              }}
+              aria-label={isMobileOpen ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={isMobileOpen}
+              aria-controls="mobile-nav"
+            >
+              {isMobileOpen ? <IconClose className="h-6 w-6" /> : <IconMenu className="h-6 w-6" />}
+            </button>
+          </div>
+
+          <Link href="/products" className="hidden items-center gap-3 md:flex" aria-label="Tribal Trend, ir a la tienda">
             <Image
               src="/icons/logo_tribal_trnasparente.png"
               alt="Logo Tribal Trend"
-              width={96}
-              height={96}
-              className="h-24 w-24 object-contain"
+              width={64}
+              height={64}
+              className="h-14 w-14 object-contain"
               priority
             />
+            <span className="app-display text-2xl">Tribal Trend</span>
           </Link>
         </div>
 
-        <div className="flex w-full items-center justify-between">
-          <Link href="/products" className="hidden items-center gap-3 md:flex">
+        <div className="flex justify-center">
+          <Link href="/products" className="md:hidden" aria-label="Tribal Trend, ir a la tienda">
             <Image
               src="/icons/logo_tribal_trnasparente.png"
               alt="Logo Tribal Trend"
-              width={84}
-              height={84}
-              className="h-18 w-18 object-contain"
+              width={52}
+              height={52}
+              className="h-12 w-12 object-contain"
               priority
             />
-            <span className="text-xl font-semibold tracking-wide text-black">Tribal Trend</span>
           </Link>
 
-          <button
-            type="button"
-            className="app-btn-secondary cursor-pointer md:hidden"
-            onClick={() => {
-              setIsMobileOpen((prev) => !prev);
-              setIsUserMenuOpen(false);
-            }}
-          >
-            Menú
-          </button>
-
-          <nav className="hidden items-center gap-6 md:flex">
-            <Link href="/products" className="app-nav-link cursor-pointer">
-              Productos
-            </Link>
-            <Link href="/blog" className="app-nav-link cursor-pointer">
-                Blog
-            </Link>
-            {isAuthenticated && user?.id_rol === 2 && (
-              <Link href="/encargos" className="app-nav-link cursor-pointer">
-                Encargos
-              </Link>
+          <nav className="hidden items-center gap-7 md:flex" aria-label="Navegación principal">
+            {navItems.map((item) =>
+              renderNavLink(
+                item,
+                "app-nav-link relative py-1 text-[0.95rem] after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-left after:scale-x-0 after:bg-earth-brown after:transition-transform hover:after:scale-x-100 data-[active=true]:after:scale-x-100",
+              ),
             )}
-            {isAuthenticated && user?.id_rol === 2 && (
-              <Link href="/mis-pedidos" className="app-nav-link cursor-pointer">
-                Mis pedidos
-              </Link>
-            )}
-            {isAuthenticated && user?.id_rol === 1 && (
-              <Link href="/dashboard" className="app-nav-link cursor-pointer">
-                Dashboard
-              </Link>
-            )}
-            {isAuthenticated && user?.id_rol === 1 && (
-              <Link href="/dashboard/chat" className="app-nav-link cursor-pointer">
-                Chat
-              </Link>
-            )}
-            <Link
-              href={LANDING_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="app-nav-link cursor-pointer"
-            >
-              Conocenos
-            </Link>
-            {renderUserDropdown({ mobile: false })}
-            <InstagramButton />
           </nav>
+        </div>
+
+        <div className="flex items-center justify-end gap-1 md:gap-2">
+          <div className="hidden md:block">{renderUserDropdown({ mobile: false })}</div>
+          <div className="hidden md:block">
+            <InstagramButton className="app-icon-btn" />
+          </div>
+          {!isAdmin && (
+            <button
+              type="button"
+              className="app-icon-btn"
+              onClick={openCart}
+              aria-label={`Abrir carrito, ${totalItems} ${totalItems === 1 ? "pieza" : "piezas"}`}
+            >
+              <IconBag className="h-6 w-6" />
+              {totalItems > 0 && (
+                // La key reinicia la animación de "salto" cada vez que cambia la cantidad.
+                <span key={totalItems} className="app-count-badge" data-bump="true">
+                  {totalItems}
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
       <nav
-        className="app-collapsible relative z-10 flex flex-col gap-3 border-t border-earth-brown/70 bg-transparent px-4 py-3 md:hidden"
+        id="mobile-nav"
+        className="app-collapsible relative z-10 border-t border-earth-brown/30 md:hidden"
         data-open={isMobileOpen}
         aria-hidden={!isMobileOpen}
+        aria-label="Navegación principal"
       >
-          <Link href="/products" className="app-nav-link cursor-pointer" onClick={closeMenus}>
-            Productos
-          </Link>
-          <Link href="/blog" className="app-nav-link cursor-pointer" onClick={closeMenus}>
-              Blog
-          </Link>
-          {isAuthenticated && user?.id_rol === 2 && (
-            <Link href="/encargos" className="app-nav-link cursor-pointer" onClick={closeMenus}>
-              Encargos
-            </Link>
+        <div className="flex flex-col gap-1 px-5 py-4">
+          {navItems.map((item) =>
+            renderNavLink(
+              item,
+              "font-display border-b border-line/70 py-2.5 text-xl text-black data-[active=true]:text-earth-brown",
+            ),
           )}
-          {isAuthenticated && user?.id_rol === 2 && (
-            <Link href="/mis-pedidos" className="app-nav-link cursor-pointer" onClick={closeMenus}>
-              Mis pedidos
-            </Link>
-          )}
-          {isAuthenticated && user?.id_rol === 1 && (
-            <Link href="/dashboard" className="app-nav-link cursor-pointer" onClick={closeMenus}>
-              Dashboard
-            </Link>
-          )}
-          {isAuthenticated && user?.id_rol === 1 && (
-            <Link href="/dashboard/chat" className="app-nav-link cursor-pointer" onClick={closeMenus}>
-              Chat
-            </Link>
-          )}
-          <Link
-            href={LANDING_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="app-nav-link cursor-pointer"
-            onClick={closeMenus}
-          >
-            Conocenos
-          </Link>
-          {renderUserDropdown({ mobile: true })}
-          <InstagramButton onClick={closeMenus} />
+          <div className="mt-4 space-y-4">
+            {renderUserDropdown({ mobile: true })}
+            <div className="flex items-center gap-3 text-sm text-dark-gray">
+              <InstagramButton onClick={closeMenus} />
+              Seguinos en Instagram
+            </div>
+          </div>
+        </div>
       </nav>
     </header>
   );
 }
-

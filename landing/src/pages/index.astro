@@ -1,17 +1,58 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Marquee from '../components/Marquee.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { ENCARGOS_URL, SHOP_URL, formatPrice, getShowcaseProducts } from '../lib/store';
+
+const products = await getShowcaseProducts(8);
+const heroProducts = products.slice(0, 3);
+const hasHeroPhotos = heroProducts.length === 3;
+
+const icons = {
+	truck: '<path d="M3 6.5h11v9H3z"/><path d="M14 9.5h3.6l3.4 3.4v2.6h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
+	lock: '<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2"/>',
+	hand: '<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4a1.5 1.5 0 0 1 3 0v6.5"/><path d="M14 10.5V5.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.6a6 6 0 0 1-4.6-2.2L2.6 15.9a1.5 1.5 0 0 1 2.2-2L8 16.5"/>',
+	gem: '<path d="M6.5 4h11l3.5 5-9 11-9-11 3.5-5Z"/><path d="M3 9h18M9.5 4 8 9l4 11 4-11-1.5-5"/>',
+};
+
+const benefits = [
+	{ icon: icons.gem, title: 'Piezas únicas', text: 'Diseños irrepetibles: cuando se van, no vuelven.' },
+	{ icon: icons.hand, title: 'Hecho a mano', text: 'Piedras naturales, resina y alambre, trabajados uno a uno.' },
+	{ icon: icons.truck, title: 'Envíos a todo el país', text: 'Con Correo Argentino, a domicilio o sucursal.' },
+	{ icon: icons.lock, title: 'Pago seguro', text: 'Pagás con Mercado Pago, sin vueltas.' },
+];
+
+const testimonials = [
+	{ quote: 'Compre decoraciones para mi casa y llegaron tal como se veian en la tienda. Hermoso todo.', author: 'Mariana, Cordoba' },
+	{ quote: 'Pedi un regalo artesanal de ultimo momento y la atencion fue excelente. Volvere a comprar.', author: 'Lucas, Buenos Aires' },
+	{ quote: 'La tienda tiene productos originales y faciles de encontrar. Muy buena experiencia de compra.', author: 'Sofia, Rosario' },
+];
+
+const heroSlots = ['slot-main', 'slot-round', 'slot-small'];
 ---
 
 <Layout
-	title="Tribal Trend | Tu Tienda Online Siempre Disponible"
-	description="Tienda de arte, decoraciones y artesanias. Compra en Cordoba y toda Argentina con envios y atencion personalizada."
-	keywords="arte, decoraciones, artesanias, tienda de artesanias, tienda de arte, cordoba, argentina"
+	title="Tribal Trend | Joyería artesanal única, hecha a mano"
+	description="Collares, pulseras, anillos y aros artesanales con piedras naturales. Piezas únicas hechas a mano en Argentina, con envíos a todo el país y pago seguro."
+	keywords="joyería artesanal, bijouterie artesanal, collares artesanales, pulseras artesanales, piedras naturales, regalos originales, cordoba, argentina"
 	canonicalPath="/"
 >
-	<main class="app-shell">
-		<header class="hero app-panel">
-			<nav class="nav">
-				<a class="brand" href="#inicio">Tribal Trend</a>
+	<Marquee />
+
+	<header class="topbar">
+		<nav class="nav" aria-label="Navegación principal">
+			<a class="brand" href="#inicio">
+				<img src="/icons/logo_tribal_trnasparente.png" alt="" width="52" height="52" />
+				Tribal Trend
+			</a>
+			<div class="nav-links">
+				<a href="#destacados">Piezas</a>
+				<a href="#beneficios">Por qué elegirnos</a>
+				<a href="/preguntas-frecuentes">FAQ</a>
+				<a href="#contacto">Contacto</a>
+			</div>
+			<div class="nav-actions">
+				<a class="app-btn-cta nav-cta" href={SHOP_URL}>Comprar ahora</a>
 				<button
 					id="landingMenuButton"
 					type="button"
@@ -21,38 +62,67 @@ import Layout from '../layouts/Layout.astro';
 				>
 					Menú
 				</button>
-				<div class="nav-links">
-					<a href="#beneficios">Beneficios</a>
-					<a href="#testimonios">Testimonios</a>
-					<a href="/preguntas-frecuentes">FAQ</a>
-					<a class="app-btn-secondary" href="/tienda" target="_blank" rel="noopener noreferrer">Ir a la tienda</a>
+			</div>
+		</nav>
+
+		<nav id="landingMobileMenu" class="mobile-nav app-collapsible" data-open="false" aria-hidden="true" aria-label="Navegación móvil">
+			<a href="#destacados">Piezas</a>
+			<a href="#beneficios">Por qué elegirnos</a>
+			<a href="/preguntas-frecuentes">Preguntas frecuentes</a>
+			<a href="#contacto">Contacto</a>
+			<a class="app-btn-cta" href={SHOP_URL}>Ir a la tienda</a>
+		</nav>
+	</header>
+
+	<main class="app-shell">
+		<section id="inicio" class="hero">
+			<div class="hero-copy">
+				<p class="kicker">Joyería artesanal · Hecha a mano en Argentina</p>
+				<h1>Joyas únicas, <span>hechas a mano</span> para vos</h1>
+				<p class="section-lead">
+					Collares, pulseras, anillos y aros con piedras naturales. Cada pieza es irrepetible: cuando se va, no vuelve.
+				</p>
+				<div class="hero-cta">
+					<a class="app-btn-cta" href={SHOP_URL}>Comprar ahora →</a>
+					<a class="app-btn-outline" href={ENCARGOS_URL}>Encargá tu diseño</a>
 				</div>
-			</nav>
+				<ul class="trust">
+					{benefits.slice(1).map((benefit) => (
+						<li>
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={benefit.icon}></svg>
+							{benefit.title}
+						</li>
+					))}
+				</ul>
+			</div>
 
-			<nav id="landingMobileMenu" class="mobile-nav app-collapsible" data-open="false" aria-hidden="true">
-				<a href="#beneficios">Beneficios</a>
-				<a href="#testimonios">Testimonios</a>
-				<a href="/preguntas-frecuentes">FAQ</a>
-				<a class="app-btn-secondary" href="/tienda" target="_blank" rel="noopener noreferrer">Ir a la tienda</a>
-			</nav>
-
-			<section id="inicio" class="hero-content">
-				<div class="hero-copy">
-					<p class="eyebrow">Tienda online de artesanias en Argentina</p>
-					<h1>Compra regalos originales y decoracion artesanal con confianza</h1>
-					<p class="section-lead">
-						Descubri piezas de arte, decoraciones y artesanias para tu hogar o para regalar.
-						Elegi tus favoritos y recibilos en Cordoba y toda Argentina.
-					</p>
-					<div class="hero-cta">
-						<a class="app-btn-primary" href="/tienda">Comprar ahora</a>
-						<a class="app-btn-secondary" href="/preguntas-frecuentes">Ver preguntas frecuentes</a>
+			<div class="hero-visual">
+				{hasHeroPhotos ? (
+					<div class="collage">
+						{heroProducts.map((product, index) => (
+							<div class={`slot ${heroSlots[index]}`}>
+								<a class={index === 1 ? 'round-frame' : 'arch'} href={product.href} aria-label={`Ver ${product.nombre}`}>
+									<img src={product.image} alt={`${product.nombre} artesanal`} loading="eager" decoding="async" fetchpriority={index === 0 ? 'high' : 'auto'} />
+								</a>
+								<a class="price-tag" href={product.href} tabindex="-1">
+									<span class="price-name">{product.nombre}</span>
+									<strong>{formatPrice(product.price)}</strong>
+								</a>
+							</div>
+						))}
+						<div class="stamp" aria-hidden="true">
+							<svg viewBox="0 0 100 100">
+								<defs><path id="stamp-circle" d="M50,50 m-36,0 a36,36 0 1,1 72,0 a36,36 0 1,1 -72,0" /></defs>
+								<circle cx="50" cy="50" r="49" fill="#a8492a" />
+								<text font-size="8.6" fill="#f8f3e7"><textPath href="#stamp-circle" textLength="224" lengthAdjust="spacing">HECHO A MANO ✦ PIEZAS ÚNICAS ✦</textPath></text>
+							</svg>
+							<span>✦</span>
+						</div>
 					</div>
-				</div>
-				<div class="hero-logo-wrap">
+				) : (
 					<img
 						src="/icons/logo_tribal_trnasparente.png"
-						alt="Tribal Trend tienda online de artesanias y regalos originales"
+						alt="Tribal Trend, joyería artesanal hecha a mano"
 						class="hero-logo"
 						width="720"
 						height="720"
@@ -60,76 +130,114 @@ import Layout from '../layouts/Layout.astro';
 						loading="eager"
 						decoding="async"
 					/>
-				</div>
-			</section>
-		</header>
-
-		<section id="beneficios" class="section">
-			<h2 class="section-title">Por que elegir nuestra tienda online de artesanias</h2>
-			<div class="benefits-grid">
-				<article class="app-panel benefit-card">
-					<h3>Productos hechos a mano</h3>
-					<p>Arte y artesanias con estilo propio para decorar espacios y sorprender con regalos unicos.</p>
-				</article>
-				<article class="app-panel benefit-card">
-					<h3>Compra simple y segura</h3>
-					<p>Elegi tus productos, realizá tu pedido y segui todo el proceso de forma clara y rapida.</p>
-				</article>
-				<article class="app-panel benefit-card">
-					<h3>Envios en Cordoba y Argentina</h3>
-					<p>Recibi tus compras donde estes, con atencion cercana para cualquier duda sobre tu pedido.</p>
-				</article>
+				)}
 			</div>
 		</section>
 
+		{products.length > 0 && (
+			<section id="destacados" class="section">
+				<div class="section-head">
+					<div>
+						<p class="kicker">Recién salidas del taller</p>
+						<h2 class="section-title">Elegí la tuya antes que nadie</h2>
+					</div>
+					<a class="see-all" href={SHOP_URL}>Ver toda la colección →</a>
+				</div>
+				<div class="pieces">
+					{products.map((product) => (
+						<a class="piece" href={product.href}>
+							<span class="piece-media">
+								<img src={product.image} alt={`${product.nombre} artesanal`} loading="lazy" decoding="async" />
+								{product.isUnique && <span class="badge">Pieza única</span>}
+								<span class="piece-cta">Ver pieza →</span>
+							</span>
+							<span class="piece-name">{product.nombre}</span>
+							<span class="piece-price">
+								{product.isFromPrice && <small>Desde</small>}
+								{formatPrice(product.price)}
+							</span>
+						</a>
+					))}
+				</div>
+				<div class="center">
+					<a class="app-btn-cta" href={SHOP_URL}>Ver toda la colección →</a>
+				</div>
+			</section>
+		)}
+
+		<section id="beneficios" class="section">
+			<ul class="benefits">
+				{benefits.map((benefit) => (
+					<li>
+						<span class="benefit-icon">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={benefit.icon}></svg>
+						</span>
+						<h3>{benefit.title}</h3>
+						<p>{benefit.text}</p>
+					</li>
+				))}
+			</ul>
+		</section>
+
+		<section class="section campaign encargos">
+			<div>
+				<p class="kicker">Encargos personalizados</p>
+				<h2 class="section-title">Tu idea, convertida en una joya</h2>
+				<p>Elegís la piedra, los colores y el estilo. La creamos a mano, solo para vos.</p>
+			</div>
+			<a class="app-btn-cta" href={ENCARGOS_URL}>Encargar mi pieza →</a>
+		</section>
+
 		<section id="testimonios" class="section">
-			<h2 class="section-title">Opiniones reales de clientes sobre Tribal Trend</h2>
+			<p class="kicker">Opiniones</p>
+			<h2 class="section-title">Lo que dicen de Tribal Trend</h2>
 			<div class="testimonials-grid">
-				<blockquote class="app-panel testimonial">
-					<p>"Compre decoraciones para mi casa y llegaron tal como se veian en la tienda. Hermoso todo."</p>
-					<footer>- Mariana, Cordoba</footer>
-				</blockquote>
-				<blockquote class="app-panel testimonial">
-					<p>"Pedi un regalo artesanal de ultimo momento y la atencion fue excelente. Volvere a comprar."</p>
-					<footer>- Lucas, Buenos Aires</footer>
-				</blockquote>
-				<blockquote class="app-panel testimonial">
-					<p>"La tienda tiene productos originales y faciles de encontrar. Muy buena experiencia de compra."</p>
-					<footer>- Sofia, Rosario</footer>
-				</blockquote>
+				{testimonials.map((testimonial) => (
+					<blockquote class="app-panel testimonial">
+						<p class="stars" aria-hidden="true">★★★★★</p>
+						<p>"{testimonial.quote}"</p>
+						<footer>- {testimonial.author}</footer>
+					</blockquote>
+				))}
 			</div>
 		</section>
 
 		<section id="contacto" class="section contact-section app-panel">
 			<div class="contact-copy">
-				<h2 class="section-title">Tenes dudas sobre un producto o envio</h2>
+				<p class="kicker">¿Dudas?</p>
+				<h2 class="section-title">Te ayudamos a elegir</h2>
 				<p class="section-lead">
-					Completá el formulario y te respondemos para ayudarte con tu compra en la tienda.
+					Escribinos por una pieza, un envío o un encargo y te respondemos a la brevedad.
 				</p>
+				<a class="app-btn-outline contact-shop" href={SHOP_URL}>O mirá la tienda →</a>
 			</div>
 
 			<form id="contactForm" class="contact-form">
 				<label>
 					Nombre
-					<input class="app-input" type="text" name="nombre" required />
+					<input class="app-input" type="text" name="nombre" autocomplete="name" required />
 				</label>
 				<label>
 					Email
-					<input class="app-input" type="email" name="email" required />
+					<input class="app-input" type="email" name="email" autocomplete="email" required />
 				</label>
 				<label>
-					Telefono
-					<input class="app-input" type="text" name="telefono" />
+					Teléfono <small>(opcional)</small>
+					<input class="app-input" type="tel" name="telefono" autocomplete="tel" />
 				</label>
 				<label>
 					Mensaje
-					<textarea class="app-input" name="mensaje" rows="5" required></textarea>
+					<textarea class="app-input" name="mensaje" rows="4" required></textarea>
 				</label>
-				<button class="app-btn-primary" type="submit">Enviar consulta</button>
+				<button class="app-btn-cta" type="submit">Enviar consulta</button>
 				<p id="formStatus" class="form-status" aria-live="polite"></p>
 			</form>
 		</section>
 	</main>
+
+	<SiteFooter />
+
+	<a id="mobileCta" class="app-btn-cta mobile-cta" href={SHOP_URL} aria-hidden="true" tabindex="-1">Comprar ahora →</a>
 
 	<script>
 		const mobileMenu = document.getElementById('landingMobileMenu');
@@ -158,6 +266,20 @@ import Layout from '../layouts/Layout.astro';
 					closeMobileMenu();
 				}
 			});
+		}
+
+		// El CTA fijo de mobile aparece recién cuando los botones del hero quedan fuera de pantalla.
+		const mobileCta = document.getElementById('mobileCta');
+		const heroCta = document.querySelector('.hero-cta');
+		if (mobileCta instanceof HTMLElement && heroCta instanceof HTMLElement) {
+			const syncMobileCta = () => {
+				const visible = heroCta.getBoundingClientRect().bottom < 0;
+				mobileCta.classList.toggle('is-visible', visible);
+				mobileCta.setAttribute('aria-hidden', visible ? 'false' : 'true');
+				mobileCta.tabIndex = visible ? 0 : -1;
+			};
+			syncMobileCta();
+			window.addEventListener('scroll', syncMobileCta, { passive: true });
 		}
 
 		const form = document.getElementById('contactForm');
@@ -210,8 +332,13 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <style>
-	.hero {
-		padding: 1.1rem;
+	.topbar {
+		backdrop-filter: blur(10px);
+		background: rgba(248, 243, 231, 0.9);
+		border-bottom: 1px solid rgba(122, 74, 43, 0.35);
+		position: sticky;
+		top: 0;
+		z-index: 50;
 	}
 
 	.nav {
@@ -219,19 +346,44 @@ import Layout from '../layouts/Layout.astro';
 		display: flex;
 		gap: 1rem;
 		justify-content: space-between;
+		margin: 0 auto;
+		max-width: 1200px;
+		padding: 0.6rem 1.25rem;
 	}
 
 	.brand {
+		align-items: center;
 		color: var(--color-black);
+		display: inline-flex;
 		font-family: 'MedievalSharp', serif;
-		font-size: 1.3rem;
+		font-size: 1.4rem;
+		gap: 0.6rem;
+	}
+
+	.brand img {
+		height: 52px;
+		object-fit: contain;
+		width: 52px;
 	}
 
 	.nav-links {
 		align-items: center;
 		display: flex;
-		flex-wrap: wrap;
-		gap: 0.85rem;
+		gap: 1.6rem;
+	}
+
+	.nav-links a:hover {
+		color: var(--color-earth-brown);
+	}
+
+	.nav-actions {
+		align-items: center;
+		display: flex;
+		gap: 0.6rem;
+	}
+
+	.nav-cta {
+		padding: 0.6rem 1.2rem;
 	}
 
 	.nav-toggle {
@@ -239,19 +391,21 @@ import Layout from '../layouts/Layout.astro';
 	}
 
 	.mobile-nav {
+		background: rgba(248, 243, 231, 0.97);
 		display: none;
-		gap: 0.7rem;
-		margin-top: 0.7rem;
-		padding: 0.7rem;
-		border: 1px solid var(--color-line);
-		border-radius: 10px;
-		background: rgba(255, 255, 255, 0.86);
+		gap: 0.2rem;
+		padding: 0 1.25rem;
 	}
 
-	.mobile-nav a {
-		align-items: center;
-		display: inline-flex;
-		width: fit-content;
+	.mobile-nav a:not(.app-btn-cta) {
+		border-bottom: 1px solid var(--color-line);
+		font-family: 'MedievalSharp', serif;
+		font-size: 1.25rem;
+		padding: 0.7rem 0;
+	}
+
+	.mobile-nav .app-btn-cta {
+		margin: 0.9rem 0 1.1rem;
 	}
 
 	.app-collapsible {
@@ -263,58 +417,345 @@ import Layout from '../layouts/Layout.astro';
 	}
 
 	.app-collapsible[data-open='true'] {
-		max-height: 420px;
+		max-height: 460px;
 		opacity: 1;
 		pointer-events: auto;
 	}
 
-	.hero-content {
+	.hero {
 		align-items: center;
 		display: grid;
-		gap: 1rem;
-		grid-template-columns: 1.2fr 0.8fr;
-		margin-top: 1rem;
-	}
-
-	.eyebrow {
-		color: var(--color-earth-brown);
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
+		gap: 2.5rem;
+		grid-template-columns: 1fr 1.05fr;
+		padding: 2.5rem 0 1.5rem;
 	}
 
 	h1 {
-		font-size: clamp(2rem, 4vw, 3.2rem);
-		margin-bottom: 0.7rem;
-		margin-top: 0.4rem;
+		font-size: clamp(2.3rem, 5vw, 4rem);
+		line-height: 1.06;
+		margin: 0.7rem 0 1rem;
+	}
+
+	h1 span {
+		color: var(--color-terracotta);
 	}
 
 	.hero-cta {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.7rem;
-		margin-top: 1rem;
-	}
-
-	.hero-logo-wrap {
-		align-items: center;
-		display: flex;
-		justify-content: center;
-		min-height: 260px;
-	}
-
-	.hero-logo {
-		animation: float-in 0.8s ease-out;
-		width: min(100%, 360px);
-		height: auto;
-		aspect-ratio: 1 / 1;
-		object-fit: contain;
-	}
-
-	.section {
+		gap: 0.75rem;
 		margin-top: 1.6rem;
 	}
 
-	.benefits-grid,
+	.trust {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem 1.25rem;
+		list-style: none;
+		margin: 1.6rem 0 0;
+		padding: 0;
+	}
+
+	.trust li {
+		align-items: center;
+		display: inline-flex;
+		font-size: 0.9rem;
+		gap: 0.45rem;
+	}
+
+	.trust svg {
+		color: var(--color-earth-brown);
+		height: 18px;
+		width: 18px;
+	}
+
+	.hero-visual {
+		display: flex;
+		justify-content: center;
+	}
+
+	.hero-logo {
+		aspect-ratio: 1 / 1;
+		height: auto;
+		object-fit: contain;
+		width: min(100%, 360px);
+	}
+
+	.collage {
+		height: clamp(300px, 44vw, 520px);
+		max-width: 560px;
+		position: relative;
+		width: 100%;
+	}
+
+	.slot {
+		position: absolute;
+	}
+
+	.slot > a:first-child {
+		height: 100%;
+		width: 100%;
+	}
+
+	.slot-main {
+		height: 86%;
+		left: 0;
+		top: 6%;
+		width: 58%;
+	}
+
+	.slot-round {
+		aspect-ratio: 1 / 1;
+		right: 1%;
+		top: 0;
+		width: 39%;
+	}
+
+	.slot-small {
+		bottom: 1%;
+		height: 46%;
+		right: 5%;
+		width: 33%;
+	}
+
+	.price-tag {
+		align-items: center;
+		background: rgba(248, 243, 231, 0.95);
+		border: 1px solid rgba(122, 74, 43, 0.3);
+		border-radius: 999px;
+		bottom: -0.8rem;
+		box-shadow: 0 8px 18px rgba(47, 47, 47, 0.16);
+		display: inline-flex;
+		font-size: 0.8rem;
+		gap: 0.4rem;
+		left: 1rem;
+		padding: 0.35rem 0.8rem;
+		position: absolute;
+		white-space: nowrap;
+	}
+
+	.slot-round .price-tag,
+	.slot-small .price-tag {
+		left: auto;
+		right: 0;
+	}
+
+	.price-name {
+		max-width: 7rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		text-transform: capitalize;
+	}
+
+	.price-tag strong {
+		color: var(--color-terracotta);
+	}
+
+	.stamp {
+		height: clamp(84px, 9vw, 112px);
+		left: 53%;
+		pointer-events: none;
+		position: absolute;
+		top: 44%;
+		transform: translate(-50%, -50%);
+		width: clamp(84px, 9vw, 112px);
+	}
+
+	.stamp svg {
+		animation: spin 26s linear infinite;
+		filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.25));
+		height: 100%;
+		width: 100%;
+	}
+
+	.stamp span {
+		color: var(--color-mustard);
+		display: grid;
+		font-size: 1.5rem;
+		inset: 0;
+		place-items: center;
+		position: absolute;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
+	}
+
+	.section {
+		margin-top: 4rem;
+	}
+
+	.section-head {
+		align-items: end;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+		justify-content: space-between;
+	}
+
+	.see-all {
+		color: var(--color-earth-brown);
+		font-weight: 600;
+	}
+
+	.pieces {
+		display: grid;
+		gap: 2rem 1.25rem;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		margin-top: 1.5rem;
+	}
+
+	.piece {
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+	}
+
+	.piece-media {
+		aspect-ratio: 4 / 5;
+		background: var(--color-sand);
+		border-radius: 1.1rem;
+		box-shadow: 0 14px 28px rgba(47, 47, 47, 0.12);
+		display: block;
+		overflow: hidden;
+		position: relative;
+	}
+
+	.piece-media img {
+		display: block;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 0.7s ease;
+		width: 100%;
+	}
+
+	.piece:hover .piece-media img {
+		transform: scale(1.06);
+	}
+
+	.badge {
+		background: rgba(248, 243, 231, 0.94);
+		border: 1px solid rgba(122, 74, 43, 0.35);
+		border-radius: 999px;
+		color: var(--color-earth-brown);
+		font-size: 0.66rem;
+		font-weight: 700;
+		left: 0.6rem;
+		letter-spacing: 0.08em;
+		padding: 0.22rem 0.6rem;
+		position: absolute;
+		text-transform: uppercase;
+		top: 0.6rem;
+	}
+
+	.piece-cta {
+		background: rgba(17, 17, 17, 0.8);
+		border-radius: 999px;
+		bottom: 0.6rem;
+		color: var(--color-cream);
+		font-size: 0.85rem;
+		font-weight: 600;
+		left: 0.6rem;
+		opacity: 0;
+		padding: 0.6rem;
+		position: absolute;
+		right: 0.6rem;
+		text-align: center;
+		transform: translateY(110%);
+		transition: transform 0.3s ease, opacity 0.3s ease;
+	}
+
+	.piece:hover .piece-cta,
+	.piece:focus-visible .piece-cta {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	.piece-name {
+		font-size: 0.95rem;
+		margin-top: 0.4rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.piece-name::first-letter {
+		text-transform: uppercase;
+	}
+
+	.piece-price {
+		color: var(--color-black);
+		font-size: 1.15rem;
+		font-weight: 700;
+	}
+
+	.piece-price small {
+		font-size: 0.75rem;
+		font-weight: 400;
+		margin-right: 0.3rem;
+	}
+
+	.center {
+		display: flex;
+		justify-content: center;
+		margin-top: 2.25rem;
+	}
+
+	.benefits {
+		backdrop-filter: blur(4px);
+		background: rgba(255, 255, 255, 0.82);
+		border: 1px solid var(--color-line);
+		border-radius: 1.5rem;
+		box-shadow: var(--shadow-soft);
+		display: grid;
+		gap: 1.5rem;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		list-style: none;
+		margin: 0;
+		padding: clamp(1.25rem, 3vw, 2rem);
+		text-align: center;
+	}
+
+	.benefit-icon {
+		background: rgba(248, 243, 231, 0.85);
+		border: 1px solid rgba(122, 74, 43, 0.4);
+		border-radius: 999px;
+		color: var(--color-earth-brown);
+		display: inline-grid;
+		height: 3.25rem;
+		place-items: center;
+		width: 3.25rem;
+	}
+
+	.benefit-icon svg {
+		height: 24px;
+		width: 24px;
+	}
+
+	.benefits h3 {
+		font-size: 1.2rem;
+		margin: 0.6rem 0 0.25rem;
+	}
+
+	.benefits p {
+		font-size: 0.9rem;
+		opacity: 0.85;
+	}
+
+	.encargos {
+		align-items: center;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1.5rem;
+		justify-content: space-between;
+		padding: clamp(1.75rem, 4vw, 3rem);
+	}
+
+	.encargos p {
+		max-width: 520px;
+		opacity: 0.88;
+	}
+
 	.testimonials-grid {
 		display: grid;
 		gap: 0.85rem;
@@ -322,13 +763,15 @@ import Layout from '../layouts/Layout.astro';
 		margin-top: 0.85rem;
 	}
 
-	.benefit-card,
 	.testimonial {
-		padding: 1rem;
+		margin: 0;
+		padding: 1.25rem;
 	}
 
-	.benefit-card h3 {
-		margin-bottom: 0.35rem;
+	.stars {
+		color: var(--color-mustard);
+		letter-spacing: 0.1em;
+		margin-bottom: 0.4rem;
 	}
 
 	.testimonial footer {
@@ -339,9 +782,13 @@ import Layout from '../layouts/Layout.astro';
 	.contact-section {
 		align-items: start;
 		display: grid;
-		gap: 1rem;
+		gap: 1.5rem;
 		grid-template-columns: 1fr 1fr;
-		padding: 1rem;
+		padding: clamp(1.25rem, 3vw, 2rem);
+	}
+
+	.contact-shop {
+		margin-top: 1.25rem;
 	}
 
 	.contact-form {
@@ -359,23 +806,28 @@ import Layout from '../layouts/Layout.astro';
 		opacity: 0.95;
 	}
 
-	@keyframes float-in {
-		from {
-			opacity: 0;
-			transform: translateY(10px) scale(0.97);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0) scale(1);
-		}
+	.mobile-cta {
+		bottom: 1rem;
+		display: none;
+		left: 1rem;
+		opacity: 0;
+		pointer-events: none;
+		position: fixed;
+		right: 1rem;
+		transform: translateY(150%);
+		transition: transform 0.3s ease, opacity 0.3s ease;
+		z-index: 60;
+	}
+
+	.mobile-cta.is-visible {
+		opacity: 1;
+		pointer-events: auto;
+		transform: translateY(0);
 	}
 
 	@media (max-width: 980px) {
-		.nav {
-			flex-wrap: wrap;
-		}
-
-		.nav-links {
+		.nav-links,
+		.nav-cta {
 			display: none;
 		}
 
@@ -387,18 +839,48 @@ import Layout from '../layouts/Layout.astro';
 			display: grid;
 		}
 
-		.hero-content,
+		.hero {
+			gap: 1.5rem;
+			grid-template-columns: 1fr;
+			padding-top: 1.25rem;
+		}
+
+		.hero-visual {
+			order: -1;
+		}
+
+		.pieces {
+			gap: 1.5rem 0.75rem;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.benefits {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.testimonials-grid,
 		.contact-section {
 			grid-template-columns: 1fr;
 		}
 
-		.benefits-grid,
-		.testimonials-grid {
-			grid-template-columns: 1fr;
+		.mobile-cta {
+			display: inline-flex;
 		}
+	}
 
-		.hero-logo {
-			max-width: 300px;
+	@media (hover: none) {
+		.piece-cta {
+			display: none;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.stamp svg,
+		.piece-media img,
+		.piece-cta,
+		.mobile-cta {
+			animation: none;
+			transition: none;
 		}
 	}
 </style>
