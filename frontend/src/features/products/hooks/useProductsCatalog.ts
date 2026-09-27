@@ -7,6 +7,7 @@ import { auditService } from "@/entities/audit/api/audit.service";
 import { categoriasService } from "@/entities/categorias/api/categorias.service";
 import { subcategoriasService } from "@/entities/subcategorias/api/subcategorias.service";
 import { useCart } from "@/shared/providers/CartContext";
+import { useToast } from "@/shared/providers/ToastContext";
 import { useAuth } from "@/shared/providers/AuthContext";
 import type { PaginatedProductsResponse, Product, ProductFilters } from "@/types/products";
 import { toNumber } from "@/shared/lib/formatters";
@@ -14,6 +15,7 @@ import type { CategoriaWithSubcategorias } from "@/types/categorias";
 import type { Subcategoria } from "@/types/subcategorias";
 import { useWatch } from "react-hook-form";
 import { useFilterForm } from "@/shared/lib/filter-form";
+import { toSimpleCartItem } from "@/features/products/lib/cart";
 
 type ProductFiltersForm = {
   nombre: string;
@@ -60,7 +62,8 @@ const hasFiltersApplied = (filters: ProductFilters) =>
 
 export function useProductsCatalog() {
   const router = useRouter();
-  const { addItem, totalItems } = useCart();
+  const { addItem, totalItems, openCart } = useCart();
+  const { showToast } = useToast();
   const { isAuthenticated, loading: authLoading } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -73,7 +76,7 @@ export function useProductsCatalog() {
   const [totalItemsCount, setTotalItemsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeImageByProduct, setActiveImageByProduct] = useState<Record<number, number>>({});
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [designProduct, setDesignProduct] = useState<Product | null>(null);
   const [designQuantity, setDesignQuantity] = useState(1);
   const [selectedDesignUrls, setSelectedDesignUrls] = useState<string[]>([]);
@@ -198,6 +201,9 @@ export function useProductsCatalog() {
           ...(productsCacheRef.current[productsCacheKey] ?? {}),
           [page]: response,
         };
+        if (!shouldUseFilters && page === 1) {
+          setFeaturedProducts((prev) => (prev.length ? prev : response.data));
+        }
         setProducts(response.data);
         setTotalPages(response.totalPages);
         setTotalItemsCount(response.totalItems);
@@ -268,45 +274,6 @@ export function useProductsCatalog() {
     };
   }, [appliedFilters, page, productsCacheKey, totalPages]);
 
-  useEffect(() => {
-    if (!products.length) {
-      return;
-    }
-
-    setActiveImageByProduct((prev) => {
-      const next: Record<number, number> = {};
-      for (const product of products) {
-        next[product.id] = prev[product.id] ?? 0;
-      }
-      return next;
-    });
-
-    const interval = window.setInterval(() => {
-      setActiveImageByProduct((prev) => {
-        const next: Record<number, number> = { ...prev };
-
-        for (const product of products) {
-          const fotos = product.es_unico ? product.fotos ?? [] : (product.disenos ?? []).filter((diseno) => Boolean(diseno.url_foto)).map((diseno) => ({
-            id: diseno.id,
-            url: diseno.url_foto as string,
-            id_producto: diseno.id_producto,
-          }));
-          if (fotos.length <= 1) {
-            next[product.id] = 0;
-            continue;
-          }
-
-          const current = prev[product.id] ?? 0;
-          next[product.id] = current >= fotos.length - 1 ? 0 : current + 1;
-        }
-
-        return next;
-      });
-    }, 3000);
-
-    return () => window.clearInterval(interval);
-  }, [products]);
-
   const hasProducts = useMemo(() => products.length > 0, [products]);
   const hasActiveFilters = useMemo(() => hasFiltersApplied(appliedFilters), [appliedFilters]);
 
@@ -319,6 +286,17 @@ export function useProductsCatalog() {
     router.push("/checkout");
   };
 
+  const selectCategoria = (idCategoria: number | null) => {
+    setValue("id_categoria", idCategoria ? String(idCategoria) : "");
+    setValue("id_subcategoria", "");
+    void applyFilters();
+  };
+
+  const selectSubcategoria = (idSubcategoria: number | null) => {
+    setValue("id_subcategoria", idSubcategoria ? String(idSubcategoria) : "");
+    void applyFilters();
+  };
+
   const goToPage = (nextPage: number) => {
     if (nextPage < 1 || nextPage > totalPages || nextPage === page) {
       return;
@@ -328,29 +306,15 @@ export function useProductsCatalog() {
   };
 
   const addProductToCart = (product: Product) => {
-    const stock = toNumber(product.stock);
-    const precioOriginal = toNumber(product.precio);
-    const precioFinal = toNumber(product.precio_final ?? precioOriginal);
-    if (stock <= 0) {
+    if (toNumber(product.stock) <= 0) {
       return;
     }
 
-    addItem({
-      id: product.id,
-      nombre: product.nombre,
-      precio: precioFinal,
-      precio_original: precioOriginal,
-      id_descuento: product.descuento_aplicado?.id_descuento ?? null,
-      porcentaje_descuento: product.descuento_aplicado?.porcentaje,
-      stock,
-      ancho: toNumber(product.ancho),
-      alto: toNumber(product.alto),
-      profundo: toNumber(product.profundo),
-      fotoUrl: product.fotos?.[0]?.url,
-      quantity: 1,
-      es_unico: product.es_unico,
-      disenos_urls: null,
-    });
+    const added = addItem(toSimpleCartItem(product));
+    if (!added) {
+      showToast("Ya tenés todas las unidades disponibles de esta pieza en tu carrito.", "info");
+    }
+    openCart();
   };
 
   const openDesignModal = (product: Product) => {
@@ -434,7 +398,7 @@ export function useProductsCatalog() {
       : toNumber(designProduct.precio);
     const precioFinal = precioOriginal;
 
-    addItem({
+    const added = addItem({
       id: designProduct.id,
       nombre: designProduct.nombre,
       precio: precioFinal,
@@ -450,8 +414,12 @@ export function useProductsCatalog() {
       es_unico: false,
       disenos_urls: selectedDesignUrls,
     });
+    if (!added) {
+      showToast("Ya tenés todas las unidades disponibles de esta pieza en tu carrito.", "info");
+    }
 
     closeDesignModal();
+    openCart();
   };
 
   return {
@@ -469,12 +437,16 @@ export function useProductsCatalog() {
     totalPages,
     totalItemsCount,
     totalItems,
-    activeImageByProduct,
+    featuredProducts,
+    activeCategoriaId: appliedFilters.id_categoria ?? null,
+    activeSubcategoriaId: appliedFilters.id_subcategoria ?? null,
     designProduct,
     designQuantity,
     selectedDesignUrls,
     applyFilters,
     clearFilters,
+    selectCategoria,
+    selectSubcategoria,
     goToPage,
     addProductToCart: openDesignModal,
     closeDesignModal,

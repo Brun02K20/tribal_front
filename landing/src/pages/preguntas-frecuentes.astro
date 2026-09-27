@@ -1,26 +1,41 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Marquee from '../components/Marquee.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { ENCARGOS_URL, SHOP_URL } from '../lib/store';
 
 const faqs = [
   {
-    q: 'Que puedo comprar en Tribal Trend?',
-    a: 'En Tribal Trend vas a encontrar arte, decoraciones y artesanias para regalar o decorar tu hogar.',
+    q: '¿Qué puedo comprar en Tribal Trend?',
+    a: 'Joyería y bijouterie artesanal: collares, colgantes, pulseras, anillos, aros y más, hechos a mano con piedras naturales, resina y alambre.',
   },
   {
-    q: 'La tienda esta disponible todo el tiempo?',
-    a: 'Si. Podes comprar online las 24 horas, todos los dias.',
+    q: '¿Las piezas son únicas?',
+    a: 'Sí. Muchas piezas existen una sola vez: cuando se venden, no vuelven. Otras tienen varios diseños para que elijas el tuyo.',
   },
   {
-    q: 'Como funciona la atencion al cliente?',
-    a: 'Te ayudamos con dudas sobre productos, pagos, envios y seguimiento de pedidos.',
+    q: '¿A qué zonas realizan envíos?',
+    a: 'Enviamos a todo el país con Correo Argentino. Podés recibirlo en tu casa o retirarlo en una sucursal, y el costo se calcula en la compra con tu código postal.',
   },
   {
-    q: 'A que zonas realizan envios?',
-    a: 'Realizamos envios en Cordoba y en todo el territorio de Argentina.',
+    q: '¿Cómo pago?',
+    a: 'Pagás de forma segura con Mercado Pago. Después de la compra te llega la confirmación por mail.',
   },
   {
-    q: 'Como me contacto si tengo una consulta?',
-    a: 'En la landing principal tenes un formulario de contacto. Completa tus datos y te respondemos a la brevedad.',
+    q: '¿Puedo pedir una pieza personalizada?',
+    a: 'Sí. Desde tu cuenta en la tienda podés crear un encargo contándonos tu idea; te enviamos el presupuesto y, cuando lo pagás, la creamos a mano para vos.',
+  },
+  {
+    q: '¿Cómo sigo mi pedido?',
+    a: 'Con tu cuenta vas a ver el estado de cada pedido y de su envío en "Mis pedidos".',
+  },
+  {
+    q: '¿La tienda está disponible todo el tiempo?',
+    a: 'Sí. Podés comprar online las 24 horas, todos los días.',
+  },
+  {
+    q: '¿Cómo me contacto si tengo una consulta?',
+    a: 'Escribinos por el chat de la tienda o completá el formulario de contacto en la página principal y te respondemos a la brevedad.',
   },
 ];
 
@@ -39,67 +54,134 @@ const faqJsonLd = {
 ---
 
 <Layout
-  title="Preguntas frecuentes | Arte, decoraciones y artesanias"
-  description="Resuelve dudas sobre arte, decoraciones y artesanias: compras online, envios en Cordoba y Argentina, y atencion al cliente."
-  keywords="preguntas frecuentes, arte, decoraciones, artesanias, tienda de artesanias, cordoba, argentina"
+  title="Preguntas frecuentes | Tribal Trend, joyería artesanal"
+  description="Envíos a todo el país, pago con Mercado Pago, piezas únicas y encargos personalizados: todo lo que necesitás saber para comprar en Tribal Trend."
+  keywords="preguntas frecuentes, joyería artesanal, bijouterie artesanal, envíos, mercado pago, encargos personalizados, cordoba, argentina"
   canonicalPath="/preguntas-frecuentes"
   ogType="article"
   additionalJsonLd={faqJsonLd}
 >
+  <Marquee />
   <main class="app-shell faq-wrap">
-    <header class="faq-header app-panel">
-      <h1>Preguntas frecuentes sobre comprar artesanias online</h1>
-      <p class="section-lead">Todo lo que necesitas saber para comprar en la tienda de forma simple.</p>
-      <div class="faq-links">
-        <a class="app-btn-secondary" href="/">Volver a la landing</a>
-        <a class="app-btn-primary" href="/tienda">Ir a la tienda</a>
-      </div>
+    <a class="back" href="/">← Volver al inicio</a>
+    <header class="faq-header">
+      <p class="kicker">Preguntas frecuentes</p>
+      <h1>Todo lo que necesitás para comprar con confianza</h1>
+      <p class="section-lead">Y si te queda alguna duda, escribinos: te respondemos rápido.</p>
     </header>
 
     <section class="faq-list">
-      {faqs.map((item) => (
-        <article class="app-panel faq-item">
-          <h2>{item.q}</h2>
+      {faqs.map((item, index) => (
+        <details class="app-panel faq-item" open={index === 0}>
+          <summary>
+            <h2>{item.q}</h2>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </summary>
           <p>{item.a}</p>
-        </article>
+        </details>
       ))}
     </section>
+
+    <section class="campaign faq-cta">
+      <div>
+        <p class="kicker">Hecho a mano para vos</p>
+        <h2>¿Ya elegiste tu pieza?</h2>
+        <p>Las piezas únicas vuelan. Mirá lo nuevo antes de que encuentre otro hogar.</p>
+      </div>
+      <div class="faq-cta-actions">
+        <a class="app-btn-cta" href={SHOP_URL}>Ir a la tienda →</a>
+        <a class="app-btn-outline" href={ENCARGOS_URL}>Encargar un diseño</a>
+      </div>
+    </section>
   </main>
+  <SiteFooter />
 </Layout>
 
 <style>
   .faq-wrap {
     display: grid;
     gap: 1rem;
-    padding-block: 1rem 2rem;
+    max-width: 880px;
+    padding-block: 1.5rem 1rem;
   }
 
-  .faq-header {
-    padding: 1rem;
+  .back {
+    font-size: 0.9rem;
+    opacity: 0.85;
+  }
+
+  .back:hover {
+    color: var(--color-earth-brown);
   }
 
   .faq-header h1 {
     font-size: clamp(2rem, 4vw, 3rem);
-  }
-
-  .faq-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.7rem;
-    margin-top: 0.9rem;
+    margin: 0.5rem 0;
   }
 
   .faq-list {
     display: grid;
     gap: 0.7rem;
+    margin-top: 0.5rem;
   }
 
   .faq-item {
-    padding: 1rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .faq-item summary {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    list-style: none;
+  }
+
+  .faq-item summary::-webkit-details-marker {
+    display: none;
   }
 
   .faq-item h2 {
-    font-size: 1.25rem;
-    margin-bottom: 0.4rem;
+    font-size: 1.2rem;
+  }
+
+  .faq-icon {
+    color: var(--color-earth-brown);
+    font-size: 1.5rem;
+    transition: transform 0.2s ease;
+  }
+
+  .faq-item[open] .faq-icon {
+    transform: rotate(45deg);
+  }
+
+  .faq-item p {
+    margin-top: 0.6rem;
+  }
+
+  .faq-cta {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+  }
+
+  .faq-cta h2 {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    margin: 0.4rem 0;
+  }
+
+  .faq-cta p {
+    opacity: 0.88;
+  }
+
+  .faq-cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
   }
 </style>

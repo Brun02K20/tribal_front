@@ -6,6 +6,8 @@ import { CartProvider } from "@/shared/providers/CartContext";
 import { ToastProvider } from "@/shared/providers/ToastContext";
 import AppHeader from "@/shared/layout/AppHeader";
 import AppFooter from "@/shared/layout/AppFooter";
+import AnnouncementBar from "@/shared/layout/AnnouncementBar";
+import CartDrawer from "@/shared/layout/CartDrawer";
 import AutumnLeavesBackground from "@/shared/ui/AutumnLeavesBackground";
 import ClientChatWidget from "@/features/chat/components/ClientChatWidget";
 
@@ -137,10 +139,12 @@ export default function RootLayout({
           <ToastProvider>
             <CartProvider>
               <div className="flex min-h-screen flex-col">
+                <AnnouncementBar />
                 <AppHeader />
                 <main className="flex-1">{children}</main>
                 <AppFooter />
                 <ClientChatWidget />
+                <CartDrawer />
               </div>
             </CartProvider>
           </ToastProvider>

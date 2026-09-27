@@ -3,6 +3,7 @@
 import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { useClientChat } from '@/features/chat/hooks/useClientChat';
 import { useAuth } from '@/shared/providers/AuthContext';
+import { OPEN_CHAT_EVENT } from '@/shared/lib/brand';
 
 const formatTime = (value: string) =>
   new Date(value).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
@@ -23,8 +24,13 @@ export default function ClientChatWidget() {
     const onEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false);
     };
+    const onOpenRequest = () => setOpen(true);
     document.addEventListener('keydown', onEscape);
-    return () => document.removeEventListener('keydown', onEscape);
+    window.addEventListener(OPEN_CHAT_EVENT, onOpenRequest);
+    return () => {
+      document.removeEventListener('keydown', onEscape);
+      window.removeEventListener(OPEN_CHAT_EVENT, onOpenRequest);
+    };
   }, []);
 
   useEffect(() => {
@@ -46,7 +52,7 @@ export default function ClientChatWidget() {
   };
 
   return (
-    <aside className="fixed bottom-4 right-4 z-200 md:bottom-6 md:right-6" aria-label="Chat de soporte">
+    <aside className="app-chat-launcher fixed bottom-4 right-4 z-200 md:bottom-6 md:right-6" aria-label="Chat de soporte">
       {open && (
         <section
           className="fixed inset-0 flex flex-col overflow-hidden bg-cream shadow-2xl md:inset-auto md:bottom-24 md:right-6 md:h-[min(610px,calc(100vh-120px))] md:w-100 md:rounded-2xl md:border md:border-earth-brown/50"

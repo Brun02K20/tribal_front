@@ -4,13 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { productosService } from "@/entities/productos/api/productos.service";
 import { useCart } from "@/shared/providers/CartContext";
+import { useToast } from "@/shared/providers/ToastContext";
 import { useAuth } from "@/shared/providers/AuthContext";
 import type { Product } from "@/types/products";
 import { toNumber } from "@/shared/lib/formatters";
 
 export function useProductDetail(productId: number) {
   const router = useRouter();
-  const { addItem, totalItems } = useCart();
+  const { addItem, totalItems, openCart } = useCart();
+  const { showToast } = useToast();
   const { isAuthenticated, loading: authLoading } = useAuth();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -59,13 +61,14 @@ export function useProductDetail(productId: number) {
     router.push("/checkout");
   };
 
-  const addCurrentProductToCart = () => {
-    if (!product) {
-      return;
+  // Devuelve true si el producto quedó en el carrito (aunque ya estuviera al tope de stock).
+  const putCurrentProductInCart = () => {
+    if (!product || stock <= 0) {
+      return false;
     }
 
     if (!product.es_unico && selectedDesignUrls.length !== quantity) {
-      return;
+      return false;
     }
 
     const priceByUrl = new Map(
@@ -79,7 +82,7 @@ export function useProductDetail(productId: number) {
       : Number((totalDesignPrice / Math.max(quantity, 1)).toFixed(2));
     const precioFinal = product.es_unico ? toNumber(product.precio_final ?? precioOriginal) : precioOriginal;
 
-    addItem({
+    const added = addItem({
       id: product.id,
       nombre: product.nombre,
       precio: precioFinal,
@@ -95,6 +98,22 @@ export function useProductDetail(productId: number) {
       es_unico: product.es_unico,
       disenos_urls: product.es_unico ? null : selectedDesignUrls,
     });
+    if (!added) {
+      showToast("Ya tenés todas las unidades disponibles de esta pieza en tu carrito.", "info");
+    }
+    return true;
+  };
+
+  const addCurrentProductToCart = () => {
+    if (putCurrentProductInCart()) {
+      openCart();
+    }
+  };
+
+  const buyNow = () => {
+    if (putCurrentProductInCart()) {
+      goToCheckout();
+    }
   };
 
   const updateQuantity = (value: number) => {
@@ -170,6 +189,7 @@ export function useProductDetail(productId: number) {
     goToPrevImage,
     goToNextImage,
     addCurrentProductToCart,
+    buyNow,
     goToCheckout,
   };
 }

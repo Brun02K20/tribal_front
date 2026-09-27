@@ -2,12 +2,24 @@
 
 import Link from "next/link";
 import { useCheckout } from "@/features/checkout/hooks/useCheckout";
-import { formatCurrencyArs } from "@/shared/lib/formatters";
+import { formatCurrencyArs, formatPrice } from "@/shared/lib/formatters";
 import LoadingState from "@/shared/ui/LoadingState";
-import EmptyState from "@/shared/ui/EmptyState";
 import ImagePlaceholder from "@/shared/ui/ImagePlaceholder";
+import {
+  IconArrowLeft,
+  IconArrowRight,
+  IconBag,
+  IconCheck,
+  IconLock,
+  IconMinus,
+  IconPlus,
+  IconTrash,
+  IconTruck,
+} from "@/shared/ui/Icons";
 import ErrorState from "@/shared/ui/ErrorState";
 import AppModal from "@/shared/ui/AppModal";
+
+const checkoutSteps = ["Carrito", "Envío", "Pago"];
 
 export default function CheckoutPage() {
   const {
@@ -46,308 +58,315 @@ export default function CheckoutPage() {
     setSelectedRate,
   } = useCheckout();
 
+  const canPay = !paying && Boolean(selectedAddressId) && Boolean(selectedRate) && items.length > 0;
+  const payHint = !selectedAddressId
+    ? "Elegí o cargá una dirección de entrega para continuar."
+    : !selectedRate
+      ? "Elegí cómo querés recibir tu pedido para continuar."
+      : null;
+
   if (loading || !isAuthenticated) {
     return (
-      <main className="app-page">
-        <LoadingState message="Cargando checkout..." />
+      <main className="mx-auto w-full max-w-360 px-4 py-10 md:px-6">
+        <LoadingState message="Preparando tu compra..." className="text-dark-gray" />
       </main>
     );
   }
 
   return (
-    <main className="app-page">
-      <div className="app-container mx-auto max-w-360">
-        <header className="mb-6 flex items-center justify-between">
+    <main className="mx-auto w-full max-w-360 px-4 pt-6 md:px-6 md:pt-10">
+        <ol className="mb-6 flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-dark-gray sm:text-sm" aria-label="Pasos de compra">
+          {checkoutSteps.map((step, index) => {
+            const done = index === 0;
+            const current = index === 1;
+            return (
+              <li key={step} className="flex items-center gap-2">
+                <span
+                  className={`grid h-7 w-7 place-items-center rounded-full border text-xs font-bold ${
+                    done
+                      ? "border-sage bg-sage text-cream"
+                      : current
+                        ? "border-terracotta bg-terracotta text-cream"
+                        : "border-line bg-white/70 text-dark-gray"
+                  }`}
+                  aria-current={current ? "step" : undefined}
+                >
+                  {done ? <IconCheck className="h-4 w-4" /> : index + 1}
+                </span>
+                <span className={current ? "font-semibold text-black" : ""}>{step}</span>
+                {index < checkoutSteps.length - 1 && <span className="mx-1 h-px w-6 bg-line sm:w-10" aria-hidden="true" />}
+              </li>
+            );
+          })}
+        </ol>
+
+        <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="app-title text-2xl">Checkout</h1>
-            <p className="app-subtitle text-sm">Revisá tu compra antes de pagar.</p>
+            <h1 className="app-display text-3xl md:text-4xl">Finalizá tu compra</h1>
+            <p className="mt-1 text-sm text-dark-gray">Estás a un paso de tener tus piezas.</p>
           </div>
-          <Link href="/products" className="app-btn-secondary text-sm">
-            Seguir comprando
+          <Link href="/products" className="inline-flex items-center gap-1.5 text-sm text-earth-brown underline-offset-4 hover:underline">
+            <IconArrowLeft className="h-4 w-4" /> Seguir comprando
           </Link>
         </header>
 
-        {error && <ErrorState message={error} className="mb-4 text-sm text-red-600" />}
-
-        <section className="app-panel mb-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Dirección de entrega</h2>
-            <button type="button" className="app-btn-secondary text-sm" onClick={openAddressModal}>
-              Nueva dirección
-            </button>
-          </div>
-
-          {loadingAddresses ? (
-            <LoadingState message="Cargando direcciones..." />
-          ) : addresses.length === 0 ? (
-            <EmptyState message="No tenés direcciones cargadas. Creá una para continuar." />
-          ) : (
-            <div className="space-y-2">
-              {addresses.map((address) => (
-                <label
-                  key={address.id}
-                  className="flex cursor-pointer items-start gap-3 rounded-md border border-line p-3"
-                >
-                  <input
-                    type="radio"
-                    name="selected-address"
-                    checked={selectedAddressId === address.id}
-                    onChange={() => setSelectedAddressId(address.id)}
-                    className="mt-1"
-                  />
-                  <span className="text-sm">
-                    {address.calle} {address.altura}, {address.ciudad}, {address.provincia} ({address.cod_postal_destino})
-                    {(address.piso || address.departamento) && (
-                      <span className="block text-xs text-dark-gray">
-                        Piso {address.piso ?? "-"} {address.departamento ? `Depto ${address.departamento}` : ""}
-                      </span>
-                    )}
-                    {address.observaciones && (
-                      <span className="block text-xs text-dark-gray">{address.observaciones}</span>
-                    )}
-                  </span>
-                </label>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="app-panel mb-6">
-  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-    {/* Columna izquierda: Observaciones */}
-    <div>
-      <div className="mb-3">
-        <h2 className="text-lg font-semibold">Observaciones del pedido</h2>
-        <p className="app-subtitle text-sm">
-          Opcional. Podés dejar indicaciones para la entrega o sobre los productos.
-        </p>
-      </div>
-      <textarea
-        className="app-input min-h-28 w-full resize-y"
-        placeholder="Ej: Entregar por la tarde. Tocar timbre del depto B."
-        {...registerObservaciones('observaciones', { maxLength: 1000 })}
-      />
-      <p className="mt-1 text-right text-xs text-dark-gray">
-        {observacionesValue.length}/1000
-      </p>
-    </div>
-
-    {/* Columna derecha: Método de envío */}
-    <div>
-      <div className="mb-3">
-        <h2 className="text-lg font-semibold">Método de envío</h2>
-        <p className="app-subtitle text-sm">Seleccioná cómo querés recibir tu pedido.</p>
-      </div>
-
-      {loadingRates ? (
-        <div className="flex items-center justify-center py-8">
-          <p className="text-sm text-zinc-500">Calculando envío...</p>
-        </div>
-      ) : shippingRates.length === 0 ? (
-        <div className="rounded-md border border-dashed border-zinc-300 p-4 text-center">
-          <p className="text-sm text-zinc-500">
-            {selectedAddressId
-              ? 'No se encontraron opciones de envío para esta dirección.'
-              : 'Seleccioná una dirección para ver las opciones de envío.'}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {shippingRates.map((rate) => {
-            const isSelected =
-              selectedRate?.deliveredType === rate.deliveredType &&
-              selectedRate?.productType === rate.productType;
-
-            return (
-              <button
-                key={`${rate.deliveredType}-${rate.productType}`}
-                type="button"
-                onClick={() => setSelectedRate(rate)}
-                className={`w-full rounded-lg border-2 p-4 text-left transition-all ${
-                  isSelected
-                    ? 'border-amber-600 bg-amber-50 shadow-sm'
-                    : 'border-zinc-200 bg-white hover:border-amber-300 hover:bg-amber-50/30'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-sm">
-                      {rate.productName}
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-1">
-                      {rate.deliveredType === 'D' ? '📦 A domicilio' : '🏢 Retiro en sucursal'}
-                      {' · '}
-                      {rate.deliveryTimeMin}-{rate.deliveryTimeMax} días hábiles
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-amber-700">
-                      ${rate.price.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                </div>
-                {isSelected && (
-                  <div className="mt-2 flex items-center gap-1 text-xs text-amber-700 font-medium">
-                    <span>✓</span> Seleccionado
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  </div>
-</section>
+        {error && <ErrorState message={error} className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" />}
 
         {items.length === 0 ? (
-          <section className="app-panel">
-            <EmptyState
-              message="Tu carrito está vacío."
-              className="mb-4"
-              action={
-                <Link href="/products" className="app-btn-primary">
-                  Ir a productos
-                </Link>
-              }
-            />
+          <section className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-earth-brown/40 bg-white/70 px-6 py-14 text-center">
+            <span className="grid h-20 w-20 place-items-center rounded-full bg-sand text-earth-brown">
+              <IconBag className="h-9 w-9" />
+            </span>
+            <p className="app-display text-2xl">Tu carrito está vacío</p>
+            <p className="max-w-sm text-sm text-dark-gray">Cada pieza es única: elegí la tuya antes de que encuentre otro hogar.</p>
+            <Link href="/products" className="app-btn-cta">
+              Descubrir la colección <IconArrowRight className="h-4 w-4" />
+            </Link>
           </section>
         ) : (
-          <section className="grid grid-cols-1 gap-6 md:grid-cols-[1.5fr_1fr]">
-            <div className="app-panel">
-              <h2 className="mb-4 text-lg font-semibold">Productos ({totalItems})</h2>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-10">
+            <div className="space-y-6">
+              <section className="rounded-3xl border border-line bg-white/80 p-5 md:p-6">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="app-display text-2xl">¿Dónde lo recibís?</h2>
+                  <button type="button" className="inline-flex items-center gap-1.5 text-sm font-semibold text-earth-brown hover:underline" onClick={openAddressModal}>
+                    <IconPlus className="h-4 w-4" /> Nueva dirección
+                  </button>
+                </div>
 
-              <div className="space-y-4">
+                {loadingAddresses ? (
+                  <LoadingState message="Cargando direcciones..." className="text-sm text-dark-gray" />
+                ) : addresses.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-earth-brown/40 p-5 text-center">
+                    <p className="text-sm text-dark-gray">Todavía no tenés direcciones guardadas.</p>
+                    <button type="button" className="app-btn-cta mt-3" onClick={openAddressModal}>
+                      Cargar mi dirección
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {addresses.map((address) => {
+                      const selected = selectedAddressId === address.id;
+                      return (
+                        <label
+                          key={address.id}
+                          className={`flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition ${
+                            selected ? "border-terracotta bg-terracotta/5" : "border-line bg-white hover:border-earth-brown/50"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="selected-address"
+                            checked={selected}
+                            onChange={() => setSelectedAddressId(address.id)}
+                            className="mt-1 accent-terracotta"
+                          />
+                          <span className="text-sm">
+                            <span className="block font-semibold text-black">
+                              {address.calle} {address.altura}
+                            </span>
+                            {address.ciudad}, {address.provincia} ({address.cod_postal_destino})
+                            {(address.piso || address.departamento) && (
+                              <span className="block text-xs text-dark-gray">
+                                Piso {address.piso ?? "-"} {address.departamento ? `Depto ${address.departamento}` : ""}
+                              </span>
+                            )}
+                            {address.observaciones && (
+                              <span className="block text-xs text-dark-gray">{address.observaciones}</span>
+                            )}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-3xl border border-line bg-white/80 p-5 md:p-6">
+                <h2 className="app-display mb-4 text-2xl">¿Cómo te lo enviamos?</h2>
+
+                {loadingRates ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="app-skeleton h-20 rounded-2xl" />
+                    <div className="app-skeleton h-20 rounded-2xl" />
+                  </div>
+                ) : shippingRates.length === 0 ? (
+                  <p className="rounded-2xl border border-dashed border-line p-4 text-center text-sm text-dark-gray">
+                    {selectedAddressId
+                      ? "No encontramos opciones de envío para esta dirección. Escribinos por el chat y lo resolvemos."
+                      : "Elegí una dirección para ver las opciones de envío."}
+                  </p>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {shippingRates.map((rate) => {
+                      const isSelected =
+                        selectedRate?.deliveredType === rate.deliveredType &&
+                        selectedRate?.productType === rate.productType;
+
+                      return (
+                        <button
+                          key={`${rate.deliveredType}-${rate.productType}`}
+                          type="button"
+                          onClick={() => setSelectedRate(rate)}
+                          aria-pressed={isSelected}
+                          className={`flex items-start justify-between gap-3 rounded-2xl border-2 p-4 text-left transition ${
+                            isSelected ? "border-terracotta bg-terracotta/5" : "border-line bg-white hover:border-earth-brown/50"
+                          }`}
+                        >
+                          <span className="flex items-start gap-3">
+                            <IconTruck className={`mt-0.5 h-5 w-5 shrink-0 ${isSelected ? "text-terracotta" : "text-earth-brown"}`} />
+                            <span>
+                              <span className="block text-sm font-semibold text-black">
+                                {rate.deliveredType === "D" ? "A domicilio" : "Retiro en sucursal"}
+                              </span>
+                              <span className="block text-xs text-dark-gray">
+                                {rate.productName} · {rate.deliveryTimeMin}-{rate.deliveryTimeMax} días hábiles
+                              </span>
+                            </span>
+                          </span>
+                          <span className="whitespace-nowrap font-bold text-black">{formatPrice(rate.price)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <details className="app-details rounded-3xl border border-line bg-white/80 p-5 md:p-6">
+                <summary className="flex items-center gap-2 font-semibold">
+                  Agregar una nota al pedido <span className="text-xs font-normal text-dark-gray">(opcional)</span>
+                  <IconPlus className="app-details-icon ml-auto h-4 w-4 text-earth-brown" />
+                </summary>
+                <textarea
+                  className="app-input mt-4 min-h-28 w-full resize-y"
+                  placeholder="Ej: Es para regalo. Entregar por la tarde."
+                  {...registerObservaciones('observaciones', { maxLength: 1000 })}
+                />
+                <p className="mt-1 text-right text-xs text-dark-gray">{observacionesValue.length}/1000</p>
+              </details>
+            </div>
+
+            <aside className="h-fit rounded-3xl border border-line bg-white/90 p-5 shadow-[0_18px_40px_rgba(47,47,47,0.1)] md:p-6 lg:sticky lg:top-28">
+              <h2 className="app-display text-2xl">Tu pedido</h2>
+              <p className="text-xs text-dark-gray">{totalItems} {totalItems === 1 ? "pieza" : "piezas"}</p>
+
+              <ul className="mt-4 max-h-80 space-y-4 overflow-y-auto pr-1 pt-2">
                 {items.map((item) => {
                   const precioOriginal = Number(item.precio_original ?? item.precio);
                   const precioCompra = Number(item.precio);
-                  const porcentajeDescuento = Number(item.porcentaje_descuento ?? 0);
-                  const tieneDescuento = porcentajeDescuento > 0 && precioOriginal > precioCompra;
-                  const subtotalOriginal = precioOriginal * item.quantity;
-                  const subtotalCompra = precioCompra * item.quantity;
+                  const tieneDescuento = precioOriginal > precioCompra;
+                  const lockedByDesigns = Boolean(item.disenos_urls?.length);
 
                   return (
-                    <article key={item.id} className="flex gap-3 rounded-md border p-3">
-                      {item.fotoUrl ? (
-                        <img src={item.fotoUrl} alt={item.nombre} className="h-20 w-20 rounded-md object-cover" />
-                      ) : (
-                        <ImagePlaceholder
-                          className="flex h-20 w-20 items-center justify-center rounded-md bg-zinc-100"
-                          textClassName="text-xs text-zinc-500"
-                        />
-                      )}
-
-                      <div className="flex-1">
-                        <h3 className="font-medium">{item.nombre}</h3>
-                        {item.disenos_urls?.length ? (
-                          <div className="mt-2">
-                            <p className="text-xs font-semibold text-dark-gray">Diseños elegidos</p>
-                            <div className="mt-1 flex flex-wrap gap-2">
-                              {item.disenos_urls.map((url, index) => (
-                                <img
-                                  key={`${item.id}-design-${index}-${url}`}
-                                  src={url}
-                                  alt={`${item.nombre} diseño ${index + 1}`}
-                                  className="h-12 w-12 rounded-md border border-line bg-white object-contain p-1"
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        ) : null}
-
-                        {tieneDescuento ? (
-                          <>
-                            <p className="text-sm text-zinc-600 line-through">
-                              Precio original: {formatCurrencyArs(precioOriginal)} c/u
-                            </p>
-                            <p className="text-sm font-semibold text-green-800">
-                              Precio con descuento ({porcentajeDescuento}%): {formatCurrencyArs(precioCompra)} c/u
-                            </p>
-                            <p className="text-sm text-zinc-600 line-through">
-                              Subtotal original ({item.quantity}): {formatCurrencyArs(subtotalOriginal)}
-                            </p>
-                            <p className="text-sm font-semibold">
-                              Subtotal con descuento ({item.quantity}): {formatCurrencyArs(subtotalCompra)}
-                            </p>
-                          </>
+                    <li key={item.id} className="flex gap-3">
+                      <div className="relative shrink-0">
+                        {item.fotoUrl ? (
+                          <img src={item.fotoUrl} alt={item.nombre} className="h-16 w-14 rounded-xl object-cover" />
                         ) : (
-                          <>
-                            <p className="text-sm text-zinc-600">Precio: {formatCurrencyArs(precioCompra)} c/u</p>
-                            <p className="text-sm font-semibold">Subtotal ({item.quantity}): {formatCurrencyArs(subtotalCompra)}</p>
-                          </>
+                          <ImagePlaceholder
+                            className="flex h-16 w-14 items-center justify-center rounded-xl bg-sand"
+                            textClassName="text-[10px] text-dark-gray"
+                          />
                         )}
-
-                        <div className="mt-2 flex items-center gap-2">
-                          <div>
-                            <label className="mb-1 block text-xs text-dark-gray">Cantidad</label>
-                            <input
-                              type="number"
-                              min={1}
-                              max={Math.max(1, item.stock)}
-                              value={item.quantity}
-                              onChange={(event) => updateItemQuantity(item.id, Number(event.target.value))}
-                              className="app-input w-20"
-                              placeholder="Ej: 1"
-                              disabled={Boolean(item.disenos_urls?.length)}
-                            />
-                            {item.disenos_urls?.length ? (
-                              <p className="mt-1 text-xs text-dark-gray">Cantidad fijada por diseños</p>
-                            ) : null}
-                          </div>
+                        <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-black px-1 text-[10px] font-bold text-cream">
+                          {item.quantity}
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="truncate text-sm font-semibold first-letter:uppercase">{item.nombre}</p>
                           <button
+                            type="button"
                             onClick={() => removeCheckoutItem(item.id)}
-                            className="app-btn-secondary px-2 py-1 text-sm"
+                            className="shrink-0 rounded-full p-1 text-dark-gray/70 hover:bg-sand hover:text-terracotta"
+                            aria-label={`Quitar ${item.nombre}`}
                           >
-                            Quitar
+                            <IconTrash className="h-4 w-4" />
                           </button>
                         </div>
+                        {lockedByDesigns && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {item.disenos_urls!.map((url, index) => (
+                              <img
+                                key={`${item.id}-design-${index}-${url}`}
+                                src={url}
+                                alt={`${item.nombre} diseño ${index + 1}`}
+                                className="h-6 w-6 rounded-full border border-line object-cover"
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-1 flex items-center justify-between gap-2">
+                          {!lockedByDesigns && item.stock > 1 ? (
+                            <div className="app-stepper">
+                              <button type="button" onClick={() => updateItemQuantity(item.id, item.quantity - 1)} aria-label="Restar una unidad">
+                                <IconMinus className="h-3.5 w-3.5" />
+                              </button>
+                              <span>{item.quantity}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
+                                disabled={item.quantity >= item.stock}
+                                aria-label="Sumar una unidad"
+                              >
+                                <IconPlus className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-dark-gray">{formatPrice(precioCompra)} c/u</span>
+                          )}
+                          <span className="text-right text-sm">
+                            {tieneDescuento && (
+                              <span className="block text-xs text-dark-gray/70 line-through">{formatPrice(precioOriginal * item.quantity)}</span>
+                            )}
+                            <span className="font-bold">{formatPrice(precioCompra * item.quantity)}</span>
+                          </span>
+                        </div>
                       </div>
-                    </article>
+                    </li>
                   );
                 })}
-              </div>
-            </div>
+              </ul>
 
-            <aside className="app-panel h-fit">
-              <h2 className="mb-4 text-lg font-semibold">Resumen</h2>
-              <div className="space-y-2 text-sm">
+              <dl className="mt-5 space-y-2 border-t border-line pt-4 text-sm">
                 <div className="flex justify-between">
-                  <span>Productos</span>
-                  <span>{formatCurrencyArs(subtotal)}</span>
+                  <dt>Productos</dt>
+                  <dd>{formatCurrencyArs(subtotal + totalSavings)}</dd>
                 </div>
                 {totalSavings > 0 && (
-                  <div className="flex justify-between text-green-800">
-                    <span>Descuentos aplicados</span>
-                    <span>-{formatCurrencyArs(Number(totalSavings.toFixed(2)))}</span>
+                  <div className="flex justify-between font-semibold text-sage">
+                    <dt>Descuentos</dt>
+                    <dd>-{formatCurrencyArs(Number(totalSavings.toFixed(2)))}</dd>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span>Envío</span>
-                  <span>{formatCurrencyArs(shippingCost)}</span>
+                  <dt>Envío</dt>
+                  <dd>{selectedRate ? formatCurrencyArs(shippingCost) : <span className="text-dark-gray">A elegir</span>}</dd>
                 </div>
-                <hr className="my-2" />
-                <div className="flex justify-between text-base font-bold">
-                  <span>Total</span>
-                  <span>{formatCurrencyArs(total)}</span>
+                <div className="flex items-baseline justify-between border-t border-line pt-3">
+                  <dt className="text-base font-semibold">Total</dt>
+                  <dd className="text-2xl font-bold">{formatCurrencyArs(total)}</dd>
                 </div>
-              </div>
+              </dl>
 
-              <button
-                className="app-btn-primary mt-4 w-full disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={pay}
-                disabled={paying || !selectedAddressId || !selectedRate || items.length === 0}
-              >
-                {paying ? "Procesando..." : "PAGAR"}
+              <button className="app-btn-cta mt-5 w-full py-4! text-base" onClick={pay} disabled={!canPay}>
+                <IconLock className="h-4 w-4" />
+                {paying ? "Llevándote a Mercado Pago..." : `Pagar ${formatPrice(total)}`}
               </button>
+              {payHint && <p className="mt-2 text-center text-xs text-terracotta">{payHint}</p>}
+              <p className="mt-3 text-center text-xs text-dark-gray">
+                Pagás de forma segura en Mercado Pago. Te mandamos la confirmación por mail.
+              </p>
             </aside>
-          </section>
+          </div>
         )}
 
         {isAddressModalOpen && (
           <AppModal>
             <div className="app-modal-backdrop">
-              <div className="app-modal-card max-w-lg p-4 sm:p-5">
-                <h3 className="app-title text-xl">Nueva dirección</h3>
+              <div className="app-modal-card max-w-lg p-5 sm:p-6">
+                <h3 className="app-display text-2xl">Nueva dirección</h3>
+                <p className="mt-1 text-sm text-dark-gray">La usamos para calcular el envío y mandarte tu pedido.</p>
 
                 <form className="mt-4 grid gap-3" onSubmit={handleAddressSubmit(submitNewAddress)}>
                   <div>
@@ -489,8 +508,8 @@ export default function CheckoutPage() {
                     <button type="button" className="app-btn-secondary" onClick={closeAddressModal} disabled={creatingAddress}>
                       Cancelar
                     </button>
-                    <button type="submit" className="app-btn-primary" disabled={creatingAddress}>
-                      {creatingAddress ? "Guardando..." : "Guardar dirección"}
+                    <button type="submit" className="app-btn-cta" disabled={creatingAddress}>
+                      {creatingAddress ? "Guardando..." : "Guardar y continuar"}
                     </button>
                   </div>
                 </form>
@@ -498,7 +517,6 @@ export default function CheckoutPage() {
             </div>
           </AppModal>
         )}
-      </div>
     </main>
   );
 }

@@ -41,12 +41,14 @@ function RegisterPageContent() {
 
   return (
     <AuthPageShell
-      title="Registro"
+      title="Creá tu cuenta"
+      mode="register"
+      redirect={redirect}
       error={error}
       googleContainerRef={googleContainerRef}
-      footerText="¿Ya tenes cuenta?"
+      footerText="¿Ya tenés cuenta?"
       footerHref={`/login?redirect=${encodeURIComponent(redirect)}`}
-      footerLinkLabel="Inicia sesion"
+      footerLinkLabel="Iniciá sesión"
     >
       <form onSubmit={handleSubmit((values) => submitWithPassword(values))} className="space-y-3">
         <div>
@@ -60,7 +62,7 @@ function RegisterPageContent() {
         {errors.nombre && <p className="text-sm text-red-600">{errors.nombre.message}</p>}
 
         <div>
-          <label className="mb-1 block text-sm text-dark-gray">Username</label>
+          <label className="mb-1 block text-sm text-dark-gray">Usuario <span className="text-xs">(opcional)</span></label>
           <input className="app-input" placeholder="Ej: juanperez" {...register("username")} />
         </div>
 
@@ -76,7 +78,7 @@ function RegisterPageContent() {
         {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
 
         <div>
-          <label className="mb-1 block text-sm text-dark-gray">Telefono</label>
+          <label className="mb-1 block text-sm text-dark-gray">Teléfono</label>
           <div className="grid grid-cols-[150px_minmax(0,1fr)] gap-2">
             <select
               className="app-input"
@@ -109,7 +111,7 @@ function RegisterPageContent() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm text-dark-gray">Contrasena</label>
+          <label className="mb-1 block text-sm text-dark-gray">Contraseña</label>
           <input
             className="app-input"
             type="password"
@@ -119,7 +121,7 @@ function RegisterPageContent() {
         </div>
         {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
 
-        <button className="app-btn-primary w-full" type="submit" disabled={loading}>
+        <button className="app-btn-cta w-full" type="submit" disabled={loading}>
           {loading ? "Registrando..." : "Crear cuenta"}
         </button>
       </form>

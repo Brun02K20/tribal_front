@@ -10,9 +10,9 @@ interface Props {
 }
 
 const {
-	title = 'Tribal Trend | Tienda Online de Artesanias',
-	description = 'Tribal Trend: tienda de arte, decoraciones y artesanias con envios a Cordoba y toda Argentina.',
-	keywords = 'arte, decoraciones, artesanias, tienda de artesanias, tienda de arte, regalos artesanales, cordoba, argentina',
+	title = 'Tribal Trend | Joyería artesanal hecha a mano',
+	description = 'Tribal Trend: joyería y bijouterie artesanal argentina. Collares, pulseras, anillos y aros únicos hechos a mano, con envíos a todo el país.',
+	keywords = 'joyería artesanal, bijouterie artesanal, collares artesanales, pulseras artesanales, anillos artesanales, piedras naturales, regalos artesanales, cordoba, argentina',
 	canonicalPath = Astro.url.pathname,
 	ogType = 'website',
 	noindex = false,
@@ -87,6 +87,11 @@ const jsonLdPayload = Array.isArray(additionalJsonLd)
 		--color-earth-brown: #7a4a2b;
 		--color-earth-brown-soft: #9a7b5a;
 		--color-line: #d7c8b2;
+		--color-terracotta: #a8492a;
+		--color-terracotta-dark: #83361c;
+		--color-mustard: #c9973f;
+		--color-sage: #5f6f52;
+		--color-sand: #efe6d4;
 		--shadow-soft: 0 12px 26px rgba(47, 47, 47, 0.08);
 		--shadow-strong: 0 16px 30px rgba(47, 47, 47, 0.12);
 	}
@@ -266,6 +271,170 @@ const jsonLdPayload = Array.isArray(additionalJsonLd)
 		max-width: 760px;
 		opacity: 0.9;
 	}
+	/* CTAs de conversión: mismas píldoras que la tienda */
+	.app-btn-cta,
+	.app-btn-outline {
+		align-items: center;
+		border-radius: 999px;
+		cursor: pointer;
+		display: inline-flex;
+		font-family: 'Oldenburg', serif;
+		font-size: 1rem;
+		font-weight: 600;
+		gap: 0.55rem;
+		justify-content: center;
+		letter-spacing: 0.04em;
+		padding: 0.85rem 1.6rem;
+		transition: transform 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease, color 0.22s ease;
+	}
+
+	.app-btn-cta {
+		background: var(--color-terracotta);
+		border: 1px solid var(--color-terracotta);
+		box-shadow: 0 10px 22px rgba(168, 73, 42, 0.28);
+		color: var(--color-cream);
+	}
+
+	.app-btn-cta:hover {
+		background: var(--color-terracotta-dark);
+		border-color: var(--color-terracotta-dark);
+		box-shadow: 0 14px 28px rgba(131, 54, 28, 0.34), 0 0 22px rgba(201, 151, 63, 0.35);
+		transform: translateY(-2px);
+	}
+
+	.app-btn-outline {
+		background: rgba(255, 255, 255, 0.72);
+		border: 1px solid var(--color-earth-brown);
+		color: var(--color-earth-brown);
+	}
+
+	.app-btn-outline:hover {
+		background: var(--color-earth-brown);
+		color: var(--color-cream);
+		transform: translateY(-2px);
+	}
+
+	.app-btn-cta:focus-visible,
+	.app-btn-outline:focus-visible {
+		outline: 2px solid var(--color-mustard);
+		outline-offset: 3px;
+	}
+
+	.kicker {
+		color: var(--color-terracotta);
+		font-size: 0.74rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+	}
+
+	.arch {
+		background: var(--color-sand);
+		border: 6px solid rgba(248, 243, 231, 0.95);
+		border-radius: 999px 999px 1.25rem 1.25rem;
+		box-shadow: 0 22px 44px rgba(47, 47, 47, 0.22), 0 0 0 1px rgba(122, 74, 43, 0.25);
+		display: block;
+		overflow: hidden;
+	}
+
+	.round-frame {
+		background: var(--color-sand);
+		border: 5px solid rgba(248, 243, 231, 0.95);
+		border-radius: 999px;
+		box-shadow: 0 16px 32px rgba(47, 47, 47, 0.2), 0 0 0 1px rgba(122, 74, 43, 0.25);
+		display: block;
+		overflow: hidden;
+	}
+
+	.arch img,
+	.round-frame img {
+		display: block;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 0.7s ease;
+		width: 100%;
+	}
+
+	.arch:hover img,
+	.round-frame:hover img {
+		transform: scale(1.05);
+	}
+
+	.campaign {
+		background:
+			radial-gradient(circle at 12% 20%, rgba(201, 151, 63, 0.35), transparent 45%),
+			radial-gradient(circle at 88% 80%, rgba(168, 73, 42, 0.45), transparent 50%),
+			linear-gradient(135deg, #3b2416 0%, #5a3520 55%, #2a1a10 100%);
+		border-radius: 1.5rem;
+		box-shadow: 0 24px 48px rgba(42, 26, 16, 0.3);
+		color: var(--color-cream);
+		overflow: hidden;
+		position: relative;
+	}
+
+	.campaign h2,
+	.campaign h3 {
+		color: var(--color-cream);
+	}
+
+	.campaign .kicker {
+		color: var(--color-mustard);
+	}
+
+	.marquee {
+		background: var(--color-black);
+		color: var(--color-cream);
+		font-size: 0.7rem;
+		letter-spacing: 0.18em;
+		overflow: hidden;
+		text-transform: uppercase;
+	}
+
+	.marquee-track {
+		animation: marquee 38s linear infinite;
+		display: flex;
+		width: max-content;
+	}
+
+	.marquee-track span {
+		align-items: center;
+		display: flex;
+		gap: 1.5rem;
+		padding: 0.5rem 1.5rem;
+	}
+
+	.marquee-track b {
+		color: var(--color-mustard);
+		font-weight: 400;
+	}
+
+	@keyframes marquee {
+		from { transform: translateX(0); }
+		to { transform: translateX(-50%); }
+	}
+
+	.sr-only {
+		border: 0;
+		clip: rect(0, 0, 0, 0);
+		height: 1px;
+		margin: -1px;
+		overflow: hidden;
+		padding: 0;
+		position: absolute;
+		white-space: nowrap;
+		width: 1px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.marquee-track,
+		.arch img,
+		.round-frame img,
+		.app-btn-cta,
+		.app-btn-outline {
+			animation: none !important;
+			transition: none !important;
+		}
+	}
+
 	@media (max-width: 800px) {
 		.app-shell {
 			padding: 1rem;

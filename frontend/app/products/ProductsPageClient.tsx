@@ -1,43 +1,48 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useProductsCatalog } from "@/features/products/hooks/useProductsCatalog";
-import { toNumber } from "@/shared/lib/formatters";
-import LoadingState from "@/shared/ui/LoadingState";
+import { formatPrice, toNumber } from "@/shared/lib/formatters";
 import ErrorState from "@/shared/ui/ErrorState";
-import EmptyState from "@/shared/ui/EmptyState";
-import ImagePlaceholder from "@/shared/ui/ImagePlaceholder";
-import PaginationControls from "@/shared/ui/PaginationControls";
 import AppModal from "@/shared/ui/AppModal";
+import TrustIcon from "@/shared/ui/TrustIcon";
 import ProductDesignSelector from "@/features/products/components/ProductDesignSelector";
-import type { ProductDiseno } from "@/types/products";
+import ProductCard, { ProductCardSkeleton } from "@/features/products/components/ProductCard";
+import HeroCollage from "@/features/products/components/HeroCollage";
+import { getDesignsWithPhoto, getProductImages, getProductPricing } from "@/features/products/lib/presentation";
+import { useAuth } from "@/shared/providers/AuthContext";
+import { getEncargosHref, INSTAGRAM_HANDLE, INSTAGRAM_URL, TRUST_POINTS } from "@/shared/lib/brand";
+import { IconArrowLeft, IconArrowRight, IconClose, IconInstagram, IconSearch, IconSliders, IconSparkle } from "@/shared/ui/Icons";
 
-type ProductDisenoWithPhoto = ProductDiseno & { url_foto: string };
+const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
-const hasDesignPhoto = (diseno: ProductDiseno): diseno is ProductDisenoWithPhoto => Boolean(diseno.url_foto);
+// Posición del bloque de encargos dentro de la grilla (después de la 6ª pieza).
+const IN_GRID_PROMO_INDEX = 6;
 
 export default function ProductsPageClient() {
   const {
     products,
+    featuredProducts,
     categorias,
     filteredSubcategorias,
-    selectedCategoriaId,
+    activeCategoriaId,
+    activeSubcategoriaId,
     loading,
     error,
     hasProducts,
     hasActiveFilters,
     registerFilters,
     page,
-    pageSize,
     totalPages,
     totalItemsCount,
-    totalItems,
-    activeImageByProduct,
     designProduct,
     designQuantity,
     selectedDesignUrls,
     applyFilters,
     clearFilters,
+    selectCategoria,
+    selectSubcategoria,
     goToPage,
     addProductToCart,
     closeDesignModal,
@@ -45,215 +50,330 @@ export default function ProductsPageClient() {
     toggleDesignUrl,
     updateDesignUrlQuantity,
     confirmDesignProduct,
-    goToCheckout,
   } = useProductsCatalog();
+  const { isAuthenticated } = useAuth();
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const encargosHref = getEncargosHref(isAuthenticated);
+
+  const changePage = (nextPage: number) => {
+    goToPage(nextPage);
+    document.getElementById("coleccion")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const designSelectionTotal = designProduct
+    ? selectedDesignUrls.reduce((acc, url) => {
+        const diseno = getDesignsWithPhoto(designProduct).find((item) => item.url_foto === url);
+        return acc + toNumber(diseno?.precio ?? 0);
+      }, 0)
+    : 0;
+  const instagramProducts = featuredProducts.filter((product) => getProductImages(product).length > 0).slice(3, 9);
+  const campaignProducts = featuredProducts.filter((product) => getProductImages(product).length > 0).slice(3, 5);
 
   return (
-    <main className="app-page">
-      <div className="app-container mx-auto max-w-360">
-      <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="app-title text-2xl">Accesorios Artesanales, lo mas unico, diferente, exclusivo y original para vos.</h1>
-          <p className="app-subtitle text-sm max-w-xl">¿Lista para destacar de entre la multitud? Cada pieza de Tribal Trend es una obra de arte única para llevar puesta, elaborada a mano con piedras naturales, resina y un intrincado entramado de alambre para reflejar tu individualidad. Encuentra la pieza perfecta que realce todo tu estilo. ¡Explora nuestra colección!</p>
-        </div>
-        <button
-          onClick={goToCheckout}
-          className="app-btn-primary cursor-pointer"
-        >
-          Carrito ({totalItems})
-        </button>
-      </header>
-
-      {loading && <LoadingState message="Cargando productos..." />}
-      {error && <ErrorState message={error} />}
-
-      {!loading && !error && !hasProducts && <EmptyState message="No hay productos disponibles." />}
-
-      {!loading && !error && (
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
-          <aside className="app-panel h-fit">
-            <h2 className="app-title text-lg">Filtros de busqueda</h2>
-
-            <form className="mt-4 space-y-3" onSubmit={applyFilters}>
-              <div>
-                <label className="mb-1 block text-sm text-dark-gray">Nombre</label>
-                <input
-                  className="app-input"
-                  {...registerFilters("nombre")}
-                  placeholder="Buscar por nombre"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm text-dark-gray">Categoria</label>
-                <select className="app-input" {...registerFilters("id_categoria")}>
-                  <option value="">Todas</option>
-                  {categorias.map((categoria) => (
-                    <option key={categoria.id} value={categoria.id}>
-                      {categoria.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm text-dark-gray">Subcategoria</label>
-                <select className="app-input disabled:cursor-not-allowed disabled:opacity-50" disabled={!selectedCategoriaId} {...registerFilters("id_subcategoria")}>
-                  <option value="">Todas</option>
-                  {filteredSubcategorias.map((subcategoria) => (
-                    <option key={subcategoria.id} value={subcategoria.id}>
-                      {subcategoria.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="mb-1 block text-sm text-dark-gray">Precio min</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="app-input"
-                    {...registerFilters("precio_min")}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm text-dark-gray">Precio max</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="app-input"
-                    {...registerFilters("precio_max")}
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <button type="submit" className="app-btn-primary">
-                  Filtrar
-                </button>
-                <button type="button" className="app-btn-secondary" onClick={clearFilters}>
-                  Limpiar
-                </button>
-              </div>
-            </form>
-          </aside>
-
-          <div>
-            {!hasProducts ? (
-              <EmptyState message={hasActiveFilters ? "No hay productos para esos filtros." : "No hay productos disponibles."} />
-            ) : (
-              <>
-                <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                  {products.map((product) => {
-                    const stock = toNumber(product.stock);
-                    const precio = toNumber(product.precio);
-                    const productDesignsWithPhoto = (product.disenos ?? []).filter(hasDesignPhoto);
-                    const activeDesign = !product.es_unico && productDesignsWithPhoto.length
-                      ? productDesignsWithPhoto[activeImageByProduct[product.id] ?? 0] ?? productDesignsWithPhoto[0]
-                      : null;
-                    const activeImageUrl = activeDesign?.url_foto ?? product.fotos[activeImageByProduct[product.id] ?? 0]?.url;
-                    const hasDiscount =
-                      !activeDesign
-                      &&
-                      typeof product.descuento_aplicado?.porcentaje === "number"
-                      && Number(product.descuento_aplicado.porcentaje) > 0;
-                    const precioFinal = activeDesign
-                      ? toNumber(activeDesign.precio)
-                      : hasDiscount ? toNumber(product.precio_final ?? precio) : precio;
-                    const discountPercentage = hasDiscount ? Number(product.descuento_aplicado?.porcentaje ?? 0) : 0;
-
-                    return (
-                      <article key={product.id} className="app-panel">
-                        {activeImageUrl ? (
-                          <div className="relative mb-3">
-                            {hasDiscount && (
-                              <span className="absolute left-2 top-2 z-10 rounded-full bg-earth-brown px-2 py-1 text-xs font-semibold text-cream">
-                                {discountPercentage}% OFF
-                              </span>
-                            )}
-                            <img
-                              key={`${product.id}-${activeImageByProduct[product.id] ?? 0}`}
-                              src={activeImageUrl}
-                              alt={`${activeDesign?.nombre ?? product.nombre} artesanal - Tribal Trend`}
-                              width={800}
-                              height={800}
-                              loading="lazy"
-                              decoding="async"
-                              sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                              className="app-fade-swap h-48 w-full rounded-md border border-earth-brown/40 bg-white object-contain p-2"
-                            />
-                          </div>
-                        ) : (
-                          <ImagePlaceholder className="mb-3 flex h-44 w-full items-center justify-center rounded-md bg-zinc-100" />
-                        )}
-
-                        <h2 className="text-lg font-semibold">{product.nombre}</h2>
-                        {activeDesign && <p className="mt-1 text-sm font-semibold text-earth-brown">Diseño: {activeDesign.nombre}</p>}
-                        <p className="mt-1 text-sm text-zinc-600">
-                          {product.categoria?.nombre ?? "-"} / {product.subcategoria?.nombre ?? "-"}
-                        </p>
-                        {hasDiscount ? (
-                          <div className="mt-2">
-                            <p className="text-sm text-zinc-500 line-through">${precio.toFixed(2)}</p>
-                            <p className="text-lg font-bold text-earth-brown">${precioFinal.toFixed(2)}</p>
-                          </div>
-                        ) : (
-                          <p className="mt-2 text-lg font-bold">${precioFinal.toFixed(2)}</p>
-                        )}
-
-                        <div className="mt-4 flex gap-2">
-                          <Link href={`/products/${product.id}`} className="app-btn-secondary text-sm" aria-label={`Ver detalle de ${product.nombre}`}>
-                            Ver detalle
-                          </Link>
-                          <button
-                            onClick={() => addProductToCart(product)}
-                            disabled={stock <= 0}
-                            className="app-btn-primary cursor-pointer text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            Agregar
-                          </button>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </section>
-
-                <PaginationControls
-                  page={page}
-                  totalPages={totalPages}
-                  totalItems={totalItemsCount}
-                  pageSize={pageSize}
-                  onPageChange={goToPage}
-                />
-              </>
-            )}
+    <main>
+      {/* HERO */}
+      <section className="relative">
+        <div className="mx-auto grid w-full max-w-360 items-center gap-5 px-4 pb-10 pt-4 md:grid-cols-[1fr_1.05fr] md:gap-12 md:px-6 md:pb-16 md:pt-12">
+          <div className="app-reveal order-2 md:order-1">
+            <p className="app-kicker">Joyería artesanal · Hecha a mano en Argentina</p>
+            <h1 className="app-display mt-3 text-[2.25rem] sm:text-5xl lg:text-6xl">
+              Joyas únicas, <span className="text-terracotta">hechas a mano</span> para vos
+            </h1>
+            <p className="mt-3 max-w-md text-base text-dark-gray md:mt-4 md:text-lg">
+              Collares, pulseras, anillos y aros con piedras naturales. Cada pieza es irrepetible: cuando se va, no vuelve.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3 md:mt-7">
+              <a href="#coleccion" className="app-btn-cta text-base">
+                Comprar ahora <IconArrowRight className="h-4 w-4" />
+              </a>
+              <Link href={encargosHref} className="app-btn-outline text-base">
+                Encargá tu diseño
+              </Link>
+            </div>
+            <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm text-dark-gray">
+              {TRUST_POINTS.slice(0, 3).map((point) => (
+                <li key={point.key} className="flex items-center gap-2">
+                  <TrustIcon name={point.key} className="h-4 w-4 text-earth-brown" />
+                  {point.title}
+                </li>
+              ))}
+            </ul>
           </div>
-        </section>
-      )}
-      <section className="app-panel mt-8" aria-labelledby="sobre-joyeria-artesanal">
-        <h2 id="sobre-joyeria-artesanal" className="app-title text-xl">
-          Joyería y bijouterie artesanal argentina
-        </h2>
-        <div className="mt-3 grid gap-3 text-sm leading-6 text-dark-gray md:grid-cols-2">
-          <p>
-            En Tribal Trend creamos collares, anillos, pulseras y accesorios artesanales
-            para quienes buscan una pieza original. Cada joya se trabaja a mano con
-            piedras naturales, resina y entramados de alambre.
-          </p>
-          <p>
-            Nuestra colección de bijou artesanal reúne diseños únicos elaborados en
-            Argentina. Podés comprar online y recibir tu pedido en Córdoba o mediante
-            envíos a todo el país.
-          </p>
+          <div className="order-1 md:order-2">
+            <HeroCollage products={featuredProducts} />
+          </div>
         </div>
       </section>
+
+      {/* COLECCIÓN */}
+      <section id="coleccion" className="mx-auto w-full max-w-360 scroll-mt-20 px-4 md:scroll-mt-24 md:px-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="app-kicker">La colección</p>
+            <h2 className="app-display mt-1 text-3xl md:text-4xl">Elegí la tuya</h2>
+          </div>
+          {!loading && !error && (
+            <p className="text-sm text-dark-gray">
+              {totalItemsCount} {totalItemsCount === 1 ? "pieza" : "piezas"}
+              {hasActiveFilters ? " encontradas" : " disponibles"}
+            </p>
+          )}
+        </div>
+
+        <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="app-scroll-x -mx-4 flex flex-1 gap-2 px-4 pb-1 lg:mx-0 lg:px-0" role="group" aria-label="Categorías">
+            <button type="button" className="app-chip" data-active={!activeCategoriaId} onClick={() => selectCategoria(null)}>
+              Todo
+            </button>
+            {categorias.map((categoria) => (
+              <button
+                key={categoria.id}
+                type="button"
+                className="app-chip"
+                data-active={activeCategoriaId === categoria.id}
+                onClick={() => selectCategoria(categoria.id)}
+              >
+                {capitalize(categoria.nombre)}
+              </button>
+            ))}
+          </div>
+
+          <form className="flex items-center gap-2" onSubmit={applyFilters} role="search">
+            <label className="relative flex-1 lg:w-64">
+              <span className="sr-only">Buscar piezas</span>
+              <IconSearch className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-earth-brown" />
+              <input
+                type="search"
+                className="app-input rounded-full! py-2.5! pl-10!"
+                placeholder="Buscar piezas…"
+                {...registerFilters("nombre")}
+              />
+            </label>
+            <button
+              type="button"
+              className="app-chip"
+              data-active={isFiltersOpen}
+              onClick={() => setIsFiltersOpen((prev) => !prev)}
+              aria-expanded={isFiltersOpen}
+              aria-controls="filtros-precio"
+            >
+              <IconSliders className="h-4 w-4" /> Precio
+            </button>
+          </form>
+        </div>
+
+        {activeCategoriaId && filteredSubcategorias.length > 0 && (
+          <div className="app-scroll-x -mx-4 mt-3 flex gap-2 px-4 lg:mx-0 lg:px-0" role="group" aria-label="Subcategorías">
+            <button
+              type="button"
+              className="app-chip"
+              data-active={!activeSubcategoriaId}
+              onClick={() => selectSubcategoria(null)}
+            >
+              Todas
+            </button>
+            {filteredSubcategorias.map((subcategoria) => (
+              <button
+                key={subcategoria.id}
+                type="button"
+                className="app-chip"
+                data-active={activeSubcategoriaId === subcategoria.id}
+                onClick={() => selectSubcategoria(subcategoria.id)}
+              >
+                {capitalize(subcategoria.nombre)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <form
+          id="filtros-precio"
+          className="app-collapsible mt-3 rounded-2xl border border-line bg-white/80"
+          data-open={isFiltersOpen}
+          aria-hidden={!isFiltersOpen}
+          onSubmit={applyFilters}
+        >
+          <div className="flex flex-wrap items-end gap-3 p-4">
+            <label className="w-32 text-xs text-dark-gray">
+              Desde ($)
+              <input type="number" min={0} step="100" className="app-input mt-1" {...registerFilters("precio_min")} />
+            </label>
+            <label className="w-32 text-xs text-dark-gray">
+              Hasta ($)
+              <input type="number" min={0} step="100" className="app-input mt-1" {...registerFilters("precio_max")} />
+            </label>
+            <button type="submit" className="app-btn-primary">
+              Aplicar
+            </button>
+          </div>
+        </form>
+
+        {hasActiveFilters && (
+          <button
+            type="button"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm text-earth-brown underline-offset-4 hover:underline"
+            onClick={clearFilters}
+          >
+            <IconClose className="h-4 w-4" /> Limpiar filtros
+          </button>
+        )}
+
+        {error && <ErrorState message={error} className="mt-6 text-sm text-red-600" />}
+
+        {loading ? (
+          <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 md:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <ProductCardSkeleton key={`skeleton-${index}`} />
+            ))}
+          </div>
+        ) : !error && !hasProducts ? (
+          <div className="mt-8 flex flex-col items-center gap-4 rounded-3xl border border-dashed border-earth-brown/40 bg-white/60 px-6 py-12 text-center">
+            <p className="app-display text-2xl">
+              {hasActiveFilters ? "No encontramos piezas con esos filtros" : "Estamos creando nuevas piezas"}
+            </p>
+            <p className="max-w-md text-sm text-dark-gray">
+              Probá con otra categoría o contanos qué buscás: podemos hacerla a medida.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {hasActiveFilters && (
+                <button type="button" className="app-btn-outline" onClick={clearFilters}>
+                  Ver toda la colección
+                </button>
+              )}
+              <Link href={encargosHref} className="app-btn-cta">
+                Encargar mi pieza
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-5 md:grid-cols-3 xl:grid-cols-4">
+              {products.map((product, index) => (
+                <div key={product.id} className="contents">
+                  {index === IN_GRID_PROMO_INDEX && page === 1 && !hasActiveFilters && (
+                    <Link
+                      href={encargosHref}
+                      className="app-campaign group flex aspect-4/5 flex-col justify-end p-4 sm:p-6"
+                    >
+                      <IconSparkle className="mb-auto h-8 w-8 text-mustard" />
+                      <p className="app-kicker">A medida</p>
+                      <p className="app-display mt-1 text-xl sm:text-3xl">¿No encontraste la tuya?</p>
+                      <p className="mt-2 hidden text-sm text-cream/80 sm:block">La diseñamos con tus piedras y colores favoritos.</p>
+                      <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-mustard">
+                        Encargar ahora <IconArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                      </span>
+                    </Link>
+                  )}
+                  <ProductCard product={product} onQuickAdd={addProductToCart} priority={index < 4} />
+                </div>
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <nav className="mt-10 flex items-center justify-center gap-3" aria-label="Paginación de productos">
+                <button
+                  type="button"
+                  className="app-btn-outline"
+                  onClick={() => changePage(page - 1)}
+                  disabled={page <= 1}
+                  aria-label="Página anterior"
+                >
+                  <IconArrowLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Anterior</span>
+                </button>
+                <span className="text-sm text-dark-gray">
+                  Página <strong className="text-black">{page}</strong> de {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className="app-btn-cta"
+                  onClick={() => changePage(page + 1)}
+                  disabled={page >= totalPages}
+                  aria-label="Página siguiente"
+                >
+                  <span className="hidden sm:inline">Ver más piezas</span>
+                  <span className="sm:hidden">Más</span>
+                  <IconArrowRight className="h-4 w-4" />
+                </button>
+              </nav>
+            )}
+          </>
+        )}
+      </section>
+
+      {/* CAMPAÑA ENCARGOS */}
+      <section className="mx-auto mt-20 w-full max-w-360 px-4 md:px-6">
+        <div className="app-campaign grid items-center gap-8 p-7 sm:p-10 md:grid-cols-[1.3fr_1fr] md:p-14">
+          <div className="relative z-10">
+            <p className="app-kicker">Encargos personalizados</p>
+            <h2 className="app-display mt-2 text-3xl sm:text-4xl md:text-5xl">Tu idea, convertida en una joya</h2>
+            <p className="mt-4 max-w-lg text-cream/85">
+              Elegís la piedra, los colores y el estilo. La creamos a mano, solo para vos.
+            </p>
+            <Link href={encargosHref} className="app-btn-cta mt-7 text-base">
+              Encargar mi pieza <IconArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          {campaignProducts.length === 2 && (
+            <div className="relative z-10 mx-auto flex h-56 w-full max-w-sm items-center justify-center sm:h-64" aria-hidden="true">
+              <div className="app-round-frame absolute left-0 top-0 h-40 w-40 sm:h-48 sm:w-48">
+                <img src={getProductImages(campaignProducts[0])[0]} alt="" loading="lazy" />
+              </div>
+              <div className="app-arch absolute bottom-0 right-2 h-48 w-36 sm:h-56 sm:w-40">
+                <img src={getProductImages(campaignProducts[1])[0]} alt="" loading="lazy" />
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* INSTAGRAM */}
+      <section className="mx-auto mt-20 w-full max-w-360 px-4 text-center md:px-6">
+        <p className="app-kicker">Comunidad Tribal</p>
+        <h2 className="app-display mt-2 text-3xl md:text-4xl">Las piezas nuevas salen primero en Instagram</h2>
+        <p className="mx-auto mt-3 max-w-lg text-dark-gray">
+          Seguinos en {INSTAGRAM_HANDLE} para enterarte antes que nadie. Las piezas únicas vuelan.
+        </p>
+        {instagramProducts.length > 0 && (
+          <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-6">
+            {instagramProducts.map((product) => (
+              <Link
+                key={product.id}
+                href={`/products/${product.id}`}
+                className="group relative aspect-square overflow-hidden rounded-2xl bg-sand"
+                aria-label={`Ver ${product.nombre}`}
+              >
+                <img
+                  src={getProductImages(product)[0]}
+                  alt={`${product.nombre} artesanal`}
+                  className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
+                  loading="lazy"
+                />
+                <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent p-2 text-left text-xs font-semibold text-cream opacity-0 transition group-hover:opacity-100">
+                  {formatPrice(getProductPricing(product).price)}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+        <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="app-btn-outline mt-8">
+          <IconInstagram className="h-5 w-5" /> Seguir a {INSTAGRAM_HANDLE}
+        </a>
+      </section>
+
       {designProduct && (
         <AppModal>
-          <div className="app-modal-backdrop">
-            <div className="app-modal-card max-w-xl p-4 sm:p-5">
-              <h3 className="app-title text-xl">{designProduct.nombre}</h3>
+          <div className="app-modal-backdrop" onClick={(event) => event.target === event.currentTarget && closeDesignModal()}>
+            <div className="app-modal-card max-w-xl p-5 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="design-modal-title">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="app-kicker">Elegí tu diseño</p>
+                  <h3 id="design-modal-title" className="app-display mt-1 text-2xl first-letter:uppercase">{designProduct.nombre}</h3>
+                </div>
+                <button type="button" className="app-icon-btn" onClick={closeDesignModal} aria-label="Cerrar">
+                  <IconClose />
+                </button>
+              </div>
               <div className="mt-4">
                 <ProductDesignSelector
                   fotos={designProduct.fotos ?? []}
@@ -266,24 +386,25 @@ export default function ProductsPageClient() {
                   onDesignQuantityChange={updateDesignUrlQuantity}
                 />
               </div>
-              <div className="mt-5 flex justify-end gap-2">
-                <button type="button" className="app-btn-secondary" onClick={closeDesignModal}>
-                  Cancelar
-                </button>
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <Link href={`/products/${designProduct.id}`} className="text-center text-sm text-earth-brown underline-offset-4 hover:underline">
+                  Ver todos los detalles
+                </Link>
                 <button
                   type="button"
-                  className="app-btn-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  className="app-btn-cta"
                   onClick={confirmDesignProduct}
                   disabled={selectedDesignUrls.length === 0 || selectedDesignUrls.length !== designQuantity}
                 >
-                  Agregar al carrito
+                  {selectedDesignUrls.length === 0
+                    ? "Elegí al menos un diseño"
+                    : `Agregar al carrito · ${formatPrice(designSelectionTotal)}`}
                 </button>
               </div>
             </div>
           </div>
         </AppModal>
       )}
-      </div>
     </main>
   );
 }

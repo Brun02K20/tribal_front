@@ -9,6 +9,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -39,14 +40,15 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     const existing = items.find((cartItem) => cartItem.id === item.id);
     const incomingDesigns = item.disenos_urls ?? null;
     if (!existing) {
+      const quantity = Math.min(quantityToAdd, Math.max(0, Number(item.stock)));
       persistItems([
         ...items,
         {
           ...item,
-          quantity: Math.min(quantityToAdd, Math.max(0, Number(item.stock))),
+          quantity,
         },
       ]);
-      return;
+      return quantity;
     }
 
     const nextQuantity = Math.min(existing.quantity + quantityToAdd, Math.max(0, Number(existing.stock)));
@@ -64,7 +66,11 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
           : cartItem,
       ),
     );
+    return nextQuantity - existing.quantity;
   }, [items, persistItems]);
+
+  const openCart = useCallback(() => setIsCartOpen(true), []);
+  const closeCart = useCallback(() => setIsCartOpen(false), []);
 
   const removeItem = useCallback((id: number) => {
     persistItems(items.filter((item) => item.id !== id));
@@ -110,8 +116,19 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const value = useMemo(
-    () => ({ items, totalItems, subtotal, addItem, removeItem, updateQuantity, clearCart }),
-    [items, totalItems, subtotal, addItem, removeItem, updateQuantity, clearCart],
+    () => ({
+      items,
+      totalItems,
+      subtotal,
+      addItem,
+      removeItem,
+      updateQuantity,
+      clearCart,
+      isCartOpen,
+      openCart,
+      closeCart,
+    }),
+    [items, totalItems, subtotal, addItem, removeItem, updateQuantity, clearCart, isCartOpen, openCart, closeCart],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
