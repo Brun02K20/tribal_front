@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Product } from "@/types/products";
 import { formatPrice } from "@/shared/lib/formatters";
 import { IconBagPlus } from "@/shared/ui/Icons";
+import ProductPhoto from "@/shared/ui/ProductPhoto";
 import {
   getDesignsWithPhoto,
   getProductImages,
@@ -33,30 +34,16 @@ export default function ProductCard({ product, onQuickAdd, priority = false }: P
       <div className="app-product-media">
         <Link href={productHref} className="absolute inset-0" aria-label={`Ver ${product.nombre}`}>
           {primaryImage ? (
-            <img
+            <ProductPhoto
               src={primaryImage}
               alt={`${product.nombre} artesanal - Tribal Trend`}
-              width={600}
-              height={750}
               loading={priority ? "eager" : "lazy"}
               fetchPriority={priority ? "high" : undefined}
-              decoding="async"
             />
           ) : (
             <span className="absolute inset-0 grid place-items-center text-sm text-dark-gray">Foto próximamente</span>
           )}
-          {secondaryImage && (
-            <img
-              src={secondaryImage}
-              alt=""
-              aria-hidden="true"
-              className="app-product-media-alt"
-              width={600}
-              height={750}
-              loading="lazy"
-              decoding="async"
-            />
-          )}
+          {secondaryImage && <ProductPhoto src={secondaryImage} alt="" className="app-product-media-alt" />}
         </Link>
 
         <div className="app-product-badges">

@@ -334,6 +334,7 @@ const jsonLdPayload = Array.isArray(additionalJsonLd)
 		box-shadow: 0 22px 44px rgba(47, 47, 47, 0.22), 0 0 0 1px rgba(122, 74, 43, 0.25);
 		display: block;
 		overflow: hidden;
+		position: relative;
 	}
 
 	.round-frame {
@@ -345,18 +346,28 @@ const jsonLdPayload = Array.isArray(additionalJsonLd)
 		overflow: hidden;
 	}
 
-	.arch img,
-	.round-frame img {
-		display: block;
-		height: 100%;
-		object-fit: cover;
-		transition: transform 0.7s ease;
-		width: 100%;
+	.round-frame {
+		position: relative;
 	}
 
-	.arch:hover img,
-	.round-frame:hover img {
-		transform: scale(1.05);
+	/* Foto completa, sin recortar: la imagen va contenida sobre un fondo desenfocado de sí misma. */
+	.photo-bg {
+		filter: blur(16px);
+		height: 120%;
+		left: -10%;
+		object-fit: cover;
+		opacity: 0.6;
+		position: absolute;
+		top: -10%;
+		width: 120%;
+	}
+
+	.photo-main {
+		height: 100%;
+		inset: 0;
+		object-fit: contain;
+		position: absolute;
+		width: 100%;
 	}
 
 	.campaign {
@@ -426,8 +437,6 @@ const jsonLdPayload = Array.isArray(additionalJsonLd)
 
 	@media (prefers-reduced-motion: reduce) {
 		.marquee-track,
-		.arch img,
-		.round-frame img,
 		.app-btn-cta,
 		.app-btn-outline {
 			animation: none !important;

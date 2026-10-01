@@ -102,7 +102,8 @@ const heroSlots = ['slot-main', 'slot-round', 'slot-small'];
 						{heroProducts.map((product, index) => (
 							<div class={`slot ${heroSlots[index]}`}>
 								<a class={index === 1 ? 'round-frame' : 'arch'} href={product.href} aria-label={`Ver ${product.nombre}`}>
-									<img src={product.image} alt={`${product.nombre} artesanal`} loading="eager" decoding="async" fetchpriority={index === 0 ? 'high' : 'auto'} />
+									<img class="photo-bg" src={product.image} alt="" aria-hidden="true" loading="eager" decoding="async" />
+									<img class="photo-main" src={product.image} alt={`${product.nombre} artesanal`} loading="eager" decoding="async" fetchpriority={index === 0 ? 'high' : 'auto'} />
 								</a>
 								<a class="price-tag" href={product.href} tabindex="-1">
 									<span class="price-name">{product.nombre}</span>
@@ -147,7 +148,8 @@ const heroSlots = ['slot-main', 'slot-round', 'slot-small'];
 					{products.map((product) => (
 						<a class="piece" href={product.href}>
 							<span class="piece-media">
-								<img src={product.image} alt={`${product.nombre} artesanal`} loading="lazy" decoding="async" />
+								<img class="photo-bg" src={product.image} alt="" aria-hidden="true" loading="lazy" decoding="async" />
+								<img class="photo-main" src={product.image} alt={`${product.nombre} artesanal`} loading="lazy" decoding="async" />
 								{product.isUnique && <span class="badge">Pieza única</span>}
 								<span class="piece-cta">Ver pieza →</span>
 							</span>
@@ -621,17 +623,6 @@ const heroSlots = ['slot-main', 'slot-round', 'slot-small'];
 		position: relative;
 	}
 
-	.piece-media img {
-		display: block;
-		height: 100%;
-		object-fit: cover;
-		transition: transform 0.7s ease;
-		width: 100%;
-	}
-
-	.piece:hover .piece-media img {
-		transform: scale(1.06);
-	}
 
 	.badge {
 		background: rgba(248, 243, 231, 0.94);
@@ -876,7 +867,6 @@ const heroSlots = ['slot-main', 'slot-round', 'slot-small'];
 
 	@media (prefers-reduced-motion: reduce) {
 		.stamp svg,
-		.piece-media img,
 		.piece-cta,
 		.mobile-cta {
 			animation: none;

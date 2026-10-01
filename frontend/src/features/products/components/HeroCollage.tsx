@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useId } from "react";
 import type { Product } from "@/types/products";
 import { formatPrice } from "@/shared/lib/formatters";
+import ProductPhoto from "@/shared/ui/ProductPhoto";
 import { getProductImages, getProductPricing } from "@/features/products/lib/presentation";
 
 type HeroCollageProps = {
@@ -64,12 +65,11 @@ export default function HeroCollage({ products }: HeroCollageProps) {
         return (
           <div key={product.id} className={`absolute ${slot.position}`}>
             <Link href={`/products/${product.id}`} className={`${slot.frame} block h-full w-full`} aria-label={`Ver ${product.nombre}`}>
-              <img
+              <ProductPhoto
                 src={image}
                 alt={`${product.nombre} artesanal`}
                 loading="eager"
                 fetchPriority={index === 0 ? "high" : undefined}
-                decoding="async"
               />
             </Link>
             <Link href={`/products/${product.id}`} className={`app-price-tag absolute ${slot.tag}`} tabIndex={-1}>
