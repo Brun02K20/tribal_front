@@ -22,6 +22,7 @@ import { useCart } from "@/shared/providers/CartContext";
 import { useAuth } from "@/shared/providers/AuthContext";
 import { getEncargosHref, OPEN_CHAT_EVENT } from "@/shared/lib/brand";
 import ErrorState from "@/shared/ui/ErrorState";
+import ProductPhoto from "@/shared/ui/ProductPhoto";
 import type { Product } from "@/types/products";
 import {
   IconArrowLeft,
@@ -117,7 +118,7 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
   if (loading) {
     return (
       <main className="mx-auto w-full max-w-360 px-4 pt-6 md:px-6 md:pt-10" aria-busy="true">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)] lg:gap-12">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,660px)_minmax(340px,1fr)] lg:gap-12">
           <div className="app-skeleton aspect-4/5 rounded-[1.75rem]" />
           <div className="space-y-4">
             <div className="app-skeleton h-10 w-3/4 rounded-full" />
@@ -193,7 +194,7 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
         )}
       </nav>
 
-      <section className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)] lg:gap-12">
+      <section className="grid gap-8 lg:grid-cols-[minmax(0,660px)_minmax(340px,1fr)] lg:gap-12">
         {/* GALERÍA */}
         <div className="flex flex-col-reverse gap-3 lg:sticky lg:top-28 lg:flex-row lg:self-start">
           {galleryImages.length > 1 && (
@@ -217,7 +218,7 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
             </div>
           )}
 
-          <div className="relative flex-1">
+          <div className="relative w-full lg:max-w-[560px]">
             <div
               className="relative aspect-4/5 w-full overflow-hidden rounded-[1.75rem] bg-sand shadow-[0_24px_48px_rgba(47,47,47,0.16)]"
               onMouseMove={updateZoomOrigin}
@@ -225,19 +226,19 @@ export default function ProductPageClient({ productId }: ProductPageClientProps)
               onMouseLeave={() => setIsZoomActive(false)}
             >
               {activeImage ? (
-                <img
+                <ProductPhoto
                   key={activeImage}
                   src={activeImage}
                   alt={`${product.nombre} artesanal - foto ${activeIndex + 1}`}
-                  width={1000}
-                  height={1250}
                   loading="eager"
                   fetchPriority="high"
-                  decoding="async"
-                  className="app-fade-swap h-full w-full object-cover transition-transform duration-200"
-                  style={{
+                  className="app-fade-swap app-photo-mat"
+                  maxUpscale={1.5}
+                  imgStyle={{
                     transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
-                    transform: isZoomActive ? "scale(1.9)" : "scale(1)",
+                    // Zoom moderado: las fotos originales son chicas y con más aumento se pixelan.
+                    transform: isZoomActive ? "scale(1.5)" : "scale(1)",
+                    transition: "transform 200ms ease",
                     cursor: isZoomActive ? "zoom-out" : "zoom-in",
                   }}
                 />

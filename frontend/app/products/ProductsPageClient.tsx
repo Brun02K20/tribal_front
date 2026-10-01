@@ -7,6 +7,7 @@ import { formatPrice, toNumber } from "@/shared/lib/formatters";
 import ErrorState from "@/shared/ui/ErrorState";
 import AppModal from "@/shared/ui/AppModal";
 import TrustIcon from "@/shared/ui/TrustIcon";
+import ProductPhoto from "@/shared/ui/ProductPhoto";
 import ProductDesignSelector from "@/features/products/components/ProductDesignSelector";
 import ProductCard, { ProductCardSkeleton } from "@/features/products/components/ProductCard";
 import HeroCollage from "@/features/products/components/HeroCollage";
@@ -317,10 +318,10 @@ export default function ProductsPageClient() {
           {campaignProducts.length === 2 && (
             <div className="relative z-10 mx-auto flex h-56 w-full max-w-sm items-center justify-center sm:h-64" aria-hidden="true">
               <div className="app-round-frame absolute left-0 top-0 h-40 w-40 sm:h-48 sm:w-48">
-                <img src={getProductImages(campaignProducts[0])[0]} alt="" loading="lazy" />
+                <ProductPhoto src={getProductImages(campaignProducts[0])[0]} alt="" />
               </div>
               <div className="app-arch absolute bottom-0 right-2 h-48 w-36 sm:h-56 sm:w-40">
-                <img src={getProductImages(campaignProducts[1])[0]} alt="" loading="lazy" />
+                <ProductPhoto src={getProductImages(campaignProducts[1])[0]} alt="" />
               </div>
             </div>
           )}
@@ -343,12 +344,7 @@ export default function ProductsPageClient() {
                 className="group relative aspect-square overflow-hidden rounded-2xl bg-sand"
                 aria-label={`Ver ${product.nombre}`}
               >
-                <img
-                  src={getProductImages(product)[0]}
-                  alt={`${product.nombre} artesanal`}
-                  className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
-                  loading="lazy"
-                />
+                <ProductPhoto src={getProductImages(product)[0]} alt={`${product.nombre} artesanal`} />
                 <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent p-2 text-left text-xs font-semibold text-cream opacity-0 transition group-hover:opacity-100">
                   {formatPrice(getProductPricing(product).price)}
                 </span>
